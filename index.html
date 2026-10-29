@@ -95,7 +95,9 @@ th{color:var(--muted);font-weight:600}
 .bar .in{max-width:720px;margin:0 auto}
 .sum{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
 .sum .num{font-size:26px}
-.panel{display:none;margin-top:10px;max-height:50vh;overflow:auto}
+.panel{display:none;margin-top:10px;max-height:45vh;overflow:auto}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
 .leg{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
 .leg button{background:none;border:0;color:var(--red);font:inherit;font-weight:600;cursor:pointer;padding:6px}
@@ -209,7 +211,7 @@ th{color:var(--muted);font-weight:600}
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
 
-<script src="engine.js"></script>
+<script>document.write('<script src="engine.js?v='+Date.now().toString(36).slice(0,-4)+'"><\/script>')</script>
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
@@ -355,6 +357,7 @@ function renderResults(){
       '<p class="sub" style="margin:8px 0 0">'+(s.sg?"~":"")+am(s.legs.reduce(function(d,x){return d*dec(x.a)},1))+(st==="won"?' · $10 won <b class="pos">'+money(10*(s.dec-1))+"</b>":st==="lost"?' · $10 lost':"")+'</p></div>'}).join(""):'<p class="empty">No slips here yet. Slips appear once their first game kicks off.</p>';
 }
 
+function toast(msg,bad){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");if(bad)d.style.background="var(--red)";d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},2600)}
 // ---------- send to FanDuel ----------
 function fdButton(legs){
   var bk=BOOK,nm=Engine.BOOK_NAMES[bk]||bk,L=Engine.betslipLink(legs,bk);
@@ -430,7 +433,7 @@ function renderSlip(){
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every leg must win. One miss loses the whole slip.</p>':"")+
     (same?'<p class="warn">Some legs share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");
-  $("sumL").textContent=legs.length+(legs.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2);
+  $("sumL").textContent=legs.length+(legs.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
 function renderAll(){
@@ -448,13 +451,18 @@ document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
-  else if(t.dataset.pre){SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip()}
+  else if(t.dataset.pre){
+    try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
+    catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
+    $("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
+    var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" legs. It's at the bottom of the screen.");
+    var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
-  else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
+  else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o);renderSlip()}
   else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
 });
 $("fRes").addEventListener("change",renderResults);
