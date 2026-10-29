@@ -1,7 +1,7 @@
 // NBA: pulls game lines + player props from The Odds API and saves nba/odds.json
 // Run from the repo root: ODDS_API_KEY=your_key node nba/fetch.js
 //
-// Cost per run: 3 credits for game lines + 7 per game starting in the next 30 hours (about 60 on a typical night).
+// Cost per run: 3 credits for game lines + 7 per game starting in the next 18 hours (about 60 on a typical night).
 // The schedule check uses The Odds API's free events list, so days without games cost nothing.
 
 const fs = require("fs");
@@ -12,7 +12,7 @@ const BASE = "https://api.the-odds-api.com/v4/sports/basketball_nba";
 const BOOKS = "fanduel,draftkings,betmgm,betrivers";
 const MARKETS = ["player_points", "player_rebounds", "player_assists", "player_threes", "player_points_rebounds_assists",
   "player_points_alternate", "player_threes_alternate"];
-const WINDOW_H = 30;
+const WINDOW_H = 18; // props only for tonight's games, so the afternoon run doesn't also pay for tomorrow
 const MIN_CREDITS_FOR_PROPS = 600; // leave room for the NFL
 
 let remaining = null;
