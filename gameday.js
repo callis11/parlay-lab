@@ -1,0 +1,17 @@
+// Prints play=true if there's an NFL game today (Eastern time), using the free nflverse schedule.
+// The refresh workflow skips the paid odds pull on days without games.
+const fs = require("fs");
+(async () => {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()); // YYYY-MM-DD
+  let play = true; // if the schedule can't be read, refresh anyway
+  try {
+    const res = await fetch("https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv");
+    if (!res.ok) throw new Error(res.status);
+    const lines = (await res.text()).split("\n");
+    const col = lines[0].split(",").indexOf("gameday");
+    play = lines.some(l => l.split(",")[col] === today);
+  } catch (e) { console.warn("Schedule check failed, refreshing anyway:", e.message); }
+  if (process.env.FORCE === "true") play = true;
+  console.log(today, play ? "game day: refreshing" : "no games today: skipping");
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `play=${play}\n`);
+})();
