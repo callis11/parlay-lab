@@ -31,7 +31,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync("nba/odds.json", "u
   const soon = events.filter(e => { const t = +new Date(e.commence_time); return t > now - 3 * 36e5 && t < end; });
   if (!soon.length && process.env.FORCE !== "true") { console.log("No NBA games in the next", WINDOW_H, "hours: skipping."); process.exit(0); }
 
-  const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american`);
+  const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american&includeLinks=true&includeSids=true`);
   const old = readOld();
   let props = [], propsAt = new Date().toISOString();
   const upcoming = lines.filter(x => { const t = +new Date(x.commence_time); return t > now && t < end; });
@@ -40,7 +40,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync("nba/odds.json", "u
     props = (old && old.props) || []; propsAt = (old && old.propsAt) || null;
   } else {
     for (const g of upcoming) {
-      try { props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${MARKETS.join(",")}&oddsFormat=american`)); }
+      try { props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${MARKETS.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`)); }
       catch (e) { console.warn("props failed for", g.id, e.message); }
     }
   }

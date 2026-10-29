@@ -211,6 +211,7 @@ function overProb(vals, line, label, raw) {
         const key = o.description + "|" + M.label, line = M.td ? 0.5 : o.point;
         const L = lines[key] = lines[key] || { player: o.description, label: M.label, td: !!M.td, stat: M.stat, rows: {} };
         (L.rows[line] = L.rows[line] || {})[bk.key] = o.price;
+        if (bk.key === "fanduel" && o.link) (L.fd = L.fd || {})[line] = o.link; // FanDuel add-to-bet-slip link
       }
     }
     for (const L of Object.values(lines)) {
@@ -227,6 +228,7 @@ function overProb(vals, line, label, raw) {
       const missedLast = !!(team && teamLast[team] && (!last || +last.season !== SEASON || last.game_id !== teamLast[team].gid));
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const out = { line, prices: L.rows[line] };
+        if (L.fd && L.fd[line]) out.fd = L.fd[line];
         if (vals.length >= MIN_GAMES) {
           const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);
           out.p = +r.p.toFixed(3); out.hits = r.hits; out.n = r.n; out.fair = toAm(r.p);

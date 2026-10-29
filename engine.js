@@ -10,6 +10,20 @@
     return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds",
       "Points": n === 1 ? "point" : "points", "Rebounds": n === 1 ? "rebound" : "rebounds", "Assists": n === 1 ? "assist" : "assists", "Threes": n === 1 ? "three" : "threes", "Pts + reb + ast": "pts + reb + ast" }[label] || label.toLowerCase();
   }
+  // ---------- FanDuel bet slip ----------
+  // Turns legs into one FanDuel "add to bet slip" link. Single picks use FanDuel's link as-is;
+  // several picks are combined into one link with indexed marketId/selectionId pairs.
+  function fanduelLink(legs) {
+    var ps = [];
+    legs.forEach(function (l) {
+      if (!l.fd) return;
+      var q = l.fd.split("?")[1] || "", m = /marketId=([^&]+)/.exec(q), s = /selectionId=([^&]+)/.exec(q);
+      if (m && s) ps.push({ m: decodeURIComponent(m[1]), s: decodeURIComponent(s[1]), base: l.fd.split("?")[0].replace("{state}", "mi") });
+    });
+    if (!ps.length) return null;
+    if (ps.length === 1) return { url: legs.filter(function (l) { return l.fd; })[0].fd.replace("{state}", "mi"), n: 1 };
+    return { url: ps[0].base + "?" + ps.map(function (x, i) { return "marketId[" + i + "]=" + encodeURIComponent(x.m) + "&selectionId[" + i + "]=" + encodeURIComponent(x.s); }).join("&"), n: ps.length };
+  }
   // ---------- learning from results ----------
   // Every graded leg falls into a category (market + price range). picks.js compares how often each category
   // actually hit with what we estimated and saves a correction factor in calibration.json.
@@ -69,7 +83,11 @@
         var mlA = oc(h, e.away_team).price, mlH = oc(h, e.home_team).price;
         var raw = { "sp-a": nv(as.price, hs.price), "sp-h": nv(hs.price, as.price), "ml-a": nv(mlA, mlH), "ml-h": nv(mlH, mlA), "ov": nv(ov.price, un.price), "un": nv(un.price, ov.price) };
         function cg(pp, t, a) { return calibrate(pp, category({ kind: "g", t: t, a: a }), opts.calib); }
-        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, p0: raw,
+        // FanDuel add-to-bet-slip links for each side (from FanDuel's own lines, whatever book is selected)
+        var fdb = e.bookmakers.filter(function (b) { return b.key === "fanduel"; })[0];
+        function fl(mkey, name) { var m = fdb && (fdb.markets || []).filter(function (x) { return x.key === mkey; })[0], o = m && m.outcomes.filter(function (x) { return x.name === name; })[0]; return o && o.link; }
+        var fd = { "sp-a": fl("spreads", e.away_team), "sp-h": fl("spreads", e.home_team), "ml-a": fl("h2h", e.away_team), "ml-h": fl("h2h", e.home_team), "ov": fl("totals", "Over"), "un": fl("totals", "Under") };
+        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, p0: raw, fd: fd,
           p: { "sp-a": cg(nv(as.price, hs.price), "sp-a", as.price), "sp-h": cg(nv(hs.price, as.price), "sp-h", hs.price), "ml-a": cg(nv(mlA, mlH), "ml-a", mlA), "ml-h": cg(nv(mlH, mlA), "ml-h", mlH), "ov": cg(nv(ov.price, un.price), "ov", ov.price), "un": cg(nv(un.price, ov.price), "un", un.price) },
           best: { "sp-a": best("spreads", e.away_team, as.point, as.price), "sp-h": best("spreads", e.home_team, hs.point, hs.price),
             "ml-a": best("h2h", e.away_team, undefined, mlA), "ml-h": best("h2h", e.home_team, undefined, mlH),
@@ -83,7 +101,7 @@
           "un": { n: A + "/" + H + " under " + un.point, a: un.price, pt: un.point } } });
       });
     function gkey(g, t) { return "G|" + g.id + "|" + (t.slice(0, 2) === "sp" ? "sp" : t.slice(0, 2) === "ml" ? "ml" : "tot"); }
-    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t] }; }
+    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], fd: g.fd[t] }; }
 
     // ---------- props ----------
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
@@ -97,7 +115,7 @@
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b, fd: r.fd };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
@@ -108,7 +126,7 @@
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, fd: r.fd }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
@@ -267,6 +285,6 @@
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
-  var Engine = { make: make, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, fanduelLink: fanduelLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

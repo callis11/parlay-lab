@@ -173,6 +173,7 @@ function parseInjuries(j) {
         if (o.name !== "Over" || o.point === undefined) continue;
         const L = lines[o.description + "|" + label] = lines[o.description + "|" + label] || { player: o.description, label, rows: {} };
         (L.rows[o.point] = L.rows[o.point] || {})[bk.key] = o.price;
+        if (bk.key === "fanduel" && o.link) (L.fd = L.fd || {})[o.point] = o.link;
       }
     }
     for (const L of Object.values(lines)) {
@@ -184,6 +185,7 @@ function parseInjuries(j) {
       const missedLast = !!(team && teamLast[team] && (!last || !last.cur || last.gid !== teamLast[team]));
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const r = { line, prices: L.rows[line] };
+        if (L.fd && L.fd[line]) r.fd = L.fd[line];
         if (vals.length >= MIN_GAMES) { const x = overProb(vals, line, L.label, raw); r.p = +x.p.toFixed(3); r.hits = x.hits; r.n = x.n; r.fair = toAm(x.p); }
         return r;
       });

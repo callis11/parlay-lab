@@ -32,7 +32,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
 
 (async () => {
   const old = readOld();
-  const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american`);
+  const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american&includeLinks=true&includeSids=true`);
   console.log("credits remaining after game lines:", remaining);
   const weekEnd = Date.now() + 7 * 24 * 3600 * 1000;
   const upcoming = lines.filter(x => new Date(x.commence_time) < weekEnd);
@@ -45,13 +45,13 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
   } else {
     for (const g of upcoming) {
       try {
-        props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${markets.join(",")}&oddsFormat=american`));
+        props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${markets.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`));
       } catch (e) {
         // If the provider rejects one of the newer market names, fall back to the core list
         if (e.status === 422 && markets !== CORE_MARKETS) {
           console.warn("Extra markets rejected, falling back to core markets:", e.message);
           markets = CORE_MARKETS;
-          try { props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${markets.join(",")}&oddsFormat=american`)); }
+          try { props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${markets.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`)); }
           catch (e2) { console.warn("props failed for", g.id, e2.message); }
         } else console.warn("props failed for", g.id, e.message);
       }

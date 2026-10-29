@@ -338,6 +338,14 @@ function renderResults(){
       '<p class="sub" style="margin:8px 0 0">'+(s.sg?"~":"")+am(s.legs.reduce(function(d,x){return d*dec(x.a)},1))+(st==="won"?' · $10 won <b class="pos">'+money(10*(s.dec-1))+"</b>":st==="lost"?' · $10 lost':"")+'</p></div>'}).join(""):'<p class="empty">No slips here yet. Slips appear once their first game kicks off.</p>';
 }
 
+// ---------- send to FanDuel ----------
+function fdButton(legs){
+  var L=Engine.fanduelLink(legs),miss=legs.length-(L?L.n:0);
+  if(!L)return '<p class="sub" style="margin:8px 0 0">FanDuel links show up after the next odds refresh.</p>';
+  return '<p style="margin:10px 0 0"><a class="btn flag" style="display:inline-block;text-decoration:none" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open '+(L.n>1?"all "+L.n+" legs in":"in")+' FanDuel</a></p>'+
+    '<p class="sub" style="margin:6px 0 0">Check that every leg made it onto your FanDuel slip, then set your stake there.'+(miss?" "+miss+" leg"+(miss>1?"s don't":" doesn't")+" have a FanDuel link; add "+(miss>1?"them":"it")+" by hand.":"")+(L.n>1?' If only one leg shows up, add the rest with the FanDuel link next to each leg above.':"")+'</p>';
+}
+
 // ---------- presets + slip ----------
 var PRE={};
 function renderPresetRow(el,list,prefix){
@@ -353,7 +361,8 @@ function renderSlip(){
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
   if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty";$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
-  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><button data-r="'+esc(l.k)+'">Remove</button></div>'}).join("")+
+  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><span>'+(l.fd&&legs.length>1?'<a href="'+esc(l.fd.replace("{state}","mi"))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">FanDuel</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    fdButton(legs)+
     (Engine.chance(legs)!==null?'<p style="margin:8px 0 0">Our estimate: <b>'+Math.round(Engine.chance(legs)*100)+'% to hit</b></p>':"")+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every leg must win. One miss loses the whole slip.</p>':"")+
