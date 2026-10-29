@@ -61,6 +61,7 @@ h2{font-size:26px;margin:28px 0 10px;font-weight:700}
 <header>
   <h1>Parlay Lab</h1>
   <p>Current NFL lines. Tap picks to build a parlay, or load a ready-made slip.</p>
+  <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book" style="font:inherit;padding:6px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
 
 <h2>Starter parlays</h2>
@@ -202,23 +203,26 @@ function autoPresets(){
   add("Longshot 4-Leg","Closer lines, bigger payout",fav.slice(9,13).map(ml),4);
   return out;
 }
-function build(d){
+var DATA=null,BOOK="fanduel";
+try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
+function build(d){DATA=d;
   var wk=Date.now()+7*864e5;var ev=(d.lines||[]).filter(function(e){var t=new Date(e.commence_time);return e.bookmakers&&e.bookmakers.length&&t<wk&&t>Date.now()-4*36e5}).sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)});
-  var ng=[],af={},book="";
+  var ng=[],af={},book="",miss=0;
   ev.forEach(function(e,i){
-    var bk=e.bookmakers.filter(function(b){return b.key==="draftkings"})[0]||e.bookmakers[0];
+    var bk=e.bookmakers.filter(function(b){return b.key===BOOK})[0];if(!bk){miss++;bk=e.bookmakers.filter(function(b){return b.key==="fanduel"})[0]||e.bookmakers[0]}
     function mk(k){return(bk.markets||[]).filter(function(m){return m.key===k})[0]}
     var h=mk("h2h"),s=mk("spreads"),t=mk("totals");if(!h||!s||!t)return;
     function oc(m,n){return m.outcomes.filter(function(o){return o.name===n})[0]}
     var hs=oc(s,e.home_team),as=oc(s,e.away_team),ov=oc(t,"Over"),un=oc(t,"Under"),id="g"+i;
-    if(hs.point>0)af[id]=1;book=bk.title;
+    if(hs.point>0)af[id]=1;if(bk.key===BOOK)book=bk.title;
     var day=new Date(e.commence_time).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
     ng.push([id,day,nick(e.away_team),nick(e.home_team),Math.abs(hs.point),oc(h,e.away_team).price,oc(h,e.home_team).price,ov.point,as.price,hs.price,ov.price,un.price]);
   });
   if(!ng.length)return;
   G=ng;AWAYFAV=af;gm={};G.forEach(function(g){gm[g[0]]=g});slip={};P=autoPresets();
-  document.getElementById("src").textContent="Lines: "+book+", updated "+new Date(d.fetchedAt).toLocaleString()+". Lines move, so check your sportsbook. Starter parlays are generated from the lines, not predictions.";
+  document.getElementById("src").textContent="Lines: "+(book||BOOK)+(miss?" ("+miss+" game"+(miss>1?"s":"")+" from another book)":"")+", updated "+new Date(d.fetchedAt).toLocaleString()+". Lines move, so check your sportsbook. Starter parlays are generated from the lines, not predictions.";
 }
+var sel=document.getElementById("book");sel.value=BOOK;sel.addEventListener("change",function(){BOOK=sel.value;try{localStorage.setItem("book",BOOK)}catch(e){}if(DATA){build(DATA);renderGames();renderPresets();renderSlip()}});
 fetch("odds.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(build).catch(function(){}).then(function(){renderGames();renderPresets();renderSlip()});
 </script>
 </body>
