@@ -126,6 +126,9 @@ th{color:var(--muted);font-weight:600}
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
+  <h2>Most likely to hit</h2>
+  <p class="sub">Slips with the highest chance of cashing by our estimate, one leg per game. Only healthy players: no injury tag and played last game.</p>
+  <div class="presets" id="pr-likely"></div>
   <h2>Best of the week</h2>
   <p class="sub">Game picks and player props mixed, one leg per game.</p>
   <div class="presets" id="pr-week"></div>
@@ -145,7 +148,7 @@ th{color:var(--muted);font-weight:600}
   <h2>Prop ladders</h2>
   <div class="filters">
     <select id="fGame" aria-label="Game"><option value="">All games</option></select>
-    <select id="fMkt" aria-label="Market"><option value="">All markets</option><option>Passing yards</option><option>Rushing yards</option><option>Receiving yards</option><option>Anytime TD</option></select>
+    <select id="fMkt" aria-label="Market"><option value="">All markets</option><option>Passing yards</option><option>Rushing yards</option><option>Receiving yards</option><option>Receptions</option><option>Rush + rec yards</option><option>Passing TDs</option><option>Anytime TD</option></select>
     <select id="fSort" aria-label="Sort"><option value="value">Best value first</option><option value="hit">Highest hit % first</option><option value="name">Player name</option></select>
   </div>
   <div id="props"><p class="empty">Loading props…</p></div>
@@ -213,7 +216,10 @@ function matchup(g){
   if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
     else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
   var rows=m.h2h.map(function(x){return"<tr><td>"+x.season+" wk "+x.week+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
-  return '<details><summary>Matchup and weather</summary><div class="chips">'+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
+  var mv="";if(m.open&&m.now){var hm=m.home;
+    if(m.open.spread!==null&&m.now.spread!==null&&m.open.spread!==m.now.spread)mv+='<span class="chip alert">'+hm+" spread opened "+(m.open.spread>0?"+":"")+m.open.spread+", now "+(m.now.spread>0?"+":"")+m.now.spread+'</span>';
+    if(m.open.total!==null&&m.now.total!==null&&m.open.total!==m.now.total)mv+='<span class="chip alert">Total opened '+m.open.total+", now "+m.now.total+'</span>'}
+  return '<details><summary>Matchup and weather</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
     (rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
 }
 function renderGames(){
@@ -231,7 +237,7 @@ function gameCard(g,open){
 }
 
 // ---------- props ----------
-function isValue(r){return r.ev!==null&&r.ev>=0.02&&r.p>=0.35&&r.n>=8&&r.a<=400}
+function isValue(r){return r.ev!==null&&r.ev>=0.02&&r.p>=0.35&&r.n>=6&&r.a<=400}
 function renderProps(){
   var fg=$("fGame").value,fm=$("fMkt").value,so=$("fSort").value;
   var list=PROPS.filter(function(p){return(!fg||p.ev===fg)&&(!fm||p.label===fm)});
@@ -243,17 +249,20 @@ function propCard(p){
     var cur=SLIP["P|"+p.id];
     var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
       var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+" · our estimate "+pct(r.p)+" (fair "+fmt(r.fair)+")":"Not enough games to rate";
-      return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(p.td?"Scores a TD":(r.line+0.5)+"+ yds")+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+'</span></span><span class="pr">'+fmt(r.a)+'</span></button>'}).join("");
+      return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
+    var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
+      (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"");
     return '<div class="card pl"><h3><span>'+esc(p.player)+' <span>'+(p.team||"")+'</span></span><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
-      '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+rungs+'</div>';
+      '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
 }
 
 function renderParlays(){
+  renderPresetRow("pr-likely",ENG.likelySlips(GAMES.map(function(g){return g.id})),"k");
   renderPresetRow("pr-week",ENG.slateSlips(GAMES.map(function(g){return g.id})),"w");
   var groups=ENG.slates();
   $("slates").innerHTML=groups.map(function(s,i){var one=s.g.length===1;
     return '<h2>'+s.k+'</h2><p class="sub">'+(one?s.g[0].away+" at "+s.g[0].home+". Same-game parlays, so your book's payout will be lower than shown.":s.g.length+" games, one leg per game.")+'</p><div class="presets" id="sl'+i+'"></div>'}).join("");
-  groups.forEach(function(s,i){renderPresetRow("sl"+i,ENG.slateSlips(s.g.map(function(g){return g.id})),"s"+i)});
+  groups.forEach(function(s,i){var ids=s.g.map(function(g){return g.id});renderPresetRow("sl"+i,ENG.likelySlips(ids).concat(ENG.slateSlips(ids)),"s"+i)});
 }
 function renderTeam(){
   var sel=$("fTeam"),teams=[];
@@ -305,8 +314,9 @@ var PRE={};
 function renderPresetRow(el,list,prefix){
   if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
-    var evs={},sg=false;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1});
-    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
+    var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=dec(l.best?l.best.a:l.a)});
+    var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each leg for the best price: up to '+am(bd)+'</span><br>':"";
+    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px">Our estimate: <b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game legs move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
 }
 function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
@@ -315,6 +325,7 @@ function renderSlip(){
   if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty";$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
   $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><button data-r="'+esc(l.k)+'">Remove</button></div>'}).join("")+
+    (Engine.chance(legs)!==null?'<p style="margin:8px 0 0">Our estimate: <b>'+Math.round(Engine.chance(legs)*100)+'% to hit</b></p>':"")+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every leg must win. One miss loses the whole slip.</p>':"")+
     (same?'<p class="warn">Some legs share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");

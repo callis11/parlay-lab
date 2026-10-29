@@ -54,7 +54,7 @@ function record(store) {
       store.slips[id] = {
         id, season: meta.season, week: meta.week, group: grp.group, name: s.n, desc: s.d, sg, lock, saved: now,
         legs: s.l.map(l => { const m = data.games[l.ev] || {};
-          return { n: l.n, a: l.a, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, label: l.label, td: l.td, time: l.time, gid: m.gid, away: m.away, home: m.home }; }),
+          return { n: l.n, a: l.a, p: l.p, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, label: l.label, td: l.td, time: l.time, gid: m.gid, away: m.away, home: m.home }; }),
         status: "open"
       };
       old ? updated++ : added++;
@@ -85,7 +85,8 @@ function gradeLeg(l, games, stats) {
   const r = rows.find(x => norm(x.player_display_name) === norm(l.player));
   if (!r) return "void"; // player didn't play: books void the leg
   const v = l.td ? (+r.rushing_tds || 0) + (+r.receiving_tds || 0)
-    : l.label === "Passing yards" ? +r.passing_yards : l.label === "Rushing yards" ? +r.rushing_yards : +r.receiving_yards;
+    : ({ "Passing yards": +r.passing_yards, "Rushing yards": +r.rushing_yards, "Receiving yards": +r.receiving_yards, "Receptions": +r.receptions,
+        "Passing TDs": +r.passing_tds, "Rush + rec yards": (+r.rushing_yards || 0) + (+r.receiving_yards || 0) })[l.label];
   l.actual = v;
   return v > l.line ? "won" : "lost";
 }

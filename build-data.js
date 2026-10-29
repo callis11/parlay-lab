@@ -38,8 +38,17 @@ const MARKETS = {
   player_rush_yds_alternate: { label: "Rushing yards", stat: r => +r.rushing_yards },
   player_reception_yds: { label: "Receiving yards", stat: r => +r.receiving_yards },
   player_reception_yds_alternate: { label: "Receiving yards", stat: r => +r.receiving_yards },
-  player_anytime_td: { label: "Anytime TD", stat: r => (+r.rushing_tds || 0) + (+r.receiving_tds || 0), td: true }
+  player_anytime_td: { label: "Anytime TD", stat: r => (+r.rushing_tds || 0) + (+r.receiving_tds || 0), td: true },
+  player_receptions: { label: "Receptions", stat: r => +r.receptions },
+  player_receptions_alternate: { label: "Receptions", stat: r => +r.receptions },
+  player_pass_tds: { label: "Passing TDs", stat: r => +r.passing_tds },
+  player_rush_reception_yds: { label: "Rush + rec yards", stat: r => (+r.rushing_yards || 0) + (+r.receiving_yards || 0) }
 };
+// Which defensive stat each market is adjusted by, and how much spread to assume at minimum
+const CAT = { "Passing yards": "pass", "Rushing yards": "rush", "Receiving yards": "rec", "Receptions": "recs", "Passing TDs": "ptd", "Rush + rec yards": "rr" };
+const CAT_STAT = { pass: r => +r.passing_yards, rush: r => +r.rushing_yards, rec: r => +r.receiving_yards, recs: r => +r.receptions, ptd: r => +r.passing_tds, rr: r => (+r.rushing_yards || 0) + (+r.receiving_yards || 0) };
+const SD_FLOOR = { "Receptions": m => 0.25 * m + 0.8, "Passing TDs": m => 0.35 * m + 0.4 };
+const WIND_HIT = { "Passing yards": 0.93, "Receiving yards": 0.93, "Receptions": 0.95, "Passing TDs": 0.93, "Rush + rec yards": 0.97 };
 
 // ---------- helpers ----------
 function parseCSV(text) {
@@ -68,22 +77,26 @@ const toAm = p => { if (p <= 0 || p >= 1) return null; return p >= 0.5 ? Math.ro
 function normCdf(z) { const t = 1 / (1 + 0.2316419 * Math.abs(z)); const d = 0.3989423 * Math.exp(-z * z / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
 
 // Probability the stat goes over the line: half empirical hit rate (smoothed), half normal fit
-function overProb(vals, line) {
-  const n = vals.length, hits = vals.filter(v => v > line).length;
-  const emp = (hits + 1) / (n + 2);
+// vals are already adjusted for opponent and weather; raw is used only for the displayed hit count
+function overProb(vals, line, label, raw) {
+  const n = vals.length, hits = (raw || vals).filter(v => v > line).length, adjHits = vals.filter(v => v > line).length;
+  const emp = (adjHits + 1) / (n + 2);
   const mean = vals.reduce((a, b) => a + b, 0) / n;
-  const sd = Math.max(Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(n - 1, 1)), 0.25 * mean + 5);
+  const floor = (SD_FLOOR[label] || (m => 0.25 * m + 5))(mean);
+  const sd = Math.max(Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(n - 1, 1)), floor);
   const fit = 1 - normCdf((line - mean) / sd);
   return { p: 0.5 * emp + 0.5 * fit, hits, n, mean };
 }
 
 (async () => {
   const odds = JSON.parse(fs.readFileSync("odds.json", "utf8"));
-  const [sched, statsNow, statsPrev] = await Promise.all([
+  const [sched, statsNow, statsPrev, injuries] = await Promise.all([
     getCSV(`${NFLVERSE}/schedules/games.csv`),
     getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON}.csv`),
-    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`)
+    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`),
+    getCSV(`${NFLVERSE}/injuries/injuries_${SEASON}.csv`)
   ]);
+  console.log("injury rows:", injuries.length);
   console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
 
   // ---------- team history ----------
@@ -128,6 +141,44 @@ function overProb(vals, line) {
     const k = norm(r.player_display_name); (byPlayer[k] = byPlayer[k] || []).push(r);
   });
   for (const k in byPlayer) byPlayer[k].sort((a, b) => (+a.season - +b.season) || (+a.week - +b.week));
+  // Favor this season: use up to the last 10 games this season, topping up from last season only if fewer than 6
+  function history(name) {
+    const all = byPlayer[norm(name)] || [];
+    const cur = all.filter(r => +r.season === SEASON), prev = all.filter(r => +r.season === SEASON - 1);
+    return cur.length >= 6 ? cur.slice(-LAST_N) : prev.slice(-(LAST_N - cur.length)).concat(cur);
+  }
+  // Each team's most recent game this season, to spot players who missed it
+  const teamLast = {};
+  statsNow.filter(r => r.season_type === "REG").forEach(r => { if (!teamLast[r.team] || +r.week > teamLast[r.team].week) teamLast[r.team] = { week: +r.week, gid: r.game_id }; });
+
+  // ---------- opponent defense: how much each team allows vs league average ----------
+  const allowed = {}; // cat -> team -> {gid: total}
+  statsNow.filter(r => r.season_type === "REG").forEach(r => {
+    for (const c in CAT_STAT) { const t = ((allowed[c] = allowed[c] || {})[r.opponent_team] = allowed[c][r.opponent_team] || {}); t[r.game_id] = (t[r.game_id] || 0) + (CAT_STAT[c](r) || 0); }
+  });
+  const defFactor = {}; // cat -> team -> factor
+  for (const c in allowed) {
+    const avg = {}; for (const t in allowed[c]) { const v = Object.values(allowed[c][t]); avg[t] = v.reduce((a, b) => a + b, 0) / v.length; }
+    const lg = Object.values(avg).reduce((a, b) => a + b, 0) / Math.max(Object.keys(avg).length, 1);
+    defFactor[c] = {}; for (const t in avg) defFactor[c][t] = Math.min(1.15, Math.max(0.85, 1 + 0.5 * (avg[t] / lg - 1)));
+  }
+
+  // ---------- injury report (latest status for the game's week) ----------
+  const inj = {};
+  injuries.forEach(r => {
+    const k = norm(r.full_name) + "|" + r.week;
+    const dnp = /did not participate/i.test(r.practice_status), lim = /limited/i.test(r.practice_status);
+    inj[k] = r.report_status || (dnp ? "Did not practice" : lim ? "Limited practice" : "");
+  });
+
+  // ---------- line movement: remember the first line we saw for each game ----------
+  let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
+  function snap(ev) {
+    const b = (ev.bookmakers || []).find(x => x.key === "fanduel") || (ev.bookmakers || [])[0]; if (!b) return null;
+    const m = k => (b.markets || []).find(x => x.key === k), o = (mk, n) => mk && mk.outcomes.find(x => x.name === n);
+    const sp = o(m("spreads"), ev.home_team), tt = o(m("totals"), "Over"), mh = o(m("h2h"), ev.home_team), ma = o(m("h2h"), ev.away_team);
+    return { at: odds.fetchedAt, spread: sp ? sp.point : null, total: tt ? tt.point : null, mlH: mh ? mh.price : null, mlA: ma ? ma.price : null };
+  }
 
   // ---------- games ----------
   const games = {}; const props = [];
@@ -144,10 +195,14 @@ function overProb(vals, line) {
       weather: await weather(home, ev.commence_time, row ? row.roof : null, row ? row.location === "Neutral" : false),
       stadium: row ? row.stadium : null
     };
+    const now = snap(ev);
+    if (now) { if (!hist0[ev.id]) hist0[ev.id] = { open: now, t: ev.commence_time }; games[ev.id].open = hist0[ev.id].open; games[ev.id].now = now; }
   }
 
   // ---------- props ----------
   for (const ev of odds.props || []) {
+    const G = games[ev.id] || {};
+    const windy = G.weather && G.weather.wind >= 15;
     const lines = {}; // player|label -> {player, label, td, rows:{line: {book: price}}}
     for (const bk of ev.bookmakers || []) for (const m of bk.markets || []) {
       const M = MARKETS[m.key]; if (!M) continue;
@@ -159,24 +214,35 @@ function overProb(vals, line) {
       }
     }
     for (const L of Object.values(lines)) {
-      const hist = (byPlayer[norm(L.player)] || []).slice(-LAST_N);
-      const vals = hist.map(L.stat);
+      const hist = history(L.player);
+      const raw = hist.map(L.stat);
       const team = hist.length ? hist[hist.length - 1].team : null;
+      const opp = team && G.home ? (team === G.home ? G.away : team === G.away ? G.home : null) : null;
+      const cat = CAT[L.label];
+      const oppF = opp && cat && defFactor[cat] && defFactor[cat][opp] ? +defFactor[cat][opp].toFixed(3) : 1;
+      const windF = windy ? (WIND_HIT[L.label] || 1) : 1;
+      const vals = raw.map(v => v * oppF * windF);
+      const injury = inj[norm(L.player) + "|" + G.week] || "";
+      const last = hist[hist.length - 1];
+      const missedLast = !!(team && teamLast[team] && (!last || +last.season !== SEASON || last.game_id !== teamLast[team].gid));
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const out = { line, prices: L.rows[line] };
         if (vals.length >= MIN_GAMES) {
-          const r = L.td ? { p: (vals.filter(v => v > 0).length + 1) / (vals.length + 2), hits: vals.filter(v => v > 0).length, n: vals.length } : overProb(vals, line);
+          const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);
           out.p = +r.p.toFixed(3); out.hits = r.hits; out.n = r.n; out.fair = toAm(r.p);
         }
         return out;
       });
       props.push({
-        event: ev.id, player: L.player, team, label: L.label, td: L.td, ladder,
-        recent: vals.slice(-5), avg: vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : null
+        event: ev.id, player: L.player, team, opp, oppF, windF, injury, missedLast, label: L.label, td: L.td, ladder,
+        recent: raw.slice(-5), avg: raw.length ? +(raw.reduce((a, b) => a + b, 0) / raw.length).toFixed(1) : null
       });
     }
   }
 
+  // Keep history only for games from the last 3 weeks
+  for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];
+  fs.writeFileSync("history.json", JSON.stringify(hist0));
   fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props }));
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");

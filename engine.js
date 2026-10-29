@@ -4,6 +4,13 @@
   function dec(a) { return a > 0 ? 1 + a / 100 : 1 + 100 / -a; }
   function amFromDec(d) { var a = d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); return a; }
   function nick(n) { return n.split(" ").pop(); }
+  var BOOKS = ["fanduel", "draftkings", "betmgm", "betrivers"];
+  var BOOK_NAMES = { fanduel: "FanDuel", draftkings: "DraftKings", betmgm: "BetMGM", betrivers: "BetRivers" };
+  function unit(label, n) {
+    return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds" }[label] || label.toLowerCase();
+  }
+  // Our estimated chance a whole slip hits, treating legs as independent
+  function chance(legs) { var p = 1; for (var i = 0; i < legs.length; i++) { if (legs[i].p === undefined || legs[i].p === null) return null; p *= legs[i].p; } return p; }
   // Slate label in US Eastern time, e.g. "Thursday night", "Sunday", "Monday night"
   function slateName(iso) {
     var d = new Date(iso);
@@ -25,7 +32,26 @@
         var h = mk("h2h"), s = mk("spreads"), t = mk("totals"); if (!h || !s || !t) return;
         var A = nick(e.away_team), H = nick(e.home_team), as = oc(s, e.away_team), hs = oc(s, e.home_team), ov = oc(t, "Over"), un = oc(t, "Under");
         if (!as || !hs || !ov || !un || !oc(h, e.away_team) || !oc(h, e.home_team)) return;
-        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, legs: {
+        // Fair chance from this book's two-way prices (vig removed)
+        function nv(x, y) { var px = 1 / dec(x), py = 1 / dec(y); return px / (px + py); }
+        // Best price for the same side at the same number across the four books
+        function best(mkey, name, pt, mine) {
+          var b = { a: mine, book: bk.title };
+          e.bookmakers.forEach(function (o) {
+            if (BOOKS.indexOf(o.key) < 0) return;
+            var m = (o.markets || []).filter(function (x) { return x.key === mkey; })[0]; if (!m) return;
+            var oc2 = m.outcomes.filter(function (x) { return x.name === name && (pt === undefined || x.point === pt); })[0];
+            if (oc2 && dec(oc2.price) > dec(b.a)) b = { a: oc2.price, book: o.title };
+          });
+          return b;
+        }
+        var mlA = oc(h, e.away_team).price, mlH = oc(h, e.home_team).price;
+        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point,
+          p: { "sp-a": nv(as.price, hs.price), "sp-h": nv(hs.price, as.price), "ml-a": nv(mlA, mlH), "ml-h": nv(mlH, mlA), "ov": nv(ov.price, un.price), "un": nv(un.price, ov.price) },
+          best: { "sp-a": best("spreads", e.away_team, as.point, as.price), "sp-h": best("spreads", e.home_team, hs.point, hs.price),
+            "ml-a": best("h2h", e.away_team, undefined, mlA), "ml-h": best("h2h", e.home_team, undefined, mlH),
+            "ov": best("totals", "Over", ov.point, ov.price), "un": best("totals", "Under", un.point, un.price) },
+          legs: {
           "sp-a": { n: A + " " + (as.point > 0 ? "+" : "") + as.point, a: as.price, pt: as.point },
           "sp-h": { n: H + " " + (hs.point > 0 ? "+" : "") + hs.point, a: hs.price, pt: hs.point },
           "ml-a": { n: A + " ML", a: oc(h, e.away_team).price },
@@ -34,7 +60,7 @@
           "un": { n: A + "/" + H + " under " + un.point, a: un.price, pt: un.point } } });
       });
     function gkey(g, t) { return "G|" + g.id + "|" + (t.slice(0, 2) === "sp" ? "sp" : t.slice(0, 2) === "ml" ? "ml" : "tot"); }
-    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t }; }
+    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], best: g.best[t] }; }
 
     // ---------- props ----------
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
@@ -43,16 +69,21 @@
       var rungs = p.ladder.filter(function (r) { return r.prices[book] !== undefined; }).map(function (r) {
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
-        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 10); pa = w * r.p + (1 - w) * imp; ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
-        return { line: r.line, a: a, p: pa, hits: r.hits, n: r.n, fair: fair, ev: ev };
+        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
+        var b = { a: a, book: BOOK_NAMES[book] || book };
+        BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
+        return { line: r.line, a: a, p: pa, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b };
       });
       if (!rungs.length) return;
-      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, label: p.label, td: p.td, avg: p.avg, recent: p.recent, rungs: rungs,
-        best: Math.max.apply(null, rungs.map(function (r) { return r.ev === null || r.n < 8 || r.a > 400 ? -9 : r.ev; })),
+      // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
+      var healthy = !p.injury && !p.missedLast;
+      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy,
+        label: p.label, td: p.td, avg: p.avg, recent: p.recent, rungs: rungs,
+        best: Math.max.apply(null, rungs.map(function (r) { return r.ev === null || r.n < 6 || r.a > 400 ? -9 : r.ev; })),
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
-    function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + p.label.toLowerCase().replace(" yards", " yds")); }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td }; }
+    function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, best: r.best }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
@@ -68,7 +99,7 @@
       return out;
     }
     function playerPresets() {
-      var c = []; P.forEach(function (p) { p.rungs.forEach(function (r) { if (r.p !== undefined) c.push({ p: p, r: r }); }); });
+      var c = []; P.forEach(function (p) { if (p.healthy) p.rungs.forEach(function (r) { if (r.p !== undefined) c.push({ p: p, r: r }); }); });
       function pickN(arr, n) {
         var used = {}, games = {}, out = [];
         arr.forEach(function (x) { if (out.length < n && !used[x.p.player] && !games[x.p.ev]) { used[x.p.player] = 1; games[x.p.ev] = 1; out.push(propLeg(x.p, x.r)); } });
@@ -77,9 +108,9 @@
       }
       var out = []; function add(n, d, l, need) { if (l.length >= need) out.push({ n: n, d: d, l: l }); }
       add("High-Floor 3", "Highest hit % at a fair price", pickN(c.filter(function (x) { return x.r.a <= -120 && x.r.a >= -350 && !x.p.td; }).sort(function (a, b) { return b.r.p - a.r.p; }), 3), 3);
-      add("Best Value 3", "Our estimate beats the price most", pickN(c.filter(function (x) { return x.r.p >= 0.5 && x.r.n >= 8 && x.r.a <= 150; }).sort(function (a, b) { return b.r.ev - a.r.ev; }), 3), 3);
-      add("TD Trio", "Likeliest anytime TD scorers", pickN(c.filter(function (x) { return x.p.td && x.r.n >= 8; }).sort(function (a, b) { return b.r.p - a.r.p; }), 3), 3);
-      add("Yardage 4-Leg", "Solid hit rates, plus-ish prices", pickN(c.filter(function (x) { return !x.p.td && x.r.p >= 0.5 && x.r.n >= 8 && x.r.a >= -200 && x.r.a <= 130; }).sort(function (a, b) { return b.r.ev - a.r.ev; }), 4), 4);
+      add("Best Value 3", "Our estimate beats the price most", pickN(c.filter(function (x) { return x.r.p >= 0.5 && x.r.n >= 6 && x.r.a <= 150; }).sort(function (a, b) { return b.r.ev - a.r.ev; }), 3), 3);
+      add("TD Trio", "Likeliest anytime TD scorers", pickN(c.filter(function (x) { return x.p.td && x.r.n >= 6; }).sort(function (a, b) { return b.r.p - a.r.p; }), 3), 3);
+      add("Yardage 4-Leg", "Solid hit rates, plus-ish prices", pickN(c.filter(function (x) { return !x.p.td && x.r.p >= 0.5 && x.r.n >= 6 && x.r.a >= -200 && x.r.a <= 130; }).sort(function (a, b) { return b.r.ev - a.r.ev; }), 4), 4);
       return out;
     }
 
@@ -88,11 +119,11 @@
     function poolFor(ids, team) {
       var set = {}; ids.forEach(function (i) { set[i] = 1; });
       var props = []; P.forEach(function (p) {
-        if (!set[p.ev] || (team && p.team !== team)) return;
-        p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 8) props.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a, e: r.ev, td: p.td }); });
+        if (!set[p.ev] || (team && p.team !== team) || !p.healthy) return;
+        p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6) props.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a, e: r.ev, td: p.td }); });
       });
       var gs = G.filter(function (g) { return set[g.id]; });
-      function gl(g, t) { return { leg: gameLeg(g, t), who: "G|" + g.id + "|" + (t === "ov" || t === "un" ? "tot" : "side"), ev: g.id, a: g.legs[t].a }; }
+      function gl(g, t) { return { leg: gameLeg(g, t), who: "G|" + g.id + "|" + (t === "ov" || t === "un" ? "tot" : "side"), ev: g.id, a: g.legs[t].a, p: g.p[t] }; }
       var by = function (f) { return function (a, b) { return f(b) - f(a); }; };
       function sideOf(g, abbr) { var m = data && data.games[g.id]; return m && m.home === abbr ? "h" : "a"; }
       return {
@@ -150,18 +181,64 @@
       G.forEach(function (g) { var k = slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
       return groups;
     }
+    // ---------- most likely to hit ----------
+    // Every healthy rated prop rung and every game side, with our win chance. One leg per game.
+    function likelyPool() {
+      var c = [];
+      P.forEach(function (p) { if (!p.healthy) return; p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6 && r.a >= -400 && r.a <= 200) c.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a }); }); });
+      G.forEach(function (g) { ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(function (t) { var a = g.legs[t].a; if (a >= -400 && a <= 200) c.push({ leg: gameLeg(g, t), who: "G|" + g.id, ev: g.id, p: g.p[t], a: a }); }); });
+      return c;
+    }
+    // Search small combinations for the slip with the highest chance that still pays at least `target` (decimal odds).
+    function bestCombo(c, target, maxK, sameGame) {
+      // Candidates: the 25 likeliest legs plus the 25 that add the most payout per unit of risk
+      var eff = function (x) { return -Math.log(x.p) / Math.log(dec(x.a)); };
+      var byP = c.slice().sort(function (x, y) { return y.p - x.p; }).slice(0, 25);
+      var byE = c.filter(function (x) { return dec(x.a) > 1.3; }).sort(function (x, y) { return eff(x) - eff(y); }).slice(0, 25);
+      var pool = [], seenL = {}; byP.concat(byE).forEach(function (x) { var k = x.leg.k + "|" + x.leg.t + "|" + x.leg.line; if (!seenL[k]) { seenL[k] = 1; pool.push(x); } });
+      pool.sort(function (x, y) { return y.p - x.p; });
+      var best = null, bestP = 0;
+      function ok(sel) { var who = {}, evs = {}; for (var i = 0; i < sel.length; i++) { if (who[sel[i].who] || (!sameGame && evs[sel[i].ev])) return false; who[sel[i].who] = 1; evs[sel[i].ev] = 1; } return true; }
+      function rec(start, sel, p, d) {
+        if (sel.length >= 2 && d >= target) { if (p > bestP && ok(sel)) { bestP = p; best = sel.slice(); } return; }
+        if (sel.length === maxK || p <= bestP) return;
+        for (var i = start; i < pool.length; i++) { sel.push(pool[i]); rec(i + 1, sel, p * pool[i].p, d * dec(pool[i].a)); sel.pop(); }
+      }
+      rec(0, [], 1, 1);
+      return best ? best.map(function (x) { return x.leg; }) : null;
+    }
+    function topN(c, n, sameGame) {
+      var sorted = c.filter(function (x) { return x.a >= -300; }).sort(function (x, y) { return y.p - x.p; });
+      var who = {}, evs = {}, legs = [];
+      for (var i = 0; i < sorted.length && legs.length < n; i++) { var x = sorted[i]; if (who[x.who] || (!sameGame && evs[x.ev])) continue; who[x.who] = 1; evs[x.ev] = 1; legs.push(x.leg); }
+      return legs.length === n ? legs : null;
+    }
+    function likelySlips(ids) {
+      var set = {}; ids.forEach(function (i) { set[i] = 1; });
+      var c = likelyPool().filter(function (x) { return set[x.ev]; }), out = [], sg = ids.length === 1;
+      var seen = {};
+      function add(n, d, l) { if (!l) return; var k = l.map(function (x) { return x.k + x.line; }).sort().join(); if (seen[k]) return; seen[k] = 1; out.push({ n: n, d: d, l: l }); }
+      add("Best 2-Leg", "The two legs we rate most likely to hit", topN(c, 2, sg));
+      add("Best 3-Leg", "The three legs we rate most likely to hit", topN(c, 3, sg));
+      add("Best Shot at +100", "Highest chance to double your money", bestCombo(c, 2, 4, sg));
+      add("Best Shot at +300", "Highest chance to pay 3 to 1 or better", bestCombo(c, 4, 4, sg));
+      if (!sg) add("Best Shot at +600", "Highest chance to pay 6 to 1 or better", bestCombo(c, 7, 5, sg));
+      return out;
+    }
+
     // Every auto-built slip on the Parlays page, grouped
     function allParlays() {
-      var out = [{ group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) }];
-      slates().forEach(function (s) { out.push({ group: s.k, slips: slateSlips(s.g.map(function (g) { return g.id; })) }); });
+      var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; })) },
+        { group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) }];
+      slates().forEach(function (s) { var ids = s.g.map(function (g) { return g.id; }); out.push({ group: s.k, slips: likelySlips(ids).concat(slateSlips(ids)) }); });
       out.push({ group: "Player props only", slips: playerPresets() });
       out.push({ group: "Game lines only", slips: gamePresets() });
       return out;
     }
     return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, rungName: rungName, gamePresets: gamePresets, playerPresets: playerPresets,
-      slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays };
+      slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
-  var Engine = { make: make, dec: dec, amFromDec: amFromDec, slateName: slateName };
+  var Engine = { make: make, dec: dec, amFromDec: amFromDec, slateName: slateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

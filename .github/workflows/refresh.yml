@@ -1,8 +1,12 @@
 name: Refresh odds
 on:
+  # Times are UTC, set for Eastern Standard Time (Nov-Mar). In EDT they run one hour later.
+  # The paid odds pull only happens on days with an NFL game (gameday.js); other runs just grade results.
   schedule:
-    # Checks 3 times a day, but only pulls odds on days with an NFL game
-    - cron: "0 14,18,22 * * *"
+    - cron: "0 15,19,23 * * 1-6"   # 10 AM, 2 PM, 6 PM ET, Mon-Sat
+    - cron: "0 14-18,20,23 * * 0"  # Sunday: hourly 9 AM-1 PM ET, then 3 PM and 6 PM
+    - cron: "0 0 * * 1,2,5"        # 7 PM ET before Sunday, Monday and Thursday night games
+    - cron: "30 14 * * 2"          # Tuesday 9:30 AM ET: early-week lines, even with no game
   workflow_dispatch:
     inputs:
       force:
@@ -11,6 +15,9 @@ on:
         default: true
 permissions:
   contents: write
+concurrency:
+  group: refresh
+  cancel-in-progress: false
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -22,7 +29,7 @@ jobs:
       - id: gd
         run: node gameday.js
         env:
-          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+          FORCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) || github.event.schedule == '30 14 * * 2' }}
       - if: steps.gd.outputs.play == 'true'
         run: node fetch-odds.js
         env:
@@ -34,7 +41,8 @@ jobs:
         env:
           RECORD: ${{ steps.gd.outputs.play }}
       - run: |
+          git pull --rebase --autostash origin main || true
           git config user.name "odds-bot"
           git config user.email "odds-bot@users.noreply.github.com"
-          git add odds.json data.json picks.json
+          git add odds.json data.json picks.json history.json
           git diff --cached --quiet || (git commit -m "Update odds" && git push)
