@@ -96,6 +96,7 @@ th{color:var(--muted);font-weight:600}
 .sum{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
 .sum .num{font-size:26px}
 .panel{display:none;margin-top:10px;max-height:45vh;overflow:auto}
+.placed{margin:10px 0;padding:10px;border:1px dashed var(--line);border-radius:4px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -173,6 +174,9 @@ th{color:var(--muted);font-weight:600}
 </section>
 
 <section id="v-results" role="tabpanel" aria-labelledby="t-results" hidden>
+  <div id="mySec"><h2>My bets</h2>
+  <p class="sub">Only on this phone. Saved from the slip with "I placed this bet." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
+  <div id="myBets"></div></div>
   <h2>How our picks did</h2>
   <p class="sub">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
   <div id="resSummary"></div>
@@ -207,6 +211,11 @@ th{color:var(--muted);font-weight:600}
   <div class="panel" id="panel">
     <div id="legs"></div>
     <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
+    <div class="placed" id="placeBox"><b>I placed this bet</b>
+      <div class="filters" style="margin:6px 0 0"><select id="placeBook" aria-label="Betting app"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select>
+      <input id="placeOdds" type="text" inputmode="text" placeholder="Odds in app, e.g. +250" aria-label="Odds the app gave you" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);flex:1;min-width:120px"></div>
+      <button class="btn flag" id="placeSave" style="margin-top:8px">Save to My bets</button>
+      <p class="sub" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
   </div>
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
@@ -321,7 +330,41 @@ function renderTeam(){
 // ---------- results ----------
 function money(x){return(x<0?"-$":"$")+Math.abs(x).toFixed(2)}
 function profit(s){return s.status==="won"?10*(s.dec-1):s.status==="lost"?-10:0}
+// ---------- My bets (private, saved in this browser only) ----------
+function myLoad(){try{return JSON.parse(localStorage.getItem("mybets")||"[]")}catch(e){return []}}
+function mySave(a){try{localStorage.setItem("mybets",JSON.stringify(a));return true}catch(e){return false}}
+function parseOdds(v){v=String(v||"").replace(/\s/g,"");if(!/^[+-]?\d{3,6}$/.test(v))return null;var n=+v;return Math.abs(n)>=100?n:null}
+// Find a graded result for a leg by matching it to our graded slips and report cards
+function legResult(l){
+  var out=null;
+  function chk(x){if(!out&&x.n===l.n&&x.result&&x.result!=="pending")out={r:x.result,actual:x.actual}}
+  if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(k){(PICKS.slips[k].legs||[]).forEach(chk)});
+  if(CARDS&&CARDS.cards)Object.keys(CARDS.cards).forEach(function(k){var c=CARDS.cards[k];["pieces","straights","tds"].forEach(function(s){if(c[s])c[s].legs.forEach(function(x){chk({n:x.nm,result:x.result,actual:x.actual})})})});
+  return out;
+}
+function myStatus(b){
+  if(b.manual)return b.manual;
+  var rs=b.legs.map(function(l){var r=legResult(l);return r?r.r:"pending"});
+  if(rs.indexOf("lost")>=0)return"lost";
+  if(rs.indexOf("pending")>=0)return Date.now()>b.last+6*36e5?"check":"pending";
+  return rs.every(function(r){return r==="void"||r==="push"})?"push":"won";
+}
+function renderMyBets(){
+  var all=myLoad().filter(function(b){return b.sport===SPORT});
+  if(!all.length){$("myBets").innerHTML='<p class="empty">Nothing saved yet. Build or load a slip, open it at the bottom, and tap "Save to My bets" after you place it.</p>';return}
+  var by={},tot={n:0,st:0,pl:0};
+  all.forEach(function(b){var s=myStatus(b),x=by[b.book]=by[b.book]||{n:0,st:0,pl:0,w:0,l:0};x.n++;x.st+=b.stake;
+    var pl=s==="won"?b.stake*(dec(b.odds)-1):s==="lost"?-b.stake:0;x.pl+=pl;if(s==="won")x.w++;if(s==="lost")x.l++;tot.n++;tot.st+=b.stake;tot.pl+=pl});
+  var apps=Object.keys(by).map(function(k){var x=by[k];return"<tr><td>"+esc(Engine.BOOK_NAMES[k]||k)+"</td><td>"+x.n+" ("+x.w+"-"+x.l+")</td><td>$"+x.st.toFixed(0)+'</td><td class="'+(x.pl>=0?"pos":"neg")+'">'+money(x.pl)+"</td></tr>"}).join("");
+  var lab={won:"Won",lost:"Lost",push:"Push",pending:"Live",check:"Check app"};
+  $("myBets").innerHTML='<table><thead><tr><th>App</th><th>Bets</th><th>Staked</th><th>Profit</th></tr></thead><tbody>'+apps+'<tr><td><b>Total</b></td><td>'+tot.n+'</td><td>$'+tot.st.toFixed(0)+'</td><td class="'+(tot.pl>=0?"pos":"neg")+'"><b>'+money(tot.pl)+'</b></td></tr></tbody></table>'+
+    all.slice().reverse().slice(0,30).map(function(b){var s=myStatus(b);
+      return'<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(Engine.BOOK_NAMES[b.book]||b.book)+' <span>· $'+b.stake.toFixed(0)+" at "+fmt(b.odds)+" · "+new Date(b.saved).toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span></span><span class="badge '+(s==="won"||s==="lost"?s:"")+'">'+lab[s]+'</span></h3>'+
+        '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+m+'</span>'+esc(l.n)+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul>'+
+        '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="more" data-mydel="'+b.id+'">Delete</button></p></div>'}).join("");
+}
 function renderResults(){
+  renderMyBets();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});
   if(!done.length){$("resSummary").innerHTML='<p class="empty">Nothing graded yet. This week\'s slips are saved and will be graded after the games, once box scores are posted.</p>'}
@@ -459,6 +502,16 @@ document.addEventListener("click",function(e){
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="placeSave"){
+    var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some legs to the slip first.",true);return}
+    var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=parseOdds($("placeOdds").value);
+    var bet={id:Date.now().toString(36),sport:SPORT,book:$("placeBook").value,stake:parseFloat($("stake").value)||0,odds:od||Engine.amFromDec(d),saved:Date.now(),
+      last:Math.max.apply(null,legs.map(function(l){return +new Date(l.time)||Date.now()})),legs:legs.map(function(l){return{n:l.n,a:l.a,time:l.time}})};
+    var all=myLoad();all.push(bet);
+    if(mySave(all)){toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");$("placeOdds").value="";$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
+    else toast("This browser won't save it (private mode?).",true)}
+  else if(t.dataset.mydel){var a=myLoad().filter(function(b){return b.id!==t.dataset.mydel});mySave(a);renderMyBets()}
+  else if(t.dataset.id&&t.dataset.myset!==undefined){var a2=myLoad();a2.forEach(function(b){if(b.id===t.dataset.id)b.manual=t.dataset.myset||null});mySave(a2);renderMyBets()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
@@ -483,10 +536,10 @@ function route(){
   if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();if(DATA){$("fTeam").value="";renderTeam();renderSlip()}}
   ["parlays","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
 }
-window.addEventListener("hashchange",route);route();
+window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
-$("book").value=BOOK;
-$("book").addEventListener("change",function(){BOOK=$("book").value;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
+$("book").value=BOOK;$("placeBook").value=BOOK;
+$("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
 Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];renderAll()});
 </script>
