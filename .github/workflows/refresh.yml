@@ -29,9 +29,12 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
       - if: steps.gd.outputs.play == 'true'
         run: node build-data.js
-      - if: steps.gd.outputs.play == 'true'
-        run: |
+      # Save this run's slips (game days only), then grade finished ones (every run, free data)
+      - run: node picks.js
+        env:
+          RECORD: ${{ steps.gd.outputs.play }}
+      - run: |
           git config user.name "odds-bot"
           git config user.email "odds-bot@users.noreply.github.com"
-          git add odds.json data.json
+          git add odds.json data.json picks.json
           git diff --cached --quiet || (git commit -m "Update odds" && git push)

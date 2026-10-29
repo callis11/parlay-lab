@@ -12,3 +12,6 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 - fetch-odds.js pulls game lines and player props from The Odds API (uses your ODDS_API_KEY secret).
 - build-data.js adds free nflverse game history and player stats, plus Open-Meteo weather, and writes data.json.
 - index.html is the site. It reads odds.json and data.json.
+- engine.js builds the games, props and auto parlays. The site and the grader both use it.
+- picks.js saves each auto parlay at FanDuel's price when its first game kicks off and grades it afterward ($10 per slip) into picks.json.
+- gameday.js skips the paid odds pull on days without an NFL game.

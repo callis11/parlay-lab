@@ -138,7 +138,7 @@ function overProb(vals, line) {
     const h2h = done.filter(g => (g.home_team === home && g.away_team === away) || (g.home_team === away && g.away_team === home))
       .sort((a, b) => (+b.season - +a.season) || (+b.week - +a.week)).slice(0, 6).map(gameResult);
     games[ev.id] = {
-      away, home, h2h,
+      away, home, h2h, gid: row ? row.game_id : null, season: SEASON, week: row ? +row.week : null,
       rec: { [away]: teamRecord(away), [home]: teamRecord(home) },
       div: row ? row.div_game === "1" : false,
       weather: await weather(home, ev.commence_time, row ? row.roof : null, row ? row.location === "Neutral" : false),
