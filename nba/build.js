@@ -80,6 +80,9 @@ function parseInjuries(j) {
     const recent = m >= today.slice(0, 7).replace("-", "") || +m >= +today.slice(0, 7).replace("-", "") - 1;
     if (!logs.scanned[m] || recent) months.push(m);
   }
+  // Also next month, so games in the first days of a new month get matched too
+  const nx = new Date(today + "T12:00:00Z"); nx.setUTCMonth(nx.getUTCMonth() + 1);
+  const nm = nx.toISOString().slice(0, 7).replace("-", ""); if (!months.includes(nm) && !(nm.slice(4) >= "07" && nm.slice(4) <= "09")) months.push(nm);
   const sbs = await pool(months, 3, m => getJSON(`${ESPN}/scoreboard?dates=${m}&limit=1000`));
   for (let i = 0; i < months.length; i++) {
     let gs = sbs[i] ? parseScoreboard(sbs[i]) : [];
