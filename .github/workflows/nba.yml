@@ -1,0 +1,36 @@
+name: Refresh NBA
+on:
+  # Times are UTC: 10:30 AM and 4:30 PM Eastern (EST). Days with no NBA games cost no odds credits.
+  schedule:
+    - cron: "30 15,21 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+jobs:
+  nba:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: f
+        run: node nba/fetch.js
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
+      # Box scores and injuries come from ESPN (free), so this runs every time to keep grading current
+      - run: node nba/build.js
+      - run: node picks.js
+        env:
+          SPORT: nba
+          RECORD: ${{ steps.f.outputs.fetched == 'true' }}
+      - run: |
+          git pull --rebase --autostash origin main || true
+          git config user.name "odds-bot"
+          git config user.email "odds-bot@users.noreply.github.com"
+          git add nba/*.json
+          git diff --cached --quiet || (git commit -m "Update NBA odds and results" && git push)

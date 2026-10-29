@@ -8,6 +8,9 @@ const fs = require("fs");
 const Engine = require("./engine.js");
 
 const BOOK = "fanduel";
+// SPORT=nba grades the NBA page from nba/ files (ESPN box scores cached in nba/logs.json)
+const SPORT = process.env.SPORT || "nfl";
+const DIR = SPORT === "nfl" ? "" : SPORT + "/";
 const NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download";
 const now = Date.now();
 
@@ -34,9 +37,9 @@ const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8"))
 
 // ---------- record ----------
 function record(store) {
-  const odds = readJSON("odds.json", null), data = readJSON("data.json", null);
+  const odds = readJSON(DIR + "odds.json", null), data = readJSON(DIR + "data.json", null);
   if (!odds || !data) { console.log("No odds/data to record from."); return; }
-  const E = Engine.make(odds, data, BOOK, now);
+  const E = Engine.make(odds, data, BOOK, now, Engine.OPTS[SPORT]);
   const seen = {}; // groupKey -> ids made this run
   let added = 0, updated = 0;
   for (const grp of E.allParlays()) {
@@ -85,6 +88,7 @@ function gradeLeg(l, games, stats) {
   const r = rows.find(x => norm(x.player_display_name) === norm(l.player));
   if (!r) return "void"; // player didn't play: books void the leg
   const v = l.td ? (+r.rushing_tds || 0) + (+r.receiving_tds || 0)
+    : SPORT === "nba" ? ({ "Points": r.pts, "Rebounds": r.reb, "Assists": r.ast, "Threes": r.fg3, "Pts + reb + ast": r.pts + r.reb + r.ast })[l.label]
     : ({ "Passing yards": +r.passing_yards, "Rushing yards": +r.rushing_yards, "Receiving yards": +r.receiving_yards, "Receptions": +r.receptions,
         "Passing TDs": +r.passing_tds, "Rush + rec yards": (+r.rushing_yards || 0) + (+r.receiving_yards || 0) })[l.label];
   l.actual = v;
@@ -92,18 +96,24 @@ function gradeLeg(l, games, stats) {
 }
 
 (async () => {
-  const store = readJSON("picks.json", { slips: {} });
+  const store = readJSON(DIR + "picks.json", { slips: {} });
   if (process.env.RECORD === "true") record(store);
 
   const open = Object.values(store.slips).filter(s => !["won", "lost", "push"].includes(s.status) && s.lock <= now);
   if (open.length) {
-    const seasons = [...new Set(open.map(s => s.season))];
-    const sched = await getCSV(`${NFLVERSE}/schedules/games.csv`);
-    const games = {}; (sched || []).forEach(g => { games[g.game_id] = g; });
-    const stats = {};
-    for (const yr of seasons) {
-      const rows = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${yr}.csv`);
-      (rows || []).forEach(r => { (stats[r.game_id] = stats[r.game_id] || []).push(r); });
+    const games = {}, stats = {};
+    if (SPORT === "nba") {
+      const logs = readJSON("nba/logs.json", { games: {}, box: {} });
+      for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.hs, away_score: g.as }; }
+      for (const id in logs.box) stats[id] = logs.box[id].map(r => ({ player_display_name: r[0], pts: r[3], reb: r[4], ast: r[5], fg3: r[6] }));
+    } else {
+      const seasons = [...new Set(open.map(s => s.season))];
+      const sched = await getCSV(`${NFLVERSE}/schedules/games.csv`);
+      (sched || []).forEach(g => { games[g.game_id] = g; });
+      for (const yr of seasons) {
+        const rows = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${yr}.csv`);
+        (rows || []).forEach(r => { (stats[r.game_id] = stats[r.game_id] || []).push(r); });
+      }
     }
     for (const s of open) {
       s.legs.forEach(l => { l.result = gradeLeg(l, games, stats); });
@@ -119,6 +129,6 @@ function gradeLeg(l, games, stats) {
   const all = Object.values(store.slips);
   const counts = all.reduce((c, s) => (c[s.status] = (c[s.status] || 0) + 1, c), {});
   store.updated = new Date(now).toISOString();
-  fs.writeFileSync("picks.json", JSON.stringify(store));
+  fs.writeFileSync(DIR + "picks.json", JSON.stringify(store));
   console.log("picks.json:", all.length, "slips", JSON.stringify(counts));
 })();

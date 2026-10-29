@@ -95,6 +95,9 @@ th{color:var(--muted);font-weight:600}
 .empty{color:var(--muted);margin:6px 0}
 .warn{color:var(--red);font-size:13px;margin:6px 0 0}
 [hidden]{display:none!important}
+.sport{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden;margin:4px 0 6px}
+.sport a{padding:6px 18px;font-weight:700;text-decoration:none;color:var(--ink)}
+.sport a[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .gate{position:fixed;inset:0;background:rgba(10,15,30,.85);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
 .gate .box{background:var(--surface);color:var(--ink);border-radius:6px;border-top:6px solid var(--flag);padding:20px;max-width:420px}
 .gate h2{margin:0 0 8px}
@@ -112,8 +115,9 @@ th{color:var(--muted);font-weight:600}
 </div></div>
 <div class="wrap">
 <header>
+  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a></nav>
   <h1>Parlay Lab</h1>
-  <p>Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
+  <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
 
@@ -129,9 +133,9 @@ th{color:var(--muted);font-weight:600}
   <h2>Most likely to hit</h2>
   <p class="sub">Slips with the highest chance of cashing by our estimate, one leg per game. Only healthy players: no injury tag and played last game.</p>
   <div class="presets" id="pr-likely"></div>
-  <h2>Best of the week</h2>
+  <div id="weekSec"><h2>Best of the week</h2>
   <p class="sub">Game picks and player props mixed, one leg per game.</p>
-  <div class="presets" id="pr-week"></div>
+  <div class="presets" id="pr-week"></div></div>
   <div id="slates"></div>
   <h2>Player props only</h2>
   <div class="presets" id="ppresets"></div>
@@ -148,7 +152,7 @@ th{color:var(--muted);font-weight:600}
   <h2>Prop ladders</h2>
   <div class="filters">
     <select id="fGame" aria-label="Game"><option value="">All games</option></select>
-    <select id="fMkt" aria-label="Market"><option value="">All markets</option><option>Passing yards</option><option>Rushing yards</option><option>Receiving yards</option><option>Receptions</option><option>Rush + rec yards</option><option>Passing TDs</option><option>Anytime TD</option></select>
+    <select id="fMkt" aria-label="Market"><option value="">All markets</option></select>
     <select id="fSort" aria-label="Sort"><option value="value">Best value first</option><option value="hit">Highest hit % first</option><option value="name">Player name</option></select>
   </div>
   <div id="props"><p class="empty">Loading props…</p></div>
@@ -189,6 +193,8 @@ th{color:var(--muted);font-weight:600}
 
 <script src="engine.js"></script>
 <script>
+// Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
+var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
 var PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
@@ -202,24 +208,26 @@ function when(iso){return new Date(iso).toLocaleString("en-US",{weekday:"short",
 
 // ---------- games (logic lives in engine.js, shared with the grader) ----------
 var ENG=null;
-function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now());GAMES=ENG.G;PROPS=ENG.P}
+function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now(),Engine.OPTS[SPORT]);GAMES=ENG.G;PROPS=ENG.P}
 function gkey(g,t){return ENG.gkey(g,t)}
 function gameLeg(g,t){return ENG.gameLeg(g,t)}
 function propLeg(p,r){return ENG.propLeg(p,r)}
 function rungName(p,r){return ENG.rungName(p,r)}
 function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
   return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:L.n)+'</span><small>'+fmt(L.a)+'</small></button>'}
-function rec(r,t){if(!r)return"";return '<span class="chip">'+t+' ATS '+r.ats[0]+"-"+r.ats[1]+(r.ats[2]?"-"+r.ats[2]:"")+'</span><span class="chip">'+t+' O/U '+r.ou[0]+"-"+r.ou[1]+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"")}
+function rec(r,t){if(!r)return"";
+  if(r.wl)return '<span class="chip">'+t+" "+r.wl[0]+"-"+r.wl[1]+(r.games>=5?", last 10: "+r.l10[0]+"-"+r.l10[1]:"")+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"");
+  return '<span class="chip">'+t+' ATS '+r.ats[0]+"-"+r.ats[1]+(r.ats[2]?"-"+r.ats[2]:"")+'</span><span class="chip">'+t+' O/U '+r.ou[0]+"-"+r.ou[1]+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"")}
 function matchup(g){
   var m=DATA&&DATA.games[g.id];if(!m)return"";
   var w=m.weather,wx="";
   if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
     else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
-  var rows=m.h2h.map(function(x){return"<tr><td>"+x.season+" wk "+x.week+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
+  var rows=m.h2h.map(function(x){return"<tr><td>"+(x.date?new Date(x.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"}):x.season+" wk "+x.week)+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
   var mv="";if(m.open&&m.now){var hm=m.home;
     if(m.open.spread!==null&&m.now.spread!==null&&m.open.spread!==m.now.spread)mv+='<span class="chip alert">'+hm+" spread opened "+(m.open.spread>0?"+":"")+m.open.spread+", now "+(m.now.spread>0?"+":"")+m.now.spread+'</span>';
     if(m.open.total!==null&&m.now.total!==null&&m.open.total!==m.now.total)mv+='<span class="chip alert">Total opened '+m.open.total+", now "+m.now.total+'</span>'}
-  return '<details><summary>Matchup and weather</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
+  return '<details><summary>Matchup'+(SPORT==="nfl"?" and weather":"")+'</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
     (rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
 }
 function renderGames(){
@@ -257,6 +265,7 @@ function propCard(p){
 }
 
 function renderParlays(){
+  $("weekSec").hidden=!!(Engine.OPTS[SPORT]||{}).noWeek;
   renderPresetRow("pr-likely",ENG.likelySlips(GAMES.map(function(g){return g.id})),"k");
   renderPresetRow("pr-week",ENG.slateSlips(GAMES.map(function(g){return g.id})),"w");
   var groups=ENG.slates();
@@ -304,7 +313,7 @@ function renderResults(){
   var list=all.filter(function(s){return s.lock<=now&&(!f||s.status===f||(f==="pending"&&s.status==="open"))}).sort(function(a,b){return b.lock-a.lock}).slice(0,40);
   var mark={won:"✓",lost:"✗",push:"–",void:"–",pending:"…"};
   $("resList").innerHTML=list.length?list.map(function(s){var st=s.status==="open"?"pending":s.status;
-    return '<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(s.name)+' <span>Week '+s.week+" · "+esc(s.group)+'</span></span><span class="badge '+st+'">'+{won:"Won",lost:"Lost",push:"Push",pending:"Live"}[st]+'</span></h3>'+
+    return '<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(s.name)+' <span>'+(/-/.test(String(s.week))?new Date(s.week+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"Week "+s.week)+" · "+esc(s.group)+'</span></span><span class="badge '+st+'">'+{won:"Won",lost:"Lost",push:"Push",pending:"Live"}[st]+'</span></h3>'+
       '<ul class="rl">'+s.legs.map(function(x){var r=x.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(x.n)+(x.actual!==undefined&&!x.td?" <small style=\"color:var(--muted)\">("+x.actual+")</small>":"")+(r==="void"?" <small style=\"color:var(--muted)\">(didn\'t play)</small>":"")+'</span><span>'+fmt(x.a)+'</span></li>'}).join("")+'</ul>'+
       '<p class="sub" style="margin:8px 0 0">'+(s.sg?"~":"")+am(s.legs.reduce(function(d,x){return d*dec(x.a)},1))+(st==="won"?' · $10 won <b class="pos">'+money(10*(s.dec-1))+"</b>":st==="lost"?' · $10 lost':"")+'</p></div>'}).join(""):'<p class="empty">No slips here yet. Slips appear once their first game kicks off.</p>';
 }
@@ -336,6 +345,8 @@ function renderAll(){
   build();renderGames();renderProps();
   renderPresetRow("presets",ENG.gamePresets(),"g");renderPresetRow("ppresets",ENG.playerPresets(),"p");
   renderParlays();renderTeam();renderResults();
+  var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
+  fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
   var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.map(function(g){return'<option value="'+g.id+'">'+g.away+" at "+g.home+"</option>"}).join("");fg.value=v;
   var b=(ODDS&&ODDS.lines||[]).length;
   $("src").textContent=b?"Lines: "+$("book").selectedOptions[0].text+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
@@ -355,6 +366,9 @@ document.addEventListener("click",function(e){
 $("fRes").addEventListener("change",renderResults);
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
+// Sport-specific labels
+$("s-"+SPORT).setAttribute("aria-current","page");
+if(SPORT==="nba"){document.title="Parlay Lab · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
   if(ok)return;$("gate").hidden=false;$("gateYes").focus();
@@ -372,7 +386,7 @@ $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.re
 $("book").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON("odds.json"),getJSON("data.json"),getJSON("picks.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];renderAll()});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];renderAll()});
 </script>
 </body>
 </html>

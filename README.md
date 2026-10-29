@@ -22,3 +22,9 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 - Sundays: hourly 9 AM-1 PM, then 3 PM and 6 PM.
 - Tuesdays 9:30 AM for early-week lines.
 - Each refresh costs about 155 Odds API credits (roughly 11,000-12,000 a month). If credits drop below about 550, props stop updating so game lines keep going.
+
+## NBA page (./?nba)
+- nba/fetch.js pulls NBA lines and props for games in the next 30 hours (about 60 credits on a typical night; days without games are free).
+- nba/build.js gets box scores and injury reports from ESPN's public feed, caches them in nba/logs.json, and writes nba/data.json.
+- picks.js with SPORT=nba records and grades NBA slips into nba/picks.json.
+- Runs twice a day (10:30 AM and 4:30 PM ET) from .github/workflows/nba.yml.

@@ -7,7 +7,8 @@
   var BOOKS = ["fanduel", "draftkings", "betmgm", "betrivers"];
   var BOOK_NAMES = { fanduel: "FanDuel", draftkings: "DraftKings", betmgm: "BetMGM", betrivers: "BetRivers" };
   function unit(label, n) {
-    return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds" }[label] || label.toLowerCase();
+    return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds",
+      "Points": n === 1 ? "point" : "points", "Rebounds": n === 1 ? "rebound" : "rebounds", "Assists": n === 1 ? "assist" : "assists", "Threes": n === 1 ? "three" : "threes", "Pts + reb + ast": "pts + reb + ast" }[label] || label.toLowerCase();
   }
   // Our estimated chance a whole slip hits, treating legs as independent
   function chance(legs) { var p = 1; for (var i = 0; i < legs.length; i++) { if (legs[i].p === undefined || legs[i].p === null) return null; p *= legs[i].p; } return p; }
@@ -19,9 +20,15 @@
     return w === "Sunday" ? "Sunday" : (w + (h >= 17 ? " night" : ""));
   }
 
-  function make(odds, data, book, now) {
+  // Date label in US Eastern time, e.g. "Thu, Oct 29" (used for daily sports like the NBA)
+  function dateName(iso) { return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }); }
+  // Per-sport settings: how far ahead to show games, how to group them, and whether to show a "Best of the week" row
+  var OPTS = { nfl: {}, nba: { windowH: 30, slate: "date", noWeek: true } };
+
+  function make(odds, data, book, now, opts) {
+    opts = opts || {};
     var G = [], P = [];
-    var wk = now + 7 * 864e5;
+    var wk = now + (opts.windowH || 168) * 36e5;
     // ---------- games ----------
     ((odds && odds.lines) || []).filter(function (e) { var t = new Date(e.commence_time); return e.bookmakers && e.bookmakers.length && t < wk && t > now - 4 * 36e5; })
       .sort(function (a, b) { return new Date(a.commence_time) - new Date(b.commence_time); }).forEach(function (e) {
@@ -178,7 +185,7 @@
     }
     function slates() {
       var groups = [], idx = {};
-      G.forEach(function (g) { var k = slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
+      G.forEach(function (g) { var k = opts.slate === "date" ? dateName(g.t) : slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
       return groups;
     }
     // ---------- most likely to hit ----------
@@ -228,8 +235,8 @@
 
     // Every auto-built slip on the Parlays page, grouped
     function allParlays() {
-      var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; })) },
-        { group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) }];
+      var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; })) }];
+      if (!opts.noWeek) out.push({ group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) });
       slates().forEach(function (s) { var ids = s.g.map(function (g) { return g.id; }); out.push({ group: s.k, slips: likelySlips(ids).concat(slateSlips(ids)) }); });
       out.push({ group: "Player props only", slips: playerPresets() });
       out.push({ group: "Game lines only", slips: gamePresets() });
@@ -239,6 +246,6 @@
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
-  var Engine = { make: make, dec: dec, amFromDec: amFromDec, slateName: slateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES };
+  var Engine = { make: make, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);
