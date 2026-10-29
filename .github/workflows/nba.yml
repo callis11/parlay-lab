@@ -1,8 +1,8 @@
 name: Refresh NBA
 on:
-  # Times are UTC: 10:30 AM and 4:30 PM Eastern (EST). Days with no NBA games cost no odds credits.
+  # Times are UTC: 10:37 AM and 4:37 PM Eastern (EST). Days with no NBA games cost no odds credits.
   schedule:
-    - cron: "30 15,21 * * *"
+    - cron: "37 15,21 * * *"
   workflow_dispatch:
 permissions:
   contents: write
