@@ -23,7 +23,9 @@ header p{margin:0;color:var(--muted);max-width:46ch}
 h2{font-size:26px;margin:24px 0 10px;font-weight:700}
 select{font:inherit;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
 .tabs{display:flex;gap:0;margin:18px 0 0;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:4;padding-top:env(safe-area-inset-top,0px)}
-.tab{font:inherit;font-weight:700;font-size:16px;background:none;border:0;color:var(--muted);padding:12px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.sub{color:var(--muted);margin:-4px 0 10px;font-size:14px}
+.preset .sg{color:var(--muted);font-size:12px;margin:0 0 8px}
+.tab{font:inherit;font-weight:700;font-size:16px;background:none;border:0;color:var(--muted);padding:12px 14px;flex:1;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--flag)}
 .presets{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
 .preset{flex:0 0 80%;max-width:310px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:4px;padding:12px;display:flex;flex-direction:column}
@@ -92,20 +94,29 @@ th{color:var(--muted);font-weight:600}
 </header>
 
 <div class="tabs" role="tablist">
-  <button class="tab" role="tab" id="t-games" aria-selected="true" aria-controls="v-games">Games</button>
-  <button class="tab" role="tab" id="t-props" aria-selected="false" aria-controls="v-props">Player props</button>
+  <button class="tab" role="tab" id="t-parlays" data-v="parlays" aria-selected="true" aria-controls="v-parlays">Parlays</button>
+  <button class="tab" role="tab" id="t-games" data-v="games" aria-selected="false" aria-controls="v-games">Games</button>
+  <button class="tab" role="tab" id="t-props" data-v="props" aria-selected="false" aria-controls="v-props">Props</button>
+  <button class="tab" role="tab" id="t-team" data-v="team" aria-selected="false" aria-controls="v-team">Teams</button>
 </div>
 
-<section id="v-games" role="tabpanel" aria-labelledby="t-games">
-  <h2>Starter parlays</h2>
+<section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
+  <h2>Best of the week</h2>
+  <p class="sub">Game picks and player props mixed, one leg per game.</p>
+  <div class="presets" id="pr-week"></div>
+  <div id="slates"></div>
+  <h2>Player props only</h2>
+  <div class="presets" id="ppresets"></div>
+  <h2>Game lines only</h2>
   <div class="presets" id="presets"></div>
+</section>
+
+<section id="v-games" role="tabpanel" aria-labelledby="t-games" hidden>
   <h2>Games</h2>
   <div id="games"><p class="empty">Loading lines…</p></div>
 </section>
 
 <section id="v-props" role="tabpanel" aria-labelledby="t-props" hidden>
-  <h2>Player parlays</h2>
-  <div class="presets" id="ppresets"></div>
   <h2>Prop ladders</h2>
   <div class="filters">
     <select id="fGame" aria-label="Game"><option value="">All games</option></select>
@@ -113,6 +124,17 @@ th{color:var(--muted);font-weight:600}
     <select id="fSort" aria-label="Sort"><option value="value">Best value first</option><option value="hit">Highest hit % first</option><option value="name">Player name</option></select>
   </div>
   <div id="props"><p class="empty">Loading props…</p></div>
+</section>
+
+<section id="v-team" role="tabpanel" aria-labelledby="t-team" hidden>
+  <h2>Team parlays</h2>
+  <div class="filters"><select id="fTeam" aria-label="Team"></select></div>
+  <p class="sub" id="teamNote"></p>
+  <div class="presets" id="pr-team"></div>
+  <h2 id="teamGameH">This week's game</h2>
+  <div id="teamGame"></div>
+  <h2>Player props</h2>
+  <div id="teamProps"></div>
 </section>
 
 <p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. "Value" means our estimate beats the book's price, not that the bet will win. Payouts for legs from the same game are estimates, since books price same-game parlays differently. For entertainment only. 21+. Gambling problem? Call 1-800-GAMBLER.</p>
@@ -127,7 +149,7 @@ th{color:var(--muted);font-weight:600}
 </div></div>
 
 <script>
-var ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30;
+var ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -174,10 +196,13 @@ function renderGames(){
   var out="",last="";
   GAMES.forEach(function(g){var d=when(g.t).split(",").slice(0,2).join(",");
     if(d!==last){last=d;out+='<div class="day">'+d+'</div>'}
-    out+='<div class="card"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+
-      '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+matchup(g)+'</div>';
+    out+=gameCard(g);
   });
   $("games").innerHTML=out;
+}
+function gameCard(g,open){
+  return '<div class="card"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+(open?when(g.t):new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+
+    '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+matchup(g).replace("<details>",open?"<details open>":"<details>")+'</div>';
 }
 function gameLeg(g,t){return{k:gkey(g,t),t:t,n:g.legs[t].n,a:g.legs[t].a,ev:g.id}}
 function gamePresets(){
@@ -217,14 +242,15 @@ function renderProps(){
   var list=PROPS.filter(function(p){return(!fg||p.ev===fg)&&(!fm||p.label===fm)});
   list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="hit"?function(a,b){return b.top-a.top}:function(a,b){return b.best-a.best});
   if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
-  $("props").innerHTML=list.slice(0,SHOWN).map(function(p){
+  $("props").innerHTML=list.slice(0,SHOWN).map(propCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
+}
+function propCard(p){
     var cur=SLIP["P|"+p.id];
     var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
       var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+" · our estimate "+pct(r.p)+" (fair "+fmt(r.fair)+")":"Not enough games to rate";
       return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(p.td?"Scores a TD":(r.line+0.5)+"+ yds")+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+'</span></span><span class="pr">'+fmt(r.a)+'</span></button>'}).join("");
     return '<div class="card pl"><h3><span>'+esc(p.player)+' <span>'+(p.team||"")+'</span></span><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
       '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+rungs+'</div>';
-  }).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
 }
 function playerPresets(){
   var c=[];PROPS.forEach(function(p){p.rungs.forEach(function(r){if(r.p!==undefined)c.push({p:p,r:r})})});
@@ -239,12 +265,95 @@ function playerPresets(){
   return out;
 }
 
+// ---------- mixed slips (game lines + props) ----------
+// Each candidate: {leg, who (one leg per player / per game market), ev, ...}
+function favSide(g){return g.legs["ml-h"].a<=g.legs["ml-a"].a?"h":"a"}
+function poolFor(ids,team){
+  var set={};ids.forEach(function(i){set[i]=1});
+  var props=[];PROPS.forEach(function(p){if(!set[p.ev]||(team&&p.team!==team))return;
+    p.rungs.forEach(function(r){if(r.p!==undefined&&r.n>=8)props.push({leg:propLeg(p,r),who:p.player,ev:p.ev,p:r.p,a:r.a,e:r.ev,td:p.td})})});
+  var gs=GAMES.filter(function(g){return set[g.id]});
+  function gl(g,t){return{leg:gameLeg(g,t),who:"G|"+g.id+"|"+(t==="ov"||t==="un"?"tot":"side"),ev:g.id,a:g.legs[t].a}}
+  var by=function(f){return function(a,b){return f(b)-f(a)}};
+  return{
+    floors:props.filter(function(x){return!x.td&&x.a<=-120&&x.a>=-350}).sort(by(function(x){return x.p})),
+    value:props.filter(function(x){return x.p>=0.45&&x.a<=150}).sort(by(function(x){return x.e})),
+    plus:props.filter(function(x){return x.p>=0.4&&x.a>=100&&x.a<=180}).sort(by(function(x){return x.e})),
+    tds:props.filter(function(x){return x.td}).sort(by(function(x){return x.p})),
+    mid:props.filter(function(x){return!x.td&&x.p>=0.55&&x.p<=0.8&&x.a>=-250}).sort(by(function(x){return x.e})),
+    favML:gs.map(function(g){return gl(g,"ml-"+favSide(g))}).sort(function(a,b){return a.a-b.a}),
+    favSP:gs.map(function(g){return gl(g,"sp-"+favSide(g))}).sort(function(a,b){return a.leg.a-b.leg.a}),
+    over:gs.map(function(g){return gl(g,"ov")}),
+    side:function(g,abbr){var m=DATA.games[g.id],s=m&&m.home===abbr?"h":"a",fav=favSide(g)===s;return gl(g,(fav?"ml-":"sp-")+s)},
+    teamSP:function(g,abbr){var m=DATA.games[g.id],s=m&&m.home===abbr?"h":"a";return gl(g,"sp-"+s)}
+  };
+}
+// parts: [[candidates, count], ...]. oneGame: no two legs from the same game
+function mkSlip(n,d,parts,oneGame){
+  var who={},evs={},legs=[];
+  for(var i=0;i<parts.length;i++){var c=parts[i][0],need=parts[i][1],got=0;
+    for(var j=0;j<c.length&&got<need;j++){var x=c[j];if(who[x.who]||(oneGame&&evs[x.ev]))continue;who[x.who]=1;evs[x.ev]=1;legs.push(x.leg);got++}
+    if(got<need)return null}
+  return{n:n,d:d,l:legs};
+}
+function slateSlips(ids){
+  var P=poolFor(ids),multi=ids.length>=4,out=[];
+  function add(s){if(s)out.push(s)}
+  if(multi){
+    add(mkSlip("Safe 4","Biggest favorite plus three high-floor props",[[P.favML,1],[P.floors,3]],true));
+    add(mkSlip("Favorites + Floors 5","Three favorites, two high-floor props",[[P.favML,3],[P.floors,2]],true));
+    add(mkSlip("Value 3","Props where our estimate beats the price most",[[P.value,3]],true));
+    add(mkSlip("TDs + Spreads","Two likely TD scorers, two favorites to cover",[[P.tds,2],[P.favSP,2]],true));
+    add(mkSlip("Longshot 5","Plus-money props and favorites to cover",[[P.plus,3],[P.favSP,2]],true));
+  }else{
+    add(mkSlip("Favorite Control","Favorite wins, plus a TD and a high-floor prop",[[P.favML,1],[P.tds,1],[P.floors,1]],false));
+    add(mkSlip("High Floor","Three props with the best hit rates",[[P.floors,3]],false));
+    add(mkSlip("Value","Best-value props in this game",[[P.value,3]],false));
+    add(mkSlip("Shootout","Over plus three yardage overs",[[P.over,1],[P.mid,3]],false));
+  }
+  return out;
+}
+function teamSlips(abbr){
+  var g=GAMES.filter(function(x){var m=DATA&&DATA.games[x.id];return m&&(m.home===abbr||m.away===abbr)})[0];if(!g)return{g:null,l:[]};
+  var P=poolFor([g.id],abbr),out=[],nm=g[DATA.games[g.id].home===abbr?"home":"away"];
+  function add(s){if(s)out.push(s)}
+  add(mkSlip(nm+" Safe","Win or cover, a likely TD and two high-floor props",[[[P.side(g,abbr)],1],[P.tds,1],[P.floors,2]],false));
+  add(mkSlip(nm+" Shootout","Game over plus three "+nm+" yardage overs",[[P.over,1],[P.mid,3]],false));
+  add(mkSlip(nm+" Long Shot","Cover plus three plus-money "+nm+" props",[[[P.teamSP(g,abbr)],1],[P.plus,3]],false));
+  return{g:g,l:out};
+}
+function slateName(g){var d=new Date(g.t),w=d.toLocaleDateString("en-US",{weekday:"long"}),h=d.getHours();
+  return w==="Sunday"?"Sunday":(w+(h>=17?" night":""))}
+function renderParlays(){
+  renderPresetRow("pr-week",slateSlips(GAMES.map(function(g){return g.id})),"w");
+  var groups=[],idx={};
+  GAMES.forEach(function(g){var k=slateName(g);if(!(k in idx)){idx[k]=groups.length;groups.push({k:k,g:[]})}groups[idx[k]].g.push(g)});
+  $("slates").innerHTML=groups.map(function(s,i){var one=s.g.length===1;
+    return '<h2>'+s.k+'</h2><p class="sub">'+(one?s.g[0].away+" at "+s.g[0].home+". Same-game parlays, so your book's payout will be lower than shown.":s.g.length+" games, one leg per game.")+'</p><div class="presets" id="sl'+i+'"></div>'}).join("");
+  groups.forEach(function(s,i){renderPresetRow("sl"+i,slateSlips(s.g.map(function(g){return g.id})),"s"+i)});
+}
+function renderTeam(){
+  var sel=$("fTeam"),teams=[];
+  GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m){teams.push([m.away,g.away]);teams.push([m.home,g.home])}});
+  teams.sort(function(a,b){return a[1].localeCompare(b[1])});
+  var v=sel.value||TEAM||"DET";if(!teams.some(function(t){return t[0]===v}))v=teams.length?teams[0][0]:"";
+  sel.innerHTML=teams.map(function(t){return'<option value="'+t[0]+'">'+t[1]+'</option>'}).join("");sel.value=v;TEAM=v;
+  if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
+  var r=teamSlips(v);
+  $("teamNote").textContent=r.g?"Same-game parlays from "+r.g.away+" at "+r.g.home+", so your book's payout will be lower than shown.":"No game this week.";
+  renderPresetRow("pr-team",r.l,"t");
+  $("teamGame").innerHTML=r.g?gameCard(r.g,true):"";
+  var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
+  $("teamProps").innerHTML=tp.length?tp.map(propCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
+}
+
 // ---------- presets + slip ----------
 var PRE={};
 function renderPresetRow(el,list,prefix){
   if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
-    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul><div class="row"><span class="num">'+am(d)+'</span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
+    var evs={},sg=false;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1});
+    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span class="num">'+(sg?"~":"")+am(d)+'</span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
 }
 function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
@@ -262,6 +371,7 @@ function renderSlip(){
 function renderAll(){
   buildGames();buildProps();renderGames();renderProps();
   renderPresetRow("presets",gamePresets(),"g");renderPresetRow("ppresets",playerPresets(),"p");
+  renderParlays();renderTeam();
   var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.map(function(g){return'<option value="'+g.id+'">'+g.away+" at "+g.home+"</option>"}).join("");fg.value=v;
   var b=(ODDS&&ODDS.lines||[]).length;
   $("src").textContent=b?"Lines: "+$("book").selectedOptions[0].text+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
@@ -276,10 +386,19 @@ document.addEventListener("click",function(e){
   else if(t.id==="clear"){SLIP={};renderSlip()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
   else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
-  else if(t.classList.contains("tab")){var props=t.id==="t-props";$("t-games").setAttribute("aria-selected",!props);$("t-props").setAttribute("aria-selected",props);$("v-games").hidden=props;$("v-props").hidden=!props}
+  else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
 });
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
+// Pages: #parlays, #games, #props, #team-DET (shareable links)
+function route(){
+  var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0?"team":h;
+  if(["parlays","games","props","team"].indexOf(v)<0)v="parlays";
+  if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();if(DATA){$("fTeam").value="";renderTeam();renderSlip()}}
+  ["parlays","games","props","team"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
+}
+window.addEventListener("hashchange",route);route();
+$("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("book").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
