@@ -357,10 +357,12 @@ function renderResults(){
 
 // ---------- send to FanDuel ----------
 function fdButton(legs){
-  var L=Engine.fanduelLink(legs),miss=legs.length-(L?L.n:0);
-  if(!L)return '<p class="sub" style="margin:8px 0 0">FanDuel links show up after the next odds refresh.</p>';
-  return '<p style="margin:10px 0 0"><a class="btn flag" style="display:inline-block;text-decoration:none" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open '+(L.n>1?"all "+L.n+" legs in":"in")+' FanDuel</a></p>'+
-    '<p class="sub" style="margin:6px 0 0">Check that every leg made it onto your FanDuel slip, then set your stake there.'+(miss?" "+miss+" leg"+(miss>1?"s don't":" doesn't")+" have a FanDuel link; add "+(miss>1?"them":"it")+" by hand.":"")+(L.n>1?' If only one leg shows up, add the rest with the FanDuel link next to each leg above.':"")+'</p>';
+  var bk=BOOK,nm=Engine.BOOK_NAMES[bk]||bk,L=Engine.betslipLink(legs,bk);
+  if(!L)return '<p class="sub" style="margin:8px 0 0">'+nm+' links show up after the next odds refresh.</p>';
+  var miss=legs.length-L.n,tip=miss?" "+miss+" leg"+(miss>1?"s don't":" doesn't")+" have a "+nm+" link; add "+(miss>1?"them":"it")+" by hand.":"";
+  if(!L.combined)return '<p class="sub" style="margin:10px 0 0">Tap the '+nm+' link next to each leg to add it to your '+nm+' bet slip.'+tip+'</p>';
+  return '<p style="margin:10px 0 0"><a class="btn flag" style="display:inline-block;text-decoration:none" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open '+(L.n>1?"all "+L.n+" legs in ":"in ")+esc(nm)+'</a></p>'+
+    '<p class="sub" style="margin:6px 0 0">Check that every leg made it onto your '+nm+' slip, then set your stake there.'+tip+(L.n>1?" If only one leg shows up, add the rest with the "+nm+" link next to each leg above.":"")+'</p>';
 }
 
 // ---------- game report cards ----------
@@ -422,7 +424,7 @@ function renderSlip(){
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
   if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty";$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
-  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><span>'+(l.fd&&legs.length>1?'<a href="'+esc(l.fd.replace("{state}","mi"))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">FanDuel</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs)+
     (Engine.chance(legs)!==null?'<p style="margin:8px 0 0">Our estimate: <b>'+Math.round(Engine.chance(legs)*100)+'% to hit</b></p>':"")+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+

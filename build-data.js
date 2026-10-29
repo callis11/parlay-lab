@@ -213,7 +213,7 @@ function overProb(vals, line, label, raw) {
         const L = lines[key] = lines[key] || { player: o.description, label: M.label, td: !!M.td, stat: M.stat, rows: {}, un: {} };
         if (isUnder) { (L.un[line] = L.un[line] || {})[bk.key] = o.price; continue; } // main lines also have an Under price
         (L.rows[line] = L.rows[line] || {})[bk.key] = o.price;
-        if (bk.key === "fanduel" && o.link) (L.fd = L.fd || {})[line] = o.link; // FanDuel add-to-bet-slip link
+        if (o.link) ((L.lk = L.lk || {})[line] = L.lk[line] || {})[bk.key] = o.link; // each book's add-to-bet-slip link
       }
     }
     for (const L of Object.values(lines)) {
@@ -231,7 +231,7 @@ function overProb(vals, line, label, raw) {
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const out = { line, prices: L.rows[line] };
         if (L.un[line]) out.under = L.un[line];
-        if (L.fd && L.fd[line]) out.fd = L.fd[line];
+        if (L.lk && L.lk[line]) out.links = L.lk[line];
         if (vals.length >= MIN_GAMES) {
           const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);
           out.p = +r.p.toFixed(3); out.hits = r.hits; out.n = r.n; out.fair = toAm(r.p);
