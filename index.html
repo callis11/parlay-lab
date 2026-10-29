@@ -203,7 +203,7 @@ function autoPresets(){
   return out;
 }
 function build(d){
-  var ev=(d.lines||[]).filter(function(e){return e.bookmakers&&e.bookmakers.length}).sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)});
+  var wk=Date.now()+7*864e5;var ev=(d.lines||[]).filter(function(e){var t=new Date(e.commence_time);return e.bookmakers&&e.bookmakers.length&&t<wk&&t>Date.now()-4*36e5}).sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)});
   var ng=[],af={},book="";
   ev.forEach(function(e,i){
     var bk=e.bookmakers.filter(function(b){return b.key==="draftkings"})[0]||e.bookmakers[0];

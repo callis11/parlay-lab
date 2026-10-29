@@ -23,8 +23,10 @@ async function get(url) {
 
 (async () => {
   const lines = await get(`${BASE}/odds?apiKey=${KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american`);
+  const weekEnd = Date.now() + 7*24*3600*1000;
   const props = [];
-  for (const g of lines) {
+  // Props only for games in the next 7 days, to save credits
+  for (const g of lines.filter(x => new Date(x.commence_time) < weekEnd)) {
     try {
       const p = await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&regions=us&markets=${PROP_MARKETS.join(",")}&oddsFormat=american`);
       props.push(p);
