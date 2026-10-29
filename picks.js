@@ -39,7 +39,8 @@ const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8"))
 function record(store) {
   const odds = readJSON(DIR + "odds.json", null), data = readJSON(DIR + "data.json", null);
   if (!odds || !data) { console.log("No odds/data to record from."); return; }
-  const E = Engine.make(odds, data, BOOK, now, Engine.OPTS[SPORT]);
+  const calib = readJSON(DIR + "calibration.json", null);
+  const E = Engine.make(odds, data, BOOK, now, Object.assign({}, Engine.OPTS[SPORT], { calib }));
   const seen = {}; // groupKey -> ids made this run
   let added = 0, updated = 0;
   for (const grp of E.allParlays()) {
@@ -57,7 +58,7 @@ function record(store) {
       store.slips[id] = {
         id, season: meta.season, week: meta.week, group: grp.group, name: s.n, desc: s.d, sg, lock, saved: now,
         legs: s.l.map(l => { const m = data.games[l.ev] || {};
-          return { n: l.n, a: l.a, p: l.p, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, label: l.label, td: l.td, time: l.time, gid: m.gid, away: m.away, home: m.home }; }),
+          return { n: l.n, a: l.a, p: l.p, p0: l.p0, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, label: l.label, td: l.td, time: l.time, gid: m.gid, away: m.away, home: m.home }; }),
         status: "open"
       };
       old ? updated++ : added++;
@@ -127,6 +128,31 @@ function gradeLeg(l, games, stats) {
     }
   }
   const all = Object.values(store.slips);
+
+  // ---------- learn from results ----------
+  // For each kind of leg (market + price range), compare how often it hit with our raw estimate.
+  // The correction is shrunk toward "no change" until there are lots of results, and capped at +/-25%.
+  const K = 40, MIN_LEGS = 15, byCat = {}, byStrategy = {};
+  for (const s of all) {
+    if (!["won", "lost", "push"].includes(s.status)) continue;
+    for (const l of s.legs) {
+      if (l.result !== "won" && l.result !== "lost") continue;
+      const est = l.p0 !== undefined && l.p0 !== null ? l.p0 : l.p; if (est === undefined || est === null) continue;
+      const c = byCat[Engine.category(l)] = byCat[Engine.category(l)] || { n: 0, hits: 0, exp: 0 };
+      c.n++; c.exp += est; if (l.result === "won") c.hits++;
+    }
+    if (s.status !== "push") {
+      const st = byStrategy[s.name] = byStrategy[s.name] || { n: 0, w: 0, profit: 0 };
+      st.n++; if (s.status === "won") { st.w++; st.profit += 10 * (s.dec - 1); } else st.profit -= 10;
+    }
+  }
+  for (const k in byCat) {
+    const c = byCat[k], m = c.exp / c.n;
+    c.rate = +(c.hits / c.n).toFixed(3); c.est = +m.toFixed(3);
+    if (c.n >= MIN_LEGS) c.factor = +Math.min(1.25, Math.max(0.75, ((c.hits + K * m) / (c.n + K)) / m)).toFixed(3);
+  }
+  for (const k in byStrategy) { const st = byStrategy[k]; st.profit = +st.profit.toFixed(2); st.roi = +(st.profit / (10 * st.n)).toFixed(3); }
+  fs.writeFileSync(DIR + "calibration.json", JSON.stringify({ updated: new Date(now).toISOString(), byCat, byStrategy }));
   const counts = all.reduce((c, s) => (c[s.status] = (c[s.status] || 0) + 1, c), {});
   store.updated = new Date(now).toISOString();
   fs.writeFileSync(DIR + "picks.json", JSON.stringify(store));

@@ -10,6 +10,19 @@
     return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds",
       "Points": n === 1 ? "point" : "points", "Rebounds": n === 1 ? "rebound" : "rebounds", "Assists": n === 1 ? "assist" : "assists", "Threes": n === 1 ? "three" : "threes", "Pts + reb + ast": "pts + reb + ast" }[label] || label.toLowerCase();
   }
+  // ---------- learning from results ----------
+  // Every graded leg falls into a category (market + price range). picks.js compares how often each category
+  // actually hit with what we estimated and saves a correction factor in calibration.json.
+  function bucket(a) { return a <= -250 ? "big fav" : a <= -120 ? "fav" : a < 120 ? "even" : "dog"; }
+  function category(leg) {
+    var mk = leg.kind === "g" ? (leg.t.slice(0, 2) === "ml" ? "Moneyline" : leg.t.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label;
+    return mk + "|" + bucket(leg.a);
+  }
+  function calibrate(p, cat, calib) {
+    var c = calib && calib.byCat && calib.byCat[cat];
+    if (!c || !c.factor || p === undefined || p === null) return p;
+    return Math.min(0.97, Math.max(0.02, p * c.factor));
+  }
   // Our estimated chance a whole slip hits, treating legs as independent
   function chance(legs) { var p = 1; for (var i = 0; i < legs.length; i++) { if (legs[i].p === undefined || legs[i].p === null) return null; p *= legs[i].p; } return p; }
   // Slate label in US Eastern time, e.g. "Thursday night", "Sunday", "Monday night"
@@ -23,7 +36,8 @@
   // Date label in US Eastern time, e.g. "Thu, Oct 29" (used for daily sports like the NBA)
   function dateName(iso) { return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }); }
   // Per-sport settings: how far ahead to show games, how to group them, and whether to show a "Best of the week" row
-  var OPTS = { nfl: {}, nba: { windowH: 30, slate: "date", noWeek: true } };
+  // featured: the hometown team that gets its own section on the Parlays page
+  var OPTS = { nfl: { featured: "DET", featuredName: "Lions" }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" } };
 
   function make(odds, data, book, now, opts) {
     opts = opts || {};
@@ -53,8 +67,10 @@
           return b;
         }
         var mlA = oc(h, e.away_team).price, mlH = oc(h, e.home_team).price;
-        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point,
-          p: { "sp-a": nv(as.price, hs.price), "sp-h": nv(hs.price, as.price), "ml-a": nv(mlA, mlH), "ml-h": nv(mlH, mlA), "ov": nv(ov.price, un.price), "un": nv(un.price, ov.price) },
+        var raw = { "sp-a": nv(as.price, hs.price), "sp-h": nv(hs.price, as.price), "ml-a": nv(mlA, mlH), "ml-h": nv(mlH, mlA), "ov": nv(ov.price, un.price), "un": nv(un.price, ov.price) };
+        function cg(pp, t, a) { return calibrate(pp, category({ kind: "g", t: t, a: a }), opts.calib); }
+        G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, p0: raw,
+          p: { "sp-a": cg(nv(as.price, hs.price), "sp-a", as.price), "sp-h": cg(nv(hs.price, as.price), "sp-h", hs.price), "ml-a": cg(nv(mlA, mlH), "ml-a", mlA), "ml-h": cg(nv(mlH, mlA), "ml-h", mlH), "ov": cg(nv(ov.price, un.price), "ov", ov.price), "un": cg(nv(un.price, ov.price), "un", un.price) },
           best: { "sp-a": best("spreads", e.away_team, as.point, as.price), "sp-h": best("spreads", e.home_team, hs.point, hs.price),
             "ml-a": best("h2h", e.away_team, undefined, mlA), "ml-h": best("h2h", e.home_team, undefined, mlH),
             "ov": best("totals", "Over", ov.point, ov.price), "un": best("totals", "Under", un.point, un.price) },
@@ -67,7 +83,7 @@
           "un": { n: A + "/" + H + " under " + un.point, a: un.price, pt: un.point } } });
       });
     function gkey(g, t) { return "G|" + g.id + "|" + (t.slice(0, 2) === "sp" ? "sp" : t.slice(0, 2) === "ml" ? "ml" : "tot"); }
-    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], best: g.best[t] }; }
+    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t] }; }
 
     // ---------- props ----------
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
@@ -76,10 +92,12 @@
       var rungs = p.ladder.filter(function (r) { return r.prices[book] !== undefined; }).map(function (r) {
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
-        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
+        var p0;
+        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
+          pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
@@ -90,7 +108,7 @@
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, best: r.best }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
@@ -178,8 +196,10 @@
       if (!g) return { g: null, l: [] };
       var Q = poolFor([g.id], abbr), out = [], nm = g[data.games[g.id].home === abbr ? "home" : "away"];
       function add(s) { if (s) out.push(s); }
-      add(mkSlip(nm + " Safe", "Win or cover, a likely TD and two high-floor props", [[[Q.side(g, abbr)], 1], [Q.tds, 1], [Q.floors, 2]], false));
-      add(mkSlip(nm + " Shootout", "Game over plus three " + nm + " yardage overs", [[Q.over, 1], [Q.mid, 3]], false));
+      var safeTD = Q.tds.filter(function (x) { return x.a <= -110; });
+      if (safeTD.length) add(mkSlip(nm + " Safe", "Win or cover, a likely TD and two high-floor props", [[[Q.side(g, abbr)], 1], [safeTD, 1], [Q.floors, 2]], false));
+      else add(mkSlip(nm + " Safe", "Win or cover plus three high-floor " + nm + " props", [[[Q.side(g, abbr)], 1], [Q.floors, 3]], false));
+      add(mkSlip(nm + " Shootout", "Game over plus three " + nm + " stat overs", [[Q.over, 1], [Q.mid, 3]], false));
       add(mkSlip(nm + " Long Shot", "Cover plus three plus-money " + nm + " props", [[[Q.teamSP(g, abbr)], 1], [Q.plus, 3]], false));
       return { g: g, l: out };
     }
@@ -238,6 +258,7 @@
       var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; })) }];
       if (!opts.noWeek) out.push({ group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) });
       slates().forEach(function (s) { var ids = s.g.map(function (g) { return g.id; }); out.push({ group: s.k, slips: likelySlips(ids).concat(slateSlips(ids)) }); });
+      if (opts.featured) { var ft = teamSlips(opts.featured); if (ft.g && ft.l.length) out.push({ group: opts.featuredName + " parlays", slips: ft.l }); }
       out.push({ group: "Player props only", slips: playerPresets() });
       out.push({ group: "Game lines only", slips: gamePresets() });
       return out;
@@ -246,6 +267,6 @@
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
-  var Engine = { make: make, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

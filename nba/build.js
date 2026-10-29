@@ -193,6 +193,12 @@ function parseInjuries(j) {
   }
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 7 * 864e5) delete hist0[id];
   fs.writeFileSync("nba/history.json", JSON.stringify(hist0));
-  fs.writeFileSync("nba/data.json", JSON.stringify({ sport: "nba", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games: out, props }));
+  // Each team's next scheduled game (for "plays next" notes when a team isn't in today's lines)
+  const next = {};
+  Object.values(logs.games).filter(g => !g.done && +new Date(g.t) > Date.now() - 3 * 36e5).sort((a, b) => a.t.localeCompare(b.t)).forEach(g => {
+    if (!next[g.h]) next[g.h] = { t: g.t, opp: g.a, home: true, name: g.hn };
+    if (!next[g.a]) next[g.a] = { t: g.t, opp: g.h, home: false, name: g.an };
+  });
+  fs.writeFileSync("nba/data.json", JSON.stringify({ sport: "nba", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games: out, props, next }));
   console.log("Saved nba/data.json:", Object.keys(out).length, "games,", props.length, "props (", props.filter(p => p.ladder.some(l => l.p !== undefined)).length, "rated)");
 })();
