@@ -36,6 +36,15 @@ select{font:inherit;padding:7px;border:1px solid var(--line);border-radius:4px;b
 .badge.lost{background:var(--red);color:#fff;border-color:var(--red)}
 .rl{list-style:none;margin:6px 0 0;padding:0;font-size:14px}
 .rl li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+.rc h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.rc .tally{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.rc .tally div{background:var(--bg);border-radius:4px;padding:8px}
+.rc .tally .num{font-size:26px;display:block;line-height:1}
+.rc .tally span{font-size:12px;color:var(--muted)}
+.rc details{border-top:1px solid var(--line)}
+.bar2{height:8px;background:var(--bg);border-radius:4px;position:relative;margin-top:3px}
+.bar2 i{position:absolute;left:0;top:0;bottom:0;background:var(--green);border-radius:4px}
+.bar2 b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
 .rl .mk{font-weight:700;width:1.2em;display:inline-block}
 .tab{font:inherit;font-weight:700;font-size:15px;background:none;border:0;color:var(--muted);padding:12px 10px;flex:1 0 auto;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--flag)}
@@ -165,6 +174,9 @@ th{color:var(--muted);font-weight:600}
   <h2>How our picks did</h2>
   <p class="sub">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
   <div id="resSummary"></div>
+  <h2>Game report cards</h2>
+  <p class="sub" id="cardsSub">For every game we lock our top-rated legs at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
+  <div id="resCards"></div>
   <h2>By section</h2>
   <div id="resGroups"></div>
   <h2>What's working</h2>
@@ -201,7 +213,7 @@ th{color:var(--muted);font-weight:600}
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
-var CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
+var CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -329,6 +341,11 @@ function renderResults(){
   var C=CALIB&&CALIB.byCat?Object.keys(CALIB.byCat).map(function(k){var x=CALIB.byCat[k];x.k=k;return x}).filter(function(x){return x.n>=5}).sort(function(a,b){return b.n-a.n}):[];
   $("resLearn").innerHTML=(L.length?'<table><thead><tr><th>Slip type</th><th>Record</th><th>Return</th></tr></thead><tbody>'+L.map(function(x){return"<tr><td>"+esc(x.k)+"</td><td>"+x.w+"-"+(x.n-x.w)+'</td><td class="'+(x.roi>=0?"pos":"neg")+'">'+(x.roi>=0?"+":"")+Math.round(x.roi*100)+"%</td></tr>"}).join("")+"</tbody></table>":'<p class="empty">Slip types show up here after 3 graded slips each.</p>')+
     (C.length?'<table style="margin-top:14px"><thead><tr><th>Bet type</th><th>Hit</th><th>We said</th><th>Adjusting</th></tr></thead><tbody>'+C.map(function(x){var pr=x.k.split("|");return"<tr><td>"+esc(pr[0])+' <small style="color:var(--muted)">'+esc(pr[1])+"</small></td><td>"+Math.round(x.rate*100)+"% <small style=\"color:var(--muted)\">("+x.n+")</small></td><td>"+Math.round(x.est*100)+"%</td><td>"+(x.factor?(x.factor>=1?"up ":"down ")+Math.abs(Math.round((x.factor-1)*100))+"%":"needs 15")+"</td></tr>"}).join("")+"</tbody></table>":"");
+  renderCards();
+  // Estimate vs reality
+  var B=CALIB&&CALIB.buckets?Object.keys(CALIB.buckets).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=CALIB.buckets[k];x.k=k;return x}).filter(function(x){return x.n>=10}):[];
+  if(B.length)$("resLearn").innerHTML+='<h3 style="margin:18px 0 4px;font-size:16px">Estimate vs. reality ('+CALIB.legsGraded+' graded legs)</h3><p class="sub" style="margin:0 0 6px">Green bar is how often legs actually hit; the black tick is what we predicted. Close together means our percentages can be trusted.</p>'+
+    B.map(function(x){return'<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>We said '+x.k+"–"+(x.k+10)+'%</span><span>Hit '+Math.round(x.rate*100)+"% of "+x.n+'</span></div><div class="bar2"><i style="width:'+Math.round(x.rate*100)+'%"></i><b style="left:'+Math.round(x.est*100)+'%"></b></div></div>'}).join("");
   var f=$("fRes").value,now=Date.now();
   var list=all.filter(function(s){return s.lock<=now&&(!f||s.status===f||(f==="pending"&&s.status==="open"))}).sort(function(a,b){return b.lock-a.lock}).slice(0,40);
   var mark={won:"✓",lost:"✗",push:"–",void:"–",pending:"…"};
@@ -344,6 +361,50 @@ function fdButton(legs){
   if(!L)return '<p class="sub" style="margin:8px 0 0">FanDuel links show up after the next odds refresh.</p>';
   return '<p style="margin:10px 0 0"><a class="btn flag" style="display:inline-block;text-decoration:none" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open '+(L.n>1?"all "+L.n+" legs in":"in")+' FanDuel</a></p>'+
     '<p class="sub" style="margin:6px 0 0">Check that every leg made it onto your FanDuel slip, then set your stake there.'+(miss?" "+miss+" leg"+(miss>1?"s don't":" doesn't")+" have a FanDuel link; add "+(miss>1?"them":"it")+" by hand.":"")+(L.n>1?' If only one leg shows up, add the rest with the FanDuel link next to each leg above.':"")+'</p>';
+}
+
+// ---------- game report cards ----------
+var CARDSHOW=8;
+function cardList(){return CARDS&&CARDS.cards?Object.keys(CARDS.cards).map(function(k){return CARDS.cards[k]}).filter(function(c){return +new Date(c.t)<=Date.now()}).sort(function(a,b){return new Date(b.t)-new Date(a.t)}):[]}
+function secLabel(k){return{pieces:"Ladder legs",straights:"Straights",tds:"Anytime TD"}[k]}
+function renderCards(){
+  var L=cardList();
+  if(!L.length){$("resCards").innerHTML='<p class="empty">The first report cards lock when '+(SPORT==="nba"?"tonight's":"this week's")+' games tip off and get graded after the box scores post.</p>';return}
+  var mark={won:"✓",lost:"✗",push:"–",void:"–",pending:"…"};
+  $("resCards").innerHTML=L.slice(0,CARDSHOW).map(function(c,i){
+    var secs=["pieces","straights","tds"].filter(function(k){return c[k]&&c[k].legs.length});
+    var tally=secs.map(function(k){var x=c[k],h=x.hit||0,n=x.graded||0;return'<div><span class="num">'+(c.status==="open"?"–":h+'<small style="font-size:15px;color:var(--muted)">/'+(n||x.legs.length)+'</small>')+'</span><span>'+secLabel(k)+'<br>books expected '+x.bookExp.toFixed(1)+'</span></div>'}).join("");
+    var lists=secs.map(function(k){return'<details><summary>'+secLabel(k)+' ('+c[k].legs.length+')</summary><ul class="rl">'+c[k].legs.map(function(l){var r=l.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(l.nm)+(l.actual!==undefined&&!l.td?' <small style="color:var(--muted)">('+l.actual+')</small>':"")+(r==="void"?' <small style="color:var(--muted)">(didn\'t play)</small>':"")+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul></details>'}).join("");
+    return'<div class="card rc"><h3><span>'+esc(c.away)+' <span>at</span> '+esc(c.home)+' <span>· '+when(c.t)+'</span></span><span class="badge '+(c.status==="graded"?"won":"")+'">'+(c.status==="graded"?"Final":"Live")+'</span></h3><div class="tally">'+tally+'</div>'+lists+
+      (c.status==="graded"?'<p style="margin:10px 0 0"><button class="btn" data-share="'+esc(c.ev)+'">Share image</button></p>':"")+'</div>'}).join("")+
+    (L.length>CARDSHOW?'<button class="more" id="moreCards">Show more games</button>':"");
+}
+// Draws a game's report card as a 1080x1350 image for posting
+function shareCard(ev){
+  var c=CARDS.cards[ev];if(!c)return;
+  var secs=["pieces","straights","tds"].filter(function(k){return c[k]&&c[k].legs.length});
+  var W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;var x=cv.getContext("2d");
+  var ink="#14213D",bg="#EEF1F4",green="#1F7A4D",red="#C8372D",flag="#F7C600",muted="#5B6678",F='"Arial Narrow",Impact,sans-serif',S="system-ui,-apple-system,Segoe UI,sans-serif";
+  x.fillStyle=ink;x.fillRect(0,0,W,H);x.fillStyle=flag;x.fillRect(0,0,W,14);
+  x.fillStyle="#fff";x.font="800 64px "+F;x.fillText("PARLAY LAB",56,104);
+  x.fillStyle=flag;x.font="700 40px "+F;x.fillText(c.away+" at "+c.home+"  ·  "+new Date(c.t).toLocaleDateString("en-US",{month:"short",day:"numeric"}),56,160);
+  x.fillStyle="#9AA5B8";x.font="26px "+S;x.fillText("Locked at kickoff, graded from the box score",56,200);
+  var bw=(W-112-(secs.length-1)*20)/secs.length;
+  secs.forEach(function(k,i){var s=c[k],bx=56+i*(bw+20);x.fillStyle="#1E2B4A";x.fillRect(bx,232,bw,170);
+    x.fillStyle="#fff";x.font="800 84px "+F;x.fillText(s.hit+"/"+s.graded,bx+22,330);
+    x.fillStyle=flag;x.font="700 30px "+F;x.fillText(secLabel(k).toUpperCase(),bx+22,372);
+    x.fillStyle="#9AA5B8";x.font="22px "+S;x.fillText("books expected "+s.bookExp.toFixed(1),bx+22,394)});
+  var rows=[];secs.forEach(function(k){c[k].legs.forEach(function(l){rows.push(l)})});
+  var maxRows=Math.min(rows.length,24),rh=Math.min(46,(H-470-90)/maxRows),y=450;
+  x.font=Math.min(32,rh*0.62)+"px "+S;
+  rows.slice(0,maxRows).forEach(function(l){var r=l.result;y+=rh;
+    x.fillStyle=r==="won"?green:r==="lost"?red:"#3A4766";x.fillRect(56,y-rh*0.72,rh*0.8,rh*0.8);
+    x.fillStyle="#fff";x.fillText(r==="won"?"✓":r==="lost"?"✗":"–",56+rh*0.18,y-rh*0.12);
+    x.fillText(l.nm.length>52?l.nm.slice(0,50)+"…":l.nm,56+rh,y-rh*0.12)});
+  x.fillStyle="#9AA5B8";x.font="24px "+S;x.fillText(location.host+location.pathname+"  ·  21+  ·  For entertainment only",56,H-40);
+  cv.toBlob(function(b){var file=new File([b],"parlay-lab-"+c.away+"-"+c.home+".png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"Parlay Lab report card"}).catch(function(){})}
+    else{var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=file.name;document.body.appendChild(a);a.click();a.remove()}});
 }
 
 // ---------- presets + slip ----------
@@ -388,6 +449,8 @@ document.addEventListener("click",function(e){
   else if(t.dataset.pre){SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip()}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.dataset.share){shareCard(t.dataset.share)}
+  else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
   else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
   else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
@@ -415,7 +478,7 @@ $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.re
 $("book").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];renderAll()});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];renderAll()});
 </script>
 </body>
 </html>

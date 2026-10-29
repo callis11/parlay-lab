@@ -28,3 +28,7 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 - nba/build.js gets box scores and injury reports from ESPN's public feed, caches them in nba/logs.json, and writes nba/data.json.
 - picks.js with SPORT=nba records and grades NBA slips into nba/picks.json.
 - Runs twice a day (10:30 AM and 4:30 PM ET) from .github/workflows/nba.yml.
+
+## Report cards and learning
+- picks.js also builds a report card for every game (ladder legs, straight over/under picks, anytime TDs) until kickoff, then grades it (cards.json).
+- Every other rated prop and game line is graded too (gradebook.json -> graded-legs.json). calibration.json learns from all of them.

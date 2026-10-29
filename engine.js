@@ -29,7 +29,7 @@
   // actually hit with what we estimated and saves a correction factor in calibration.json.
   function bucket(a) { return a <= -250 ? "big fav" : a <= -120 ? "fav" : a < 120 ? "even" : "dog"; }
   function category(leg) {
-    var mk = leg.kind === "g" ? (leg.t.slice(0, 2) === "ml" ? "Moneyline" : leg.t.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label;
+    var mk = leg.kind === "g" ? (leg.t.slice(0, 2) === "ml" ? "Moneyline" : leg.t.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label + (leg.side === "under" ? " under" : "");
     return mk + "|" + bucket(leg.a);
   }
   function calibrate(p, cat, calib) {
@@ -115,7 +115,7 @@
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b, fd: r.fd };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b, fd: r.fd, under: r.under ? r.under[book] : undefined };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.

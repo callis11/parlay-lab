@@ -207,9 +207,11 @@ function overProb(vals, line, label, raw) {
     for (const bk of ev.bookmakers || []) for (const m of bk.markets || []) {
       const M = MARKETS[m.key]; if (!M) continue;
       for (const o of m.outcomes) {
-        if (M.td ? o.name !== "Yes" : o.name !== "Over") continue;
+        const isUnder = !M.td && o.name === "Under";
+        if (!isUnder && (M.td ? o.name !== "Yes" : o.name !== "Over")) continue;
         const key = o.description + "|" + M.label, line = M.td ? 0.5 : o.point;
-        const L = lines[key] = lines[key] || { player: o.description, label: M.label, td: !!M.td, stat: M.stat, rows: {} };
+        const L = lines[key] = lines[key] || { player: o.description, label: M.label, td: !!M.td, stat: M.stat, rows: {}, un: {} };
+        if (isUnder) { (L.un[line] = L.un[line] || {})[bk.key] = o.price; continue; } // main lines also have an Under price
         (L.rows[line] = L.rows[line] || {})[bk.key] = o.price;
         if (bk.key === "fanduel" && o.link) (L.fd = L.fd || {})[line] = o.link; // FanDuel add-to-bet-slip link
       }
@@ -228,6 +230,7 @@ function overProb(vals, line, label, raw) {
       const missedLast = !!(team && teamLast[team] && (!last || +last.season !== SEASON || last.game_id !== teamLast[team].gid));
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const out = { line, prices: L.rows[line] };
+        if (L.un[line]) out.under = L.un[line];
         if (L.fd && L.fd[line]) out.fd = L.fd[line];
         if (vals.length >= MIN_GAMES) {
           const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);

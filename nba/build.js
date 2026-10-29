@@ -170,8 +170,9 @@ function parseInjuries(j) {
     for (const bk of ev.bookmakers || []) for (const m of bk.markets || []) {
       const label = MARKETS[m.key]; if (!label) continue;
       for (const o of m.outcomes) {
-        if (o.name !== "Over" || o.point === undefined) continue;
-        const L = lines[o.description + "|" + label] = lines[o.description + "|" + label] || { player: o.description, label, rows: {} };
+        if ((o.name !== "Over" && o.name !== "Under") || o.point === undefined) continue;
+        const L = lines[o.description + "|" + label] = lines[o.description + "|" + label] || { player: o.description, label, rows: {}, un: {} };
+        if (o.name === "Under") { (L.un[o.point] = L.un[o.point] || {})[bk.key] = o.price; continue; }
         (L.rows[o.point] = L.rows[o.point] || {})[bk.key] = o.price;
         if (bk.key === "fanduel" && o.link) (L.fd = L.fd || {})[o.point] = o.link;
       }
@@ -185,6 +186,7 @@ function parseInjuries(j) {
       const missedLast = !!(team && teamLast[team] && (!last || !last.cur || last.gid !== teamLast[team]));
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const r = { line, prices: L.rows[line] };
+        if (L.un[line]) r.under = L.un[line];
         if (L.fd && L.fd[line]) r.fd = L.fd[line];
         if (vals.length >= MIN_GAMES) { const x = overProb(vals, line, L.label, raw); r.p = +x.p.toFixed(3); r.hits = x.hits; r.n = x.n; r.fair = toAm(x.p); }
         return r;
