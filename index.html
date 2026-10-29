@@ -3,44 +3,70 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Parlay Lab · NFL Week 8 parlay builder</title>
+<title>Parlay Lab · NFL parlay builder</title>
+<meta name="description" content="NFL game lines, matchup history, weather and player prop ladders with hit rates. Build parlays and see the payout.">
 <style>
 :root{
   --bg:#EEF1F4;--surface:#FFFFFF;--ink:#14213D;--muted:#5B6678;--line:#D5DBE3;
-  --green:#1F7A4D;--green-ink:#FFFFFF;--flag:#F7C600;--flag-ink:#14213D;--red:#C8372D;
+  --green:#1F7A4D;--green-ink:#FFFFFF;--flag:#F7C600;--flag-ink:#14213D;--red:#C8372D;--soft:#E3F1EA;
   color-scheme:light;
-  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){--bg:#0F1522;--surface:#18202F;--ink:#E8EDF5;--muted:#9AA5B8;--line:#2A3446;--green:#3DB57A;--green-ink:#08150F;--flag:#F7C600;--flag-ink:#14213D;--red:#F0685D;color-scheme:dark}
+  :root:not([data-theme="light"]){--bg:#0F1522;--surface:#18202F;--ink:#E8EDF5;--muted:#9AA5B8;--line:#2A3446;--green:#3DB57A;--green-ink:#08150F;--red:#F0685D;--soft:#173326;color-scheme:dark}
 }
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:110px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:120px}
 h1,h2,.num{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
-.wrap{max-width:720px;margin:0 auto;padding:16px}
-header h1{font-size:44px;line-height:1;margin:8px 0 4px;font-weight:800;letter-spacing:-.01em}
+.wrap{max-width:720px;margin:0 auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+header h1{font-size:44px;line-height:1;margin:8px 0 4px;font-weight:800}
 header p{margin:0;color:var(--muted);max-width:46ch}
-h2{font-size:26px;margin:28px 0 10px;font-weight:700}
+h2{font-size:26px;margin:24px 0 10px;font-weight:700}
+select{font:inherit;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.tabs{display:flex;gap:0;margin:18px 0 0;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:4;padding-top:env(safe-area-inset-top,0px)}
+.tab{font:inherit;font-weight:700;font-size:16px;background:none;border:0;color:var(--muted);padding:12px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--flag)}
 .presets{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
-.preset{flex:0 0 78%;max-width:300px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:4px;padding:12px}
+.preset{flex:0 0 80%;max-width:310px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:4px;padding:12px;display:flex;flex-direction:column}
 .preset h3{margin:0;font-size:17px}
-.preset ul{margin:6px 0 10px;padding-left:18px;color:var(--muted);font-size:14px}
+.preset .d{color:var(--muted);font-size:13px}
+.preset ul{margin:6px 0 10px;padding-left:18px;color:var(--muted);font-size:14px;flex:1}
 .preset .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .num{font-size:28px;font-weight:700}
 .btn{font:inherit;font-weight:600;border:0;border-radius:4px;padding:9px 14px;background:var(--ink);color:var(--bg);cursor:pointer}
 .btn.flag{background:var(--flag);color:var(--flag-ink)}
-.btn:focus-visible,.pick:focus-visible,input:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
 .day{margin:22px 0 8px;font-size:15px;font-weight:700;color:var(--muted)}
-.game{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px}
-.game h3{margin:0 0 8px;font-size:18px}
-.game h3 span{color:var(--muted);font-weight:500;font-size:14px}
-.line{display:grid;grid-template-columns:64px 1fr 1fr;gap:6px;align-items:stretch;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px}
+.card h3{margin:0 0 8px;font-size:18px}
+.card h3 span{color:var(--muted);font-weight:500;font-size:14px}
+.line{display:grid;grid-template-columns:64px 1fr 1fr;gap:6px;margin-top:6px}
 .line b{font-size:13px;color:var(--muted);align-self:center;font-weight:600}
 .pick{font:inherit;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;min-height:44px;align-items:center}
 .pick small{color:var(--muted);font-size:12px}
 .pick[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
 .pick[aria-pressed="true"] small{color:inherit}
+details{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.chip.alert{border-color:var(--flag);background:var(--flag);color:var(--flag-ink)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters select{flex:1;min-width:140px}
+.pl h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pl .meta{color:var(--muted);font-size:13px;margin:-4px 0 6px}
+.rung{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;width:100%;font:inherit;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin-top:6px;cursor:pointer;min-height:48px}
+.rung .t{font-weight:600}
+.rung .s{color:var(--muted);font-size:12px}
+.rung .pr{text-align:right;font-weight:700}
+.rung.value{border-left:5px solid var(--green)}
+.rung[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.rung[aria-pressed="true"] .s{color:inherit}
+.tag{display:inline-block;font-size:11px;font-weight:700;background:var(--soft);color:var(--green);border-radius:3px;padding:1px 5px;margin-left:4px}
+.rung[aria-pressed="true"] .tag{background:var(--green-ink);color:var(--green)}
+.more{font:inherit;background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:8px 0 0}
 .note{color:var(--muted);font-size:13px;margin-top:24px}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:3px solid var(--flag);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));z-index:5}
 .bar .in{max-width:720px;margin:0 auto}
@@ -53,24 +79,43 @@ h2{font-size:26px;margin:28px 0 10px;font-weight:700}
 .stake{display:flex;align-items:center;gap:8px;margin:10px 0}
 .stake input{font:inherit;width:100px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
 .empty{color:var(--muted);margin:6px 0}
-.warn{color:var(--red);font-size:13px}
+.warn{color:var(--red);font-size:13px;margin:6px 0 0}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
   <h1>Parlay Lab</h1>
-  <p>Current NFL lines. Tap picks to build a parlay, or load a ready-made slip.</p>
-  <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book" style="font:inherit;padding:6px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
+  <p>Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
+  <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
 
-<h2>Starter parlays</h2>
-<div class="presets" id="presets"></div>
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" id="t-games" aria-selected="true" aria-controls="v-games">Games</button>
+  <button class="tab" role="tab" id="t-props" aria-selected="false" aria-controls="v-props">Player props</button>
+</div>
 
-<h2>Build your own</h2>
-<div id="games"></div>
+<section id="v-games" role="tabpanel" aria-labelledby="t-games">
+  <h2>Starter parlays</h2>
+  <div class="presets" id="presets"></div>
+  <h2>Games</h2>
+  <div id="games"><p class="empty">Loading lines…</p></div>
+</section>
 
-<p class="note"><span id="src">Sample lines: bet365 via FOX Sports, Oct. 27, 2026. Spread and total legs without a listed price use -110.</span> Check your sportsbook before betting. Picks are not guarantees, and parlays carry a high house edge. For entertainment only. 21+. Gambling problem? Call 1-800-GAMBLER.</p>
+<section id="v-props" role="tabpanel" aria-labelledby="t-props" hidden>
+  <h2>Player parlays</h2>
+  <div class="presets" id="ppresets"></div>
+  <h2>Prop ladders</h2>
+  <div class="filters">
+    <select id="fGame" aria-label="Game"><option value="">All games</option></select>
+    <select id="fMkt" aria-label="Market"><option value="">All markets</option><option>Passing yards</option><option>Rushing yards</option><option>Receiving yards</option><option>Anytime TD</option></select>
+    <select id="fSort" aria-label="Sort"><option value="value">Best value first</option><option value="hit">Highest hit % first</option><option value="name">Player name</option></select>
+  </div>
+  <div id="props"><p class="empty">Loading props…</p></div>
+</section>
+
+<p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. "Value" means our estimate beats the book's price, not that the bet will win. Payouts for legs from the same game are estimates, since books price same-game parlays differently. For entertainment only. 21+. Gambling problem? Call 1-800-GAMBLER.</p>
 </div>
 
 <div class="bar"><div class="in">
@@ -78,152 +123,167 @@ h2{font-size:26px;margin:28px 0 10px;font-weight:700}
     <div id="legs"></div>
     <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
   </div>
-  <button class="sum" id="sum" aria-expanded="false" aria-controls="panel">
-    <span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span>
-  </button>
+  <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
 
 <script>
-// [id, day, away, home, spread (home favored), mlAway, mlHome, total]
-var G=[
- ["gb","Thu, Oct. 29 · 8:15 PM ET","Panthers","Packers",3.5,165,-200,47.5],
- ["dal","Sun, Nov. 1 · 1:00 PM ET","Cardinals","Cowboys",6.5,240,-300,54.5],
- ["tb","Sun, Nov. 1 · 1:00 PM ET","Falcons","Buccaneers",1.5,114,-134,45.5],
- ["buf","Sun, Nov. 1 · 1:00 PM ET","Ravens","Bills",3.5,158,-188,53.5],
- ["pit","Sun, Nov. 1 · 1:00 PM ET","Browns","Steelers",3.5,163,-196,39.5],
- ["jax","Sun, Nov. 1 · 1:00 PM ET","Colts","Jaguars",7.5,325,-410,46.5],
- ["nyj","Sun, Nov. 1 · 1:00 PM ET","Raiders","Jets",1.5,-110,-110,45.5],
- ["det","Sun, Nov. 1 · 1:00 PM ET","Vikings","Lions",3.5,149,-178,46.5],
- ["cin","Sun, Nov. 1 · 1:00 PM ET","Titans","Bengals",10.5,450,-600,46.5],
- ["lar","Sun, Nov. 1 · 4:05 PM ET","Chargers","Rams",6.5,240,-300,44.5],
- ["den","Sun, Nov. 1 · 4:25 PM ET","Chiefs","Broncos",1.5,-120,100,40.5],
- ["mia","Sun, Nov. 1 · 4:25 PM ET","Patriots","Dolphins",7.5,-380,300,44.5],
- ["was","Sun, Nov. 1 · 8:20 PM ET","Eagles","Commanders",4.5,175,-210,40.5],
- ["sea","Mon, Nov. 2 · 8:15 PM ET","Bears","Seahawks",3.5,149,-178,46.5]
-];
-// Two games list the road team as the favorite
-var AWAYFAV={den:1,mia:1};
-var P=[
- {n:"The Safe 3",d:"Biggest moneyline favorites",l:["cin|ml-h","jax|ml-h","mia|ml-a"]},
- {n:"Favorites Trio",d:"Moneyline favorites",l:["gb|ml-h","lar|ml-h","dal|ml-h"]},
- {n:"Home Favorites Spread",d:"Three field-goal favorites",l:["pit|sp-h","buf|sp-h","det|sp-h"]},
- {n:"Unders Special",d:"Low totals, defense-first",l:["den|un","was|un","pit|un"]},
- {n:"Longshot 4-Leg",d:"Close lines, bigger payout",l:["tb|ml-h","den|ml-a","nyj|ml-h","was|ml-h"]}
-];
-var gm={};G.forEach(function(g){gm[g[0]]=g});
-var slip={}; // gameId -> type
-
+var ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30;
+try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function dec(a){return a>0?1+a/100:1+100/-a}
-function am(d){var x=d>=2?Math.round((d-1)*100):Math.round(-100/(d-1));return fmt(x)}
 function fmt(a){return a>0?"+"+a:""+a}
-function legInfo(key){
-  var p=key.split("|"),g=gm[p[0]],t=p[1],s=g[4];
-  if(t==="ml-a")return{name:g[2]+" ML",a:g[5]};
-  if(t==="ml-h")return{name:g[3]+" ML",a:g[6]};
-  if(t==="sp-a")return{name:g[2]+" +"+s,a:-110};
-  if(t==="sp-h")return{name:g[3]+" -"+s,a:-110};
-  if(t==="ov")return{name:g[2]+" @ "+g[3]+" over "+g[7],a:-110};
-  return{name:g[2]+" @ "+g[3]+" under "+g[7],a:-110};
-}
-function combined(keys){var d=1;keys.forEach(function(k){d*=dec(legInfo(k).a)});return d}
+function am(d){return fmt(d>=2?Math.round((d-1)*100):Math.round(-100/(d-1)))}
+function nick(n){return n.split(" ").pop()}
+function pct(p){return Math.round(p*100)+"%"}
+function when(iso){return new Date(iso).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}
 
-function pickBtn(g,t,txt,sub){
-  var key=g[0]+"|"+t;
-  return '<button class="pick" data-k="'+key+'" aria-pressed="'+(slip[g[0]]===t)+'"><span>'+txt+'</span><small>'+sub+'</small></button>';
+// ---------- games ----------
+function buildGames(){
+  GAMES=[];if(!ODDS)return;
+  var now=Date.now(),wk=now+7*864e5;
+  (ODDS.lines||[]).filter(function(e){var t=new Date(e.commence_time);return e.bookmakers&&e.bookmakers.length&&t<wk&&t>now-4*36e5})
+  .sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)}).forEach(function(e){
+    var bk=e.bookmakers.filter(function(b){return b.key===BOOK})[0],alt=!bk;
+    if(!bk)bk=e.bookmakers.filter(function(b){return b.key==="fanduel"})[0]||e.bookmakers[0];
+    function mk(k){return(bk.markets||[]).filter(function(m){return m.key===k})[0]}
+    function oc(m,n){return m&&m.outcomes.filter(function(o){return o.name===n})[0]}
+    var h=mk("h2h"),s=mk("spreads"),t=mk("totals");if(!h||!s||!t)return;
+    var A=nick(e.away_team),H=nick(e.home_team),as=oc(s,e.away_team),hs=oc(s,e.home_team),ov=oc(t,"Over"),un=oc(t,"Under");
+    GAMES.push({id:e.id,t:e.commence_time,away:A,home:H,alt:alt?bk.title:null,legs:{
+      "sp-a":{n:A+" "+(as.point>0?"+":"")+as.point,a:as.price},"sp-h":{n:H+" "+(hs.point>0?"+":"")+hs.point,a:hs.price},
+      "ml-a":{n:A+" ML",a:oc(h,e.away_team).price},"ml-h":{n:H+" ML",a:oc(h,e.home_team).price},
+      "ov":{n:A+"/"+H+" over "+ov.point,a:ov.price},"un":{n:A+"/"+H+" under "+un.point,a:un.price}},total:ov.point});
+  });
+}
+function gkey(g,t){return "G|"+g.id+"|"+(t.slice(0,2)==="sp"?"sp":t.slice(0,2)==="ml"?"ml":"tot")}
+function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
+  return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:L.n)+'</span><small>'+fmt(L.a)+'</small></button>'}
+function rec(r,t){if(!r)return"";return '<span class="chip">'+t+' ATS '+r.ats[0]+"-"+r.ats[1]+(r.ats[2]?"-"+r.ats[2]:"")+'</span><span class="chip">'+t+' O/U '+r.ou[0]+"-"+r.ou[1]+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"")}
+function matchup(g){
+  var m=DATA&&DATA.games[g.id];if(!m)return"";
+  var w=m.weather,wx="";
+  if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
+    else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
+  var rows=m.h2h.map(function(x){return"<tr><td>"+x.season+" wk "+x.week+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
+  return '<details><summary>Matchup and weather</summary><div class="chips">'+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
+    (rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
 }
 function renderGames(){
+  if(!GAMES.length){$("games").innerHTML='<p class="empty">No lines yet. The next odds refresh will fill this in.</p>';return}
   var out="",last="";
-  G.forEach(function(g){
-    if(g[1]!==last){last=g[1];out+='<div class="day">'+last+'</div>'}
-    var s=g[4],hf=!AWAYFAV[g[0]];
-    var spA=hf?"+"+s:"-"+s,spH=hf?"-"+s:"+"+s;
-    out+='<div class="game"><h3>'+g[2]+' <span>at</span> '+g[3]+'</h3>'+
-      '<div class="line"><b>Spread</b>'+pickBtn(g,"sp-a",g[2]+" "+spA,fmt(g[8]||-110))+pickBtn(g,"sp-h",g[3]+" "+spH,fmt(g[9]||-110))+'</div>'+
-      '<div class="line"><b>Money</b>'+pickBtn(g,"ml-a",g[2],fmt(g[5]))+pickBtn(g,"ml-h",g[3],fmt(g[6]))+'</div>'+
-      '<div class="line"><b>Total</b>'+pickBtn(g,"ov","Over "+g[7],fmt(g[10]||-110))+pickBtn(g,"un","Under "+g[7],fmt(g[11]||-110))+'</div></div>';
+  GAMES.forEach(function(g){var d=when(g.t).split(",").slice(0,2).join(",");
+    if(d!==last){last=d;out+='<div class="day">'+d+'</div>'}
+    out+='<div class="card"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+
+      '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+matchup(g)+'</div>';
   });
-  document.getElementById("games").innerHTML=out;
+  $("games").innerHTML=out;
 }
-function fixSpreads(){
-  // spread price labels for road favorites need the sign flipped on legInfo too
-  G.forEach(function(g){
-    if(AWAYFAV[g[0]]){/* handled in legInfo override below */}
-  });
+function gameLeg(g,t){return{k:gkey(g,t),t:t,n:g.legs[t].n,a:g.legs[t].a,ev:g.id}}
+function gamePresets(){
+  var fav=GAMES.map(function(g){var h=g.legs["ml-h"].a<g.legs["ml-a"].a;return{g:g,s:h?"h":"a",ml:Math.min(g.legs["ml-h"].a,g.legs["ml-a"].a)}}).sort(function(a,b){return a.ml-b.ml});
+  var low=GAMES.slice().sort(function(a,b){return a.total-b.total}),out=[];
+  function add(n,d,l,need){if(l.length>=need)out.push({n:n,d:d,l:l})}
+  add("The Safe 3","Three biggest moneyline favorites",fav.slice(0,3).map(function(f){return gameLeg(f.g,"ml-"+f.s)}),3);
+  add("Favorites Trio","Next tier of moneyline favorites",fav.slice(3,6).map(function(f){return gameLeg(f.g,"ml-"+f.s)}),3);
+  add("Spread Trio","Favorites laying points",fav.slice(6,9).map(function(f){return gameLeg(f.g,"sp-"+f.s)}),3);
+  add("Unders Special","Three lowest game totals",low.slice(0,3).map(function(g){return gameLeg(g,"un")}),3);
+  add("Longshot 4-Leg","Closer lines, bigger payout",fav.slice(9,13).map(function(f){return gameLeg(f.g,"ml-"+f.s)}),4);
+  return out;
 }
-var _li=legInfo;
-legInfo=function(key){
-  var p=key.split("|"),g=gm[p[0]],t=p[1];
-  if(AWAYFAV[p[0]]&&(t==="sp-a"||t==="sp-h")){
-    return t==="sp-a"?{name:g[2]+" -"+g[4],a:g[8]||-110}:{name:g[3]+" +"+g[4],a:g[9]||-110};
-  }
-  var r=_li(key);if(t==="sp-a")r.a=g[8]||-110;else if(t==="sp-h")r.a=g[9]||-110;else if(t==="ov")r.a=g[10]||-110;else if(t==="un")r.a=g[11]||-110;return r;
-};
 
-function renderPresets(){
-  document.getElementById("presets").innerHTML=P.map(function(p,i){
-    return '<div class="preset"><h3>'+p.n+'</h3><div style="color:var(--muted);font-size:13px">'+p.d+'</div><ul>'+
-      p.l.map(function(k){return"<li>"+legInfo(k).name+"</li>"}).join("")+'</ul>'+
-      '<div class="row"><span class="num">'+am(combined(p.l))+'</span><button class="btn flag" data-p="'+i+'">Load slip</button></div></div>';
-  }).join("");
+// ---------- props ----------
+function buildProps(){
+  PROPS=[];if(!DATA)return;
+  var live={};GAMES.forEach(function(g){live[g.id]=g});
+  DATA.props.forEach(function(p){
+    var g=live[p.event];if(!g)return;
+    var rungs=p.ladder.filter(function(r){return r.prices[BOOK]!==undefined}).map(function(r){
+      // Blend the player's history with the book's own price (less history = lean more on the book)
+      var a=r.prices[BOOK],pa,ev=null,fair=null;
+      if(r.p!==undefined){var imp=1/dec(a)/1.045,w=r.n/(r.n+10);pa=w*r.p+(1-w)*imp;ev=pa*dec(a)-1;fair=pa>=0.5?Math.round(-100*pa/(1-pa)):Math.round(100*(1-pa)/pa)}
+      return{line:r.line,a:a,p:pa,hits:r.hits,n:r.n,fair:fair,ev:ev};
+    });
+    if(!rungs.length)return;
+    PROPS.push({id:p.event+"|"+p.player+"|"+p.label,ev:p.event,g:g,player:p.player,team:p.team,label:p.label,td:p.td,avg:p.avg,recent:p.recent,rungs:rungs,
+      best:Math.max.apply(null,rungs.map(function(r){return r.ev===null||r.n<8||r.a>400?-9:r.ev})),top:Math.max.apply(null,rungs.map(function(r){return r.p||0}))});
+  });
+}
+function rungName(p,r){return p.player+(p.td?" anytime TD":" "+(r.line+0.5)+"+ "+p.label.toLowerCase().replace(" yards"," yds"))}
+function propLeg(p,r){return{k:"P|"+p.id,line:r.line,n:rungName(p,r),a:r.a,ev:p.ev}}
+function isValue(r){return r.ev!==null&&r.ev>=0.02&&r.p>=0.35&&r.n>=8&&r.a<=400}
+function renderProps(){
+  var fg=$("fGame").value,fm=$("fMkt").value,so=$("fSort").value;
+  var list=PROPS.filter(function(p){return(!fg||p.ev===fg)&&(!fm||p.label===fm)});
+  list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="hit"?function(a,b){return b.top-a.top}:function(a,b){return b.best-a.best});
+  if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
+  $("props").innerHTML=list.slice(0,SHOWN).map(function(p){
+    var cur=SLIP["P|"+p.id];
+    var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
+      var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+" · our estimate "+pct(r.p)+" (fair "+fmt(r.fair)+")":"Not enough games to rate";
+      return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(p.td?"Scores a TD":(r.line+0.5)+"+ yds")+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+'</span></span><span class="pr">'+fmt(r.a)+'</span></button>'}).join("");
+    return '<div class="card pl"><h3><span>'+esc(p.player)+' <span>'+(p.team||"")+'</span></span><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
+      '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+rungs+'</div>';
+  }).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
+}
+function playerPresets(){
+  var c=[];PROPS.forEach(function(p){p.rungs.forEach(function(r){if(r.p!==undefined)c.push({p:p,r:r})})});
+  function pickN(arr,n){var used={},games={},out=[];
+    arr.forEach(function(x){if(out.length<n&&!used[x.p.player]&&!games[x.p.ev]){used[x.p.player]=1;games[x.p.ev]=1;out.push(propLeg(x.p,x.r))}});
+    arr.forEach(function(x){if(out.length<n&&!used[x.p.player]){used[x.p.player]=1;out.push(propLeg(x.p,x.r))}});return out}
+  var out=[];function add(n,d,l,need){if(l.length>=need)out.push({n:n,d:d,l:l})}
+  add("High-Floor 3","Highest hit % at a fair price",pickN(c.filter(function(x){return x.r.a<=-120&&x.r.a>=-350&&!x.p.td}).sort(function(a,b){return b.r.p-a.r.p}),3),3);
+  add("Best Value 3","Our estimate beats the price most",pickN(c.filter(function(x){return x.r.p>=0.5&&x.r.n>=8&&x.r.a<=150}).sort(function(a,b){return b.r.ev-a.r.ev}),3),3);
+  add("TD Trio","Likeliest anytime TD scorers",pickN(c.filter(function(x){return x.p.td&&x.r.n>=8}).sort(function(a,b){return b.r.p-a.r.p}),3),3);
+  add("Yardage 4-Leg","Solid hit rates, plus-ish prices",pickN(c.filter(function(x){return!x.p.td&&x.r.p>=0.5&&x.r.n>=8&&x.r.a>=-200&&x.r.a<=130}).sort(function(a,b){return b.r.ev-a.r.ev}),4),4);
+  return out;
+}
+
+// ---------- presets + slip ----------
+var PRE={};
+function renderPresetRow(el,list,prefix){
+  if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
+  $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
+    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul><div class="row"><span class="num">'+am(d)+'</span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
 }
 function renderSlip(){
-  var keys=Object.keys(slip).map(function(g){return g+"|"+slip[g]});
-  document.querySelectorAll(".pick").forEach(function(b){
-    var k=b.getAttribute("data-k").split("|");b.setAttribute("aria-pressed",slip[k[0]]===k[1]);
-  });
-  var stake=parseFloat(document.getElementById("stake").value)||0;
-  var L=document.getElementById("legs"),sumL=document.getElementById("sumL"),sumR=document.getElementById("sumR");
-  if(!keys.length){L.innerHTML='<p class="empty">Tap any spread, moneyline or total to add a leg.</p>';sumL.textContent="Your slip is empty";sumR.textContent="";return}
-  var d=combined(keys);
-  L.innerHTML=keys.map(function(k){var i=legInfo(k);return '<div class="leg"><span>'+i.name+' <small style="color:var(--muted)">'+fmt(i.a)+'</small></span><button data-r="'+k.split("|")[0]+'">Remove</button></div>'}).join("")+
+  document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
+  document.querySelectorAll(".rung").forEach(function(b){var s=SLIP["P|"+b.dataset.p];b.setAttribute("aria-pressed",!!(s&&String(s.line)===b.dataset.l))});
+  var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
+  if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty";$("sumR").textContent="";return}
+  var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
+  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><button data-r="'+esc(l.k)+'">Remove</button></div>'}).join("")+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
-    (keys.length>1&&keys.length<2?"":'<p class="warn">Every leg must win. One miss loses the whole slip.</p>');
-  sumL.textContent=keys.length+(keys.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2);
-  sumR.textContent=am(d);
+    (legs.length>1?'<p class="warn">Every leg must win. One miss loses the whole slip.</p>':"")+
+    (same?'<p class="warn">Some legs share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");
+  $("sumL").textContent=legs.length+(legs.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2);
+  $("sumR").textContent=am(d);
+}
+function renderAll(){
+  buildGames();buildProps();renderGames();renderProps();
+  renderPresetRow("presets",gamePresets(),"g");renderPresetRow("ppresets",playerPresets(),"p");
+  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.map(function(g){return'<option value="'+g.id+'">'+g.away+" at "+g.home+"</option>"}).join("");fg.value=v;
+  var b=(ODDS&&ODDS.lines||[]).length;
+  $("src").textContent=b?"Lines: "+$("book").selectedOptions[0].text+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
+  renderSlip();
 }
 document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
-  if(t.dataset.k){var p=t.dataset.k.split("|");if(slip[p[0]]===p[1])delete slip[p[0]];else slip[p[0]]=p[1];renderSlip()}
-  else if(t.dataset.p){slip={};P[+t.dataset.p].l.forEach(function(k){var p=k.split("|");slip[p[0]]=p[1]});document.getElementById("panel").classList.add("open");document.getElementById("sum").setAttribute("aria-expanded","true");renderSlip()}
-  else if(t.dataset.r){delete slip[t.dataset.r];renderSlip()}
-  else if(t.id==="clear"){slip={};renderSlip()}
-  else if(t.id==="sum"){var o=document.getElementById("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
+  if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L;renderSlip()}
+  else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
+  else if(t.dataset.pre){SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip()}
+  else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
+  else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
+  else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
+  else if(t.classList.contains("tab")){var props=t.id==="t-props";$("t-games").setAttribute("aria-selected",!props);$("t-props").setAttribute("aria-selected",props);$("v-games").hidden=props;$("v-props").hidden=!props}
 });
-document.getElementById("stake").addEventListener("input",renderSlip);
-function nick(n){return n.split(" ").pop()}
-function autoPresets(){
-  var fav=G.map(function(g){var h=g[6]<g[5];return{g:g,s:h?"h":"a",ml:Math.min(g[5],g[6])}}).sort(function(a,b){return a.ml-b.ml});
-  var ml=function(f){return f.g[0]+"|ml-"+f.s},sp=function(f){return f.g[0]+"|sp-"+f.s};
-  var low=G.slice().sort(function(a,b){return a[7]-b[7]}),out=[];
-  function add(n,d,l,need){if(l.length>=need)out.push({n:n,d:d,l:l})}
-  add("The Safe 3","Three biggest moneyline favorites",fav.slice(0,3).map(ml),3);
-  add("Favorites Trio","Next tier of moneyline favorites",fav.slice(3,6).map(ml),3);
-  add("Spread Trio","Favorites laying points",fav.slice(6,9).map(sp),3);
-  add("Unders Special","Three lowest game totals",low.slice(0,3).map(function(g){return g[0]+"|un"}),3);
-  add("Longshot 4-Leg","Closer lines, bigger payout",fav.slice(9,13).map(ml),4);
-  return out;
-}
-var DATA=null,BOOK="fanduel";
-try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
-function build(d){DATA=d;
-  var wk=Date.now()+7*864e5;var ev=(d.lines||[]).filter(function(e){var t=new Date(e.commence_time);return e.bookmakers&&e.bookmakers.length&&t<wk&&t>Date.now()-4*36e5}).sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)});
-  var ng=[],af={},book="",miss=0;
-  ev.forEach(function(e,i){
-    var bk=e.bookmakers.filter(function(b){return b.key===BOOK})[0];if(!bk){miss++;bk=e.bookmakers.filter(function(b){return b.key==="fanduel"})[0]||e.bookmakers[0]}
-    function mk(k){return(bk.markets||[]).filter(function(m){return m.key===k})[0]}
-    var h=mk("h2h"),s=mk("spreads"),t=mk("totals");if(!h||!s||!t)return;
-    function oc(m,n){return m.outcomes.filter(function(o){return o.name===n})[0]}
-    var hs=oc(s,e.home_team),as=oc(s,e.away_team),ov=oc(t,"Over"),un=oc(t,"Under"),id="g"+i;
-    if(hs.point>0)af[id]=1;if(bk.key===BOOK)book=bk.title;
-    var day=new Date(e.commence_time).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-    ng.push([id,day,nick(e.away_team),nick(e.home_team),Math.abs(hs.point),oc(h,e.away_team).price,oc(h,e.home_team).price,ov.point,as.price,hs.price,ov.price,un.price]);
-  });
-  if(!ng.length)return;
-  G=ng;AWAYFAV=af;gm={};G.forEach(function(g){gm[g[0]]=g});slip={};P=autoPresets();
-  document.getElementById("src").textContent="Lines: "+(book||BOOK)+(miss?" ("+miss+" game"+(miss>1?"s":"")+" from another book)":"")+", updated "+new Date(d.fetchedAt).toLocaleString()+". Lines move, so check your sportsbook. Starter parlays are generated from the lines, not predictions.";
-}
-var sel=document.getElementById("book");sel.value=BOOK;sel.addEventListener("change",function(){BOOK=sel.value;try{localStorage.setItem("book",BOOK)}catch(e){}if(DATA){build(DATA);renderGames();renderPresets();renderSlip()}});
-fetch("odds.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(build).catch(function(){}).then(function(){renderGames();renderPresets();renderSlip()});
+["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
+$("stake").addEventListener("input",renderSlip);
+$("book").value=BOOK;
+$("book").addEventListener("change",function(){BOOK=$("book").value;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
+function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
+Promise.all([getJSON("odds.json"),getJSON("data.json")]).then(function(r){ODDS=r[0];DATA=r[1];renderAll()});
 </script>
 </body>
 </html>

@@ -7,3 +7,8 @@
 5. Repo > Settings > Pages > Deploy from branch: main, folder: / (root).
 6. Your site goes live at https://YOURNAME.github.io/parlay-lab/
 The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to change that.
+
+## What each file does
+- fetch-odds.js pulls game lines and player props from The Odds API (uses your ODDS_API_KEY secret).
+- build-data.js adds free nflverse game history and player stats, plus Open-Meteo weather, and writes data.json.
+- index.html is the site. It reads odds.json and data.json.
