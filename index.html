@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parlay Lab · NFL Week 8 parlay builder</title>
+<style>
+:root{
+  --bg:#EEF1F4;--surface:#FFFFFF;--ink:#14213D;--muted:#5B6678;--line:#D5DBE3;
+  --green:#1F7A4D;--green-ink:#FFFFFF;--flag:#F7C600;--flag-ink:#14213D;--red:#C8372D;
+  color-scheme:light;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0F1522;--surface:#18202F;--ink:#E8EDF5;--muted:#9AA5B8;--line:#2A3446;--green:#3DB57A;--green-ink:#08150F;--flag:#F7C600;--flag-ink:#14213D;--red:#F0685D;color-scheme:dark}
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:110px}
+h1,h2,.num{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+header h1{font-size:44px;line-height:1;margin:8px 0 4px;font-weight:800;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:46ch}
+h2{font-size:26px;margin:28px 0 10px;font-weight:700}
+.presets{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.preset{flex:0 0 78%;max-width:300px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--green);border-radius:4px;padding:12px}
+.preset h3{margin:0;font-size:17px}
+.preset ul{margin:6px 0 10px;padding-left:18px;color:var(--muted);font-size:14px}
+.preset .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.num{font-size:28px;font-weight:700}
+.btn{font:inherit;font-weight:600;border:0;border-radius:4px;padding:9px 14px;background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.flag{background:var(--flag);color:var(--flag-ink)}
+.btn:focus-visible,.pick:focus-visible,input:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.day{margin:22px 0 8px;font-size:15px;font-weight:700;color:var(--muted)}
+.game{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;margin-bottom:10px}
+.game h3{margin:0 0 8px;font-size:18px}
+.game h3 span{color:var(--muted);font-weight:500;font-size:14px}
+.line{display:grid;grid-template-columns:64px 1fr 1fr;gap:6px;align-items:stretch;margin-top:6px}
+.line b{font-size:13px;color:var(--muted);align-self:center;font-weight:600}
+.pick{font:inherit;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;min-height:44px;align-items:center}
+.pick small{color:var(--muted);font-size:12px}
+.pick[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.pick[aria-pressed="true"] small{color:inherit}
+.note{color:var(--muted);font-size:13px;margin-top:24px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:3px solid var(--flag);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));z-index:5}
+.bar .in{max-width:720px;margin:0 auto}
+.sum{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
+.sum .num{font-size:26px}
+.panel{display:none;margin-top:10px;max-height:50vh;overflow:auto}
+.panel.open{display:block}
+.leg{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.leg button{background:none;border:0;color:var(--red);font:inherit;font-weight:600;cursor:pointer;padding:6px}
+.stake{display:flex;align-items:center;gap:8px;margin:10px 0}
+.stake input{font:inherit;width:100px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+.empty{color:var(--muted);margin:6px 0}
+.warn{color:var(--red);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Parlay Lab</h1>
+  <p>Current NFL lines. Tap picks to build a parlay, or load a ready-made slip.</p>
+</header>
+
+<h2>Starter parlays</h2>
+<div class="presets" id="presets"></div>
+
+<h2>Build your own</h2>
+<div id="games"></div>
+
+<p class="note"><span id="src">Sample lines: bet365 via FOX Sports, Oct. 27, 2026. Spread and total legs without a listed price use -110.</span> Check your sportsbook before betting. Picks are not guarantees, and parlays carry a high house edge. For entertainment only. 21+. Gambling problem? Call 1-800-GAMBLER.</p>
+</div>
+
+<div class="bar"><div class="in">
+  <div class="panel" id="panel">
+    <div id="legs"></div>
+    <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
+  </div>
+  <button class="sum" id="sum" aria-expanded="false" aria-controls="panel">
+    <span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span>
+  </button>
+</div></div>
+
+<script>
+// [id, day, away, home, spread (home favored), mlAway, mlHome, total]
+var G=[
+ ["gb","Thu, Oct. 29 · 8:15 PM ET","Panthers","Packers",3.5,165,-200,47.5],
+ ["dal","Sun, Nov. 1 · 1:00 PM ET","Cardinals","Cowboys",6.5,240,-300,54.5],
+ ["tb","Sun, Nov. 1 · 1:00 PM ET","Falcons","Buccaneers",1.5,114,-134,45.5],
+ ["buf","Sun, Nov. 1 · 1:00 PM ET","Ravens","Bills",3.5,158,-188,53.5],
+ ["pit","Sun, Nov. 1 · 1:00 PM ET","Browns","Steelers",3.5,163,-196,39.5],
+ ["jax","Sun, Nov. 1 · 1:00 PM ET","Colts","Jaguars",7.5,325,-410,46.5],
+ ["nyj","Sun, Nov. 1 · 1:00 PM ET","Raiders","Jets",1.5,-110,-110,45.5],
+ ["det","Sun, Nov. 1 · 1:00 PM ET","Vikings","Lions",3.5,149,-178,46.5],
+ ["cin","Sun, Nov. 1 · 1:00 PM ET","Titans","Bengals",10.5,450,-600,46.5],
+ ["lar","Sun, Nov. 1 · 4:05 PM ET","Chargers","Rams",6.5,240,-300,44.5],
+ ["den","Sun, Nov. 1 · 4:25 PM ET","Chiefs","Broncos",1.5,-120,100,40.5],
+ ["mia","Sun, Nov. 1 · 4:25 PM ET","Patriots","Dolphins",7.5,-380,300,44.5],
+ ["was","Sun, Nov. 1 · 8:20 PM ET","Eagles","Commanders",4.5,175,-210,40.5],
+ ["sea","Mon, Nov. 2 · 8:15 PM ET","Bears","Seahawks",3.5,149,-178,46.5]
+];
+// Two games list the road team as the favorite
+var AWAYFAV={den:1,mia:1};
+var P=[
+ {n:"The Safe 3",d:"Biggest moneyline favorites",l:["cin|ml-h","jax|ml-h","mia|ml-a"]},
+ {n:"Favorites Trio",d:"Moneyline favorites",l:["gb|ml-h","lar|ml-h","dal|ml-h"]},
+ {n:"Home Favorites Spread",d:"Three field-goal favorites",l:["pit|sp-h","buf|sp-h","det|sp-h"]},
+ {n:"Unders Special",d:"Low totals, defense-first",l:["den|un","was|un","pit|un"]},
+ {n:"Longshot 4-Leg",d:"Close lines, bigger payout",l:["tb|ml-h","den|ml-a","nyj|ml-h","was|ml-h"]}
+];
+var gm={};G.forEach(function(g){gm[g[0]]=g});
+var slip={}; // gameId -> type
+
+function dec(a){return a>0?1+a/100:1+100/-a}
+function am(d){var x=d>=2?Math.round((d-1)*100):Math.round(-100/(d-1));return fmt(x)}
+function fmt(a){return a>0?"+"+a:""+a}
+function legInfo(key){
+  var p=key.split("|"),g=gm[p[0]],t=p[1],s=g[4];
+  if(t==="ml-a")return{name:g[2]+" ML",a:g[5]};
+  if(t==="ml-h")return{name:g[3]+" ML",a:g[6]};
+  if(t==="sp-a")return{name:g[2]+" +"+s,a:-110};
+  if(t==="sp-h")return{name:g[3]+" -"+s,a:-110};
+  if(t==="ov")return{name:g[2]+" @ "+g[3]+" over "+g[7],a:-110};
+  return{name:g[2]+" @ "+g[3]+" under "+g[7],a:-110};
+}
+function combined(keys){var d=1;keys.forEach(function(k){d*=dec(legInfo(k).a)});return d}
+
+function pickBtn(g,t,txt,sub){
+  var key=g[0]+"|"+t;
+  return '<button class="pick" data-k="'+key+'" aria-pressed="'+(slip[g[0]]===t)+'"><span>'+txt+'</span><small>'+sub+'</small></button>';
+}
+function renderGames(){
+  var out="",last="";
+  G.forEach(function(g){
+    if(g[1]!==last){last=g[1];out+='<div class="day">'+last+'</div>'}
+    var s=g[4],hf=!AWAYFAV[g[0]];
+    var spA=hf?"+"+s:"-"+s,spH=hf?"-"+s:"+"+s;
+    out+='<div class="game"><h3>'+g[2]+' <span>at</span> '+g[3]+'</h3>'+
+      '<div class="line"><b>Spread</b>'+pickBtn(g,"sp-a",g[2]+" "+spA,fmt(g[8]||-110))+pickBtn(g,"sp-h",g[3]+" "+spH,fmt(g[9]||-110))+'</div>'+
+      '<div class="line"><b>Money</b>'+pickBtn(g,"ml-a",g[2],fmt(g[5]))+pickBtn(g,"ml-h",g[3],fmt(g[6]))+'</div>'+
+      '<div class="line"><b>Total</b>'+pickBtn(g,"ov","Over "+g[7],fmt(g[10]||-110))+pickBtn(g,"un","Under "+g[7],fmt(g[11]||-110))+'</div></div>';
+  });
+  document.getElementById("games").innerHTML=out;
+}
+function fixSpreads(){
+  // spread price labels for road favorites need the sign flipped on legInfo too
+  G.forEach(function(g){
+    if(AWAYFAV[g[0]]){/* handled in legInfo override below */}
+  });
+}
+var _li=legInfo;
+legInfo=function(key){
+  var p=key.split("|"),g=gm[p[0]],t=p[1];
+  if(AWAYFAV[p[0]]&&(t==="sp-a"||t==="sp-h")){
+    return t==="sp-a"?{name:g[2]+" -"+g[4],a:g[8]||-110}:{name:g[3]+" +"+g[4],a:g[9]||-110};
+  }
+  var r=_li(key);if(t==="sp-a")r.a=g[8]||-110;else if(t==="sp-h")r.a=g[9]||-110;else if(t==="ov")r.a=g[10]||-110;else if(t==="un")r.a=g[11]||-110;return r;
+};
+
+function renderPresets(){
+  document.getElementById("presets").innerHTML=P.map(function(p,i){
+    return '<div class="preset"><h3>'+p.n+'</h3><div style="color:var(--muted);font-size:13px">'+p.d+'</div><ul>'+
+      p.l.map(function(k){return"<li>"+legInfo(k).name+"</li>"}).join("")+'</ul>'+
+      '<div class="row"><span class="num">'+am(combined(p.l))+'</span><button class="btn flag" data-p="'+i+'">Load slip</button></div></div>';
+  }).join("");
+}
+function renderSlip(){
+  var keys=Object.keys(slip).map(function(g){return g+"|"+slip[g]});
+  document.querySelectorAll(".pick").forEach(function(b){
+    var k=b.getAttribute("data-k").split("|");b.setAttribute("aria-pressed",slip[k[0]]===k[1]);
+  });
+  var stake=parseFloat(document.getElementById("stake").value)||0;
+  var L=document.getElementById("legs"),sumL=document.getElementById("sumL"),sumR=document.getElementById("sumR");
+  if(!keys.length){L.innerHTML='<p class="empty">Tap any spread, moneyline or total to add a leg.</p>';sumL.textContent="Your slip is empty";sumR.textContent="";return}
+  var d=combined(keys);
+  L.innerHTML=keys.map(function(k){var i=legInfo(k);return '<div class="leg"><span>'+i.name+' <small style="color:var(--muted)">'+fmt(i.a)+'</small></span><button data-r="'+k.split("|")[0]+'">Remove</button></div>'}).join("")+
+    '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
+    (keys.length>1&&keys.length<2?"":'<p class="warn">Every leg must win. One miss loses the whole slip.</p>');
+  sumL.textContent=keys.length+(keys.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2);
+  sumR.textContent=am(d);
+}
+document.addEventListener("click",function(e){
+  var t=e.target.closest("button");if(!t)return;
+  if(t.dataset.k){var p=t.dataset.k.split("|");if(slip[p[0]]===p[1])delete slip[p[0]];else slip[p[0]]=p[1];renderSlip()}
+  else if(t.dataset.p){slip={};P[+t.dataset.p].l.forEach(function(k){var p=k.split("|");slip[p[0]]=p[1]});document.getElementById("panel").classList.add("open");document.getElementById("sum").setAttribute("aria-expanded","true");renderSlip()}
+  else if(t.dataset.r){delete slip[t.dataset.r];renderSlip()}
+  else if(t.id==="clear"){slip={};renderSlip()}
+  else if(t.id==="sum"){var o=document.getElementById("panel").classList.toggle("open");t.setAttribute("aria-expanded",o)}
+});
+document.getElementById("stake").addEventListener("input",renderSlip);
+function nick(n){return n.split(" ").pop()}
+function autoPresets(){
+  var fav=G.map(function(g){var h=g[6]<g[5];return{g:g,s:h?"h":"a",ml:Math.min(g[5],g[6])}}).sort(function(a,b){return a.ml-b.ml});
+  var ml=function(f){return f.g[0]+"|ml-"+f.s},sp=function(f){return f.g[0]+"|sp-"+f.s};
+  var low=G.slice().sort(function(a,b){return a[7]-b[7]}),out=[];
+  function add(n,d,l,need){if(l.length>=need)out.push({n:n,d:d,l:l})}
+  add("The Safe 3","Three biggest moneyline favorites",fav.slice(0,3).map(ml),3);
+  add("Favorites Trio","Next tier of moneyline favorites",fav.slice(3,6).map(ml),3);
+  add("Spread Trio","Favorites laying points",fav.slice(6,9).map(sp),3);
+  add("Unders Special","Three lowest game totals",low.slice(0,3).map(function(g){return g[0]+"|un"}),3);
+  add("Longshot 4-Leg","Closer lines, bigger payout",fav.slice(9,13).map(ml),4);
+  return out;
+}
+function build(d){
+  var ev=(d.lines||[]).filter(function(e){return e.bookmakers&&e.bookmakers.length}).sort(function(a,b){return new Date(a.commence_time)-new Date(b.commence_time)});
+  var ng=[],af={},book="";
+  ev.forEach(function(e,i){
+    var bk=e.bookmakers.filter(function(b){return b.key==="draftkings"})[0]||e.bookmakers[0];
+    function mk(k){return(bk.markets||[]).filter(function(m){return m.key===k})[0]}
+    var h=mk("h2h"),s=mk("spreads"),t=mk("totals");if(!h||!s||!t)return;
+    function oc(m,n){return m.outcomes.filter(function(o){return o.name===n})[0]}
+    var hs=oc(s,e.home_team),as=oc(s,e.away_team),ov=oc(t,"Over"),un=oc(t,"Under"),id="g"+i;
+    if(hs.point>0)af[id]=1;book=bk.title;
+    var day=new Date(e.commence_time).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+    ng.push([id,day,nick(e.away_team),nick(e.home_team),Math.abs(hs.point),oc(h,e.away_team).price,oc(h,e.home_team).price,ov.point,as.price,hs.price,ov.price,un.price]);
+  });
+  if(!ng.length)return;
+  G=ng;AWAYFAV=af;gm={};G.forEach(function(g){gm[g[0]]=g});slip={};P=autoPresets();
+  document.getElementById("src").textContent="Lines: "+book+", updated "+new Date(d.fetchedAt).toLocaleString()+". Lines move, so check your sportsbook. Starter parlays are generated from the lines, not predictions.";
+}
+fetch("odds.json",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(build).catch(function(){}).then(function(){renderGames();renderPresets();renderSlip()});
+</script>
+</body>
+</html>
