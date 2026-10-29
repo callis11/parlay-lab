@@ -95,9 +95,21 @@ th{color:var(--muted);font-weight:600}
 .empty{color:var(--muted);margin:6px 0}
 .warn{color:var(--red);font-size:13px;margin:6px 0 0}
 [hidden]{display:none!important}
+.gate{position:fixed;inset:0;background:rgba(10,15,30,.85);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+.gate .box{background:var(--surface);color:var(--ink);border-radius:6px;border-top:6px solid var(--flag);padding:20px;max-width:420px}
+.gate h2{margin:0 0 8px}
+.gate p{margin:0 0 12px;font-size:15px}
+.gate .row{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
+<div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateH"><div class="box">
+  <h2 id="gateH">Are you 21 or older?</h2>
+  <p>Parlay Lab is for adults 21+ and for entertainment only. Picks and payouts are estimates, not guarantees. We are not responsible for any losses, and you bet at your own risk.</p>
+  <p><a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a></p>
+  <div class="row"><button class="btn flag" id="gateYes">I'm 21+ and I agree</button><button class="btn" id="gateNo">I'm under 21</button></div>
+  <p id="gateMsg" hidden style="margin:12px 0 0">Sorry, you must be 21 or older to use this site.</p>
+</div></div>
 <div class="wrap">
 <header>
   <h1>Parlay Lab</h1>
@@ -161,7 +173,7 @@ th{color:var(--muted);font-weight:600}
   <div id="teamProps"></div>
 </section>
 
-<p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. "Value" means our estimate beats the book's price, not that the bet will win. Payouts for legs from the same game are estimates, since books price same-game parlays differently. For entertainment only. 21+. Gambling problem? Call 1-800-GAMBLER.</p>
+<p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. "Value" means our estimate beats the book's price, not that the bet will win. Payouts for legs from the same game are estimates, since books price same-game parlays differently. Picks and payouts are estimates only. We are not responsible for losses; bet at your own risk. 21+ only. <a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a>. Gambling problem? Call 1-800-GAMBLER.</p>
 </div>
 
 <div class="bar"><div class="in">
@@ -332,6 +344,11 @@ document.addEventListener("click",function(e){
 $("fRes").addEventListener("change",renderResults);
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
+// 21+ confirmation, remembered on this device
+(function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
+  if(ok)return;$("gate").hidden=false;$("gateYes").focus();
+  $("gateYes").onclick=function(){try{localStorage.setItem("age21","yes")}catch(e){}$("gate").hidden=true};
+  $("gateNo").onclick=function(){$("gateMsg").hidden=false;$("gateYes").hidden=true;$("gateNo").hidden=true}})();
 // Pages: #parlays, #games, #props, #team-DET (shareable links)
 function route(){
   var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0?"team":h;
