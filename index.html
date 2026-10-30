@@ -207,6 +207,9 @@ th{color:var(--muted);font-weight:600}
 .dots i.h{background:var(--green)}
 .rung .hit{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-right:8px}
 .rung[aria-pressed="true"] .hit{color:inherit}
+.rung[aria-pressed="true"] .l5{color:inherit;opacity:.75}
+.rung[aria-pressed="true"] .dots i{background:rgba(0,0,0,.25)}.rung[aria-pressed="true"] .dots i.h{background:var(--green-ink)}
+.lnk{font:inherit;font-size:14px;font-weight:700;color:var(--flag);background:none;border:0;padding:10px 0 2px;cursor:pointer}
 /* NBA: dark hardwood court */
 html.nba body,body{min-height:100vh}
 html{background:var(--bg)}
@@ -515,9 +518,15 @@ function renderProps(){
   if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
   $("props").innerHTML=list.slice(0,SHOWN).map(propCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
 }
+var OPENP={};
 function propCard(p){
     var cur=SLIP["P|"+p.id];
-    var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
+    // Show the 3 most likely lines that still pay something (-700 or better); the rest sit behind "Show all"
+    var playable=p.rungs.filter(function(r){return r.p!==undefined&&r.a>=-700}).sort(function(a,b){return b.p-a.p}),keep={};
+    (playable.length?playable:p.rungs.slice().sort(function(a,b){return(b.p||0)-(a.p||0)})).slice(0,3).forEach(function(r){keep[r.line]=1});
+    if(cur)keep[cur.line]=1;
+    var open=OPENP[p.id],hidden=p.rungs.filter(function(r){return!keep[r.line]}).length;
+    var rungs=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line;
       var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+(r.since&&r.since[1]>r.n?" · "+r.since[0]+" of "+r.since[1]+" since 2023":""):"Not enough games to rate";
       var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5">Last 5 games: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5"> newest</span>':"";
       return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
@@ -526,7 +535,7 @@ function propCard(p){
       return(v&&v[0]+v[1]>=2?'<span class="chip">vs '+esc(p.opp)+': '+v[0]+" of "+(v[0]+v[1])+' overs</span>':"")})();
     var pc="#8A97A8";
     return '<div class="card pl" style="--c:'+pc+'"><h3><div class="phead">'+icon(icoKey({kind:"p",label:p.label,td:p.td}),pc)+'<div>'+esc(p.player)+' <span>'+(p.team||"")+'</span></div></div><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
-      '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
+      '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+(hidden?'<button class="lnk" data-openp="'+esc(p.id)+'">'+(open?"Show top 3 only":"Show all "+p.rungs.length+" lines")+'</button>':"")+'</div>';
 }
 
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
@@ -976,6 +985,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
+  else if(t.dataset.openp){OPENP[t.dataset.openp]=!OPENP[t.dataset.openp];var y=window.scrollY;renderProps();if($("teamProps"))renderTeam();window.scrollTo(0,y)}
   else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o);renderSlip()}
   else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
 });
