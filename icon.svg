@@ -1,35 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2D52"/><stop offset="1" stop-color="#0E1730"/></linearGradient>
+    <radialGradient id="bub" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#9FF0C6"/><stop offset=".55" stop-color="#2DBE7A"/><stop offset="1" stop-color="#17885A"/></radialGradient>
+    <radialGradient id="gold" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#FFF1A6"/><stop offset=".55" stop-color="#F7C600"/><stop offset="1" stop-color="#D49A00"/></radialGradient>
     <clipPath id="flask"><path d="M432 330 V420 L250 770 Q232 812 276 812 H748 Q792 812 774 770 L592 420 V330 Z"/></clipPath>
   </defs>
   <rect width="1024" height="1024" fill="url(#bg)"/>
-  <g transform="translate(512 506) scale(1.1) translate(-512 -440)">
-  <!-- liquid -->
-  <g clip-path="url(#flask)">
-    <path d="M200 610 Q330 560 460 610 T720 610 T980 610 V900 H200 Z" fill="#2DBE7A"/>
-    <path d="M200 610 Q330 560 460 610 T720 610 T980 610" fill="none" stroke="#7FE3B0" stroke-width="14" opacity=".7"/>
+  <g transform="translate(512 650) scale(.98) translate(-512 -565)">
+    <g clip-path="url(#flask)">
+      <path d="M200 610 Q330 560 460 610 T720 610 T980 610 V900 H200 Z" fill="#2DBE7A"/>
+      <path d="M200 610 Q330 560 460 610 T720 610 T980 610" fill="none" stroke="#7FE3B0" stroke-width="14" opacity=".7"/>
+      <!-- fizz inside the liquid -->
+      <g fill="#C9F7DE" opacity=".85"><circle cx="380" cy="770" r="12"/><circle cx="650" cy="740" r="15"/><circle cx="600" cy="790" r="9"/><circle cx="420" cy="690" r="10"/></g>
+      <!-- first line, born in the flask -->
+      <circle cx="512" cy="720" r="58" fill="url(#bub)" stroke="#C9F7DE" stroke-width="6"/>
+      <text x="512" y="737" text-anchor="middle" font-family="Arial Black,Arial,Helvetica,sans-serif" font-weight="900" font-size="46" fill="#0E1730">-110</text>
+    </g>
+    <!-- bubbles rising through the neck -->
+    <circle cx="530" cy="470" r="20" fill="none" stroke="#9FF0C6" stroke-width="8"/>
+    <circle cx="488" cy="395" r="13" fill="#9FF0C6"/>
+    <path d="M432 330 V420 L250 770 Q232 812 276 812 H748 Q792 812 774 770 L592 420 V330" fill="none" stroke="#F7C600" stroke-width="52" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="384" y1="318" x2="640" y2="318" stroke="#F7C600" stroke-width="52" stroke-linecap="round"/>
   </g>
-  <!-- check mark: the leg hit -->
-  <path d="M410 700 L485 770 L625 640" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- flask outline -->
-  <path d="M432 330 V420 L250 770 Q232 812 276 812 H748 Q792 812 774 770 L592 420 V330" fill="none" stroke="#F7C600" stroke-width="52" stroke-linejoin="round" stroke-linecap="round"/>
-  <line x1="384" y1="318" x2="640" y2="318" stroke="#F7C600" stroke-width="52" stroke-linecap="round"/>
-  <!-- sport balls rising out of the flask -->
-  <g transform="translate(410 224) rotate(-32) scale(1.35)">
-    <ellipse rx="56" ry="34" fill="#8A4B24" stroke="#0E1730" stroke-width="6"/>
-    <path d="M-40 -14 Q-46 0 -40 14 M40 -14 Q46 0 40 14" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round"/>
-    <line x1="-20" y1="0" x2="20" y2="0" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
-    <path d="M-12 -8 V8 M0 -8 V8 M12 -8 V8" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
-  </g>
-  <g transform="translate(636 188) scale(1.3)">
-    <circle r="46" fill="#E8792B" stroke="#0E1730" stroke-width="6"/>
-    <path d="M0 -46 V46 M-46 0 H46 M-32 -33 Q-12 0 -32 33 M32 -33 Q12 0 32 33" stroke="#0E1730" stroke-width="5" fill="none"/>
-  </g>
-  <g transform="translate(524 92) scale(1.3)">
-    <circle r="38" fill="#FFFFFF" stroke="#0E1730" stroke-width="5"/>
-    <path d="M-22 -30 Q-8 0 -22 30 M22 -30 Q8 0 22 30" stroke="#D2312B" stroke-width="5" fill="none"/>
-    <path d="M-20 -20 l-8 -3 M-15 -8 l-9 -1 M-15 6 l-9 1 M-20 19 l-8 3 M20 -20 l8 -3 M15 -8 l9 -1 M15 6 l9 1 M20 19 l8 3" stroke="#D2312B" stroke-width="3.5" stroke-linecap="round"/>
-  </g>
+  <!-- the odds grow as they float out -->
+  <g font-family="Arial Black,Arial,Helvetica,sans-serif" font-weight="900" text-anchor="middle">
+    <circle cx="566" cy="272" r="72" fill="url(#bub)" stroke="#C9F7DE" stroke-width="7"/>
+    <text x="566" y="291" font-size="54" fill="#0E1730">+150</text>
+    <circle cx="372" cy="168" r="96" fill="url(#bub)" stroke="#C9F7DE" stroke-width="8"/>
+    <text x="372" y="193" font-size="70" fill="#0E1730">+300</text>
+    <circle cx="700" cy="122" r="108" fill="url(#gold)" stroke="#FFF1A6" stroke-width="8"/>
+    <text x="700" y="150" font-size="80" fill="#0E1730">+600</text>
   </g>
 </svg>
