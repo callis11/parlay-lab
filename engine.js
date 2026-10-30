@@ -45,11 +45,18 @@
   // Our estimated chance a whole slip hits, treating legs as independent
   function chance(legs) { var p = 1; for (var i = 0; i < legs.length; i++) { if (legs[i].p === undefined || legs[i].p === null) return null; p *= legs[i].p; } return p; }
   // Slate label in US Eastern time, e.g. "Thursday night", "Sunday", "Monday night"
+  // NFL slate label in US Eastern time: "Thu Night", "Sun 9:30 AM", "Sun 1 PM", "Sun 4 PM", "Sun Night", "Mon Night",
+  // plus holidays ("Thanksgiving 12:30 PM", "Black Friday", "Christmas 1 PM") and Saturdays
   function slateName(iso) {
-    var d = new Date(iso);
-    var w = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
-    var h = +d.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }) % 24;
-    return w === "Sunday" ? "Sunday" : (w + (h >= 17 ? " night" : ""));
+    var d = new Date(iso), o = {};
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(d).forEach(function (x) { o[x.type] = x.value; });
+    var h = +o.hour % 24, m = +o.month, day = +o.day, w = o.weekday;
+    var t = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }).replace(":00", "");
+    var special = m === 11 && w === "Thu" && day >= 22 && day <= 28 ? "Thanksgiving" : m === 11 && w === "Fri" && day >= 23 && day <= 29 ? "Black Friday" : m === 12 && day === 25 ? "Christmas" : null;
+    if (special) return special + (h >= 19 ? " Night" : " " + t);
+    if (w === "Sun") return h < 12 ? "Sun " + t : h < 15 ? "Sun 1 PM" : h < 19 ? "Sun 4 PM" : "Sun Night";
+    return w + (h >= 17 ? " Night" : " " + t);
   }
 
   // Date label in US Eastern time, e.g. "Thu, Oct 29" (used for daily sports like the NBA)

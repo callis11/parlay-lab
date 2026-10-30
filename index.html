@@ -100,6 +100,33 @@ th{color:var(--muted);font-weight:600}
 .sync{margin:8px 0 0;font-size:13px;color:var(--muted)}
 .sync b{color:var(--ink);font-weight:600}
 .sync .stale{color:var(--red);font-weight:600}
+.chiprow{display:flex;gap:8px;overflow-x:auto;padding:14px 0 6px;scrollbar-width:none}
+.chiprow::-webkit-scrollbar{display:none}
+.chiprow button{flex:0 0 auto;font:inherit;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;cursor:pointer;min-height:40px}
+.chiprow button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chiprow button small{font-weight:500;opacity:.75;margin-left:4px}
+.ptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
+.ptools select{flex:1;min-width:120px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (min-width:640px){.pgrid{grid-template-columns:repeat(3,1fr)}}
+.pc{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:6px;min-width:0}
+.pc[data-tag="safe"]{border-top-color:var(--green)}
+.pc[data-tag="value"]{border-top-color:#2F6FD6}
+.pc[data-tag="big"]{border-top-color:var(--flag)}
+.pc[open]{grid-column:1/-1}
+.pc summary{list-style:none;cursor:pointer;padding:10px 12px}
+.pc summary::-webkit-details-marker{display:none}
+.pc .tg{font-size:11px;font-weight:700;text-transform:none;color:var(--muted)}
+.pc .nm{font-weight:700;font-size:15px;line-height:1.25;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis}
+.pc .od{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-size:26px;font-weight:700;line-height:1}
+.pc .mt{font-size:12px;color:var(--muted);margin-top:4px}
+.pc .bd{padding:0 12px 12px;border-top:1px solid var(--line)}
+.pc .bd ul{margin:8px 0;padding-left:18px;font-size:14px}
+.pc .bd .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+.pgroup{margin:18px 0 6px;font-size:20px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -146,20 +173,13 @@ th{color:var(--muted);font-weight:600}
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
-  <h2>Most likely to hit</h2>
-  <p class="sub">Slips with the highest chance of cashing by our estimate, one leg per game. Only healthy players: no injury tag and played last game.</p>
-  <div class="presets" id="pr-likely"></div>
-  <div id="homeSec"><h2 id="homeH">Hometown parlays</h2>
-  <p class="sub" id="homeNote"></p>
-  <div class="presets" id="pr-home"></div></div>
-  <div id="weekSec"><h2>Best of the week</h2>
-  <p class="sub">Game picks and player props mixed, one leg per game.</p>
-  <div class="presets" id="pr-week"></div></div>
-  <div id="slates"></div>
-  <h2>Player props only</h2>
-  <div class="presets" id="ppresets"></div>
-  <h2>Game lines only</h2>
-  <div class="presets" id="presets"></div>
+  <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
+  <div class="ptools">
+    <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
+    <select id="fLegs" aria-label="Legs"><option value="">Any legs</option><option value="s">2–3 legs</option><option value="l">4+ legs</option></select>
+    <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
+  </div>
+  <div id="pList"></div>
 </section>
 
 <section id="v-games" role="tabpanel" aria-labelledby="t-games" hidden>
@@ -297,24 +317,78 @@ function propCard(p){
       '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
 }
 
-function renderHome(){
-  var o=Engine.OPTS[SPORT]||{};if(!o.featured){$("homeSec").hidden=true;return}
-  var r=ENG.teamSlips(o.featured),nm=o.featuredName;$("homeH").textContent=nm+" parlays";
-  if(r.g&&r.l.length){$("homeNote").textContent=r.g.away+" at "+r.g.home+", "+when(r.g.t)+". Same-game parlays, so your book's payout will be lower than shown.";renderPresetRow("pr-home",r.l,"h");return}
+// ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
+var PST={slate:null,mode:"top",legs:"",kind:""};
+try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
+function savePST(){try{localStorage.setItem("pst_"+SPORT,JSON.stringify(PST))}catch(e){}}
+function slipInfo(p){
+  var d=1,evs={},sg=false,props=0,games=0;
+  p.l.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.kind==="p")props++;else games++});
+  var ch=Engine.chance(p.l);
+  return{s:p,d:d,ch:ch,ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
+}
+function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join();if(seen[k])return false;seen[k]=1;return true})}
+// Slates: "Best of week" (or "Best overall" for NBA), each kickoff slate, then the hometown team
+function slateList(){
+  var o=Engine.OPTS[SPORT]||{},ids=GAMES.map(function(g){return g.id}),out=[];
+  out.push({id:"best",label:o.noWeek?"Best overall":"Best of Week",note:o.noWeek?"Across every game on the board.":"Across the whole week, one leg per game.",
+    list:function(){return ENG.likelySlips(ids).concat(o.noWeek?[]:ENG.slateSlips(ids)).concat(ENG.playerPresets()).concat(ENG.gamePresets())}});
+  ENG.slates().forEach(function(sl){
+    var gi=sl.g.map(function(g){return g.id}),first=sl.g[0];
+    out.push({id:"s:"+sl.k,label:sl.k,count:sl.g.length,t:first.t,
+      note:sl.g.length===1?first.away+" at "+first.home+", "+when(first.t)+". Same-game parlays, so your book's payout will be lower than shown.":sl.g.length+" games, "+when(first.t)+". One leg per game.",
+      list:function(){return ENG.likelySlips(gi).concat(ENG.slateSlips(gi))}});
+  });
+  if(o.featured)out.push({id:"team",label:o.featuredName,team:true,list:function(){return ENG.teamSlips(o.featured).l}});
+  return out;
+}
+function teamNote(){
+  var o=Engine.OPTS[SPORT]||{},r=ENG.teamSlips(o.featured),nm=o.featuredName;
+  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+". Same-game parlays, so your book's payout will be lower than shown.";
   var nx=DATA&&DATA.next&&DATA.next[o.featured];
-  $("homeNote").textContent=nx?"The "+nm+" play next "+when(nx.t)+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":
-    (r.g?"Not enough "+nm+" props posted yet. Check back closer to game time.":"No "+nm+" game in the current lines. Their parlays show up here once the books post lines.");
-  $("pr-home").innerHTML="";
+  return nx?"The "+nm+" play next "+when(nx.t)+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
+}
+// Tag the three standouts: Safest (highest chance), Best value (estimate beats price most), Big payout (biggest odds that still has a real chance)
+function rankSlips(raw){
+  var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||x.kind===PST.kind)});
+  var used={},top=[];
+  function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
+  pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null});
+  pick("value",function(x){return x.ev},function(x){return x.ev!==null&&x.ch>=0.15});
+  pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
+  var rest=L.filter(function(x){return!x.tag}).sort(function(a,b){return(b.ch||0)-(a.ch||0)});
+  return PST.mode==="top"?top:top.concat(rest);
+}
+var TAGS={safe:"Safest",value:"Best value",big:"Big payout"};
+function slipCard(x,key){
+  PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
+  var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
+  return'<details class="pc"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div><div class="nm">'+esc(p.n)+'</div>'+
+    '<div class="od">'+(x.sg?"~":"")+am(x.d)+'</div><div class="mt">'+(x.ch!==null?Math.round(x.ch*100)+"% to hit · ":"")+"$10 wins "+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div></summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+shop+
+    (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
+    '<div class="row"><span class="mt">Tap the card top to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
 function renderParlays(){
-  renderHome();
-  $("weekSec").hidden=!!(Engine.OPTS[SPORT]||{}).noWeek;
-  renderPresetRow("pr-likely",ENG.likelySlips(GAMES.map(function(g){return g.id})),"k");
-  renderPresetRow("pr-week",ENG.slateSlips(GAMES.map(function(g){return g.id})),"w");
-  var groups=ENG.slates();
-  $("slates").innerHTML=groups.map(function(s,i){var one=s.g.length===1;
-    return '<h2>'+s.k+'</h2><p class="sub">'+(one?s.g[0].away+" at "+s.g[0].home+". Same-game parlays, so your book's payout will be lower than shown.":s.g.length+" games, one leg per game.")+'</p><div class="presets" id="sl'+i+'"></div>'}).join("");
-  groups.forEach(function(s,i){var ids=s.g.map(function(g){return g.id});renderPresetRow("sl"+i,ENG.likelySlips(ids).concat(ENG.slateSlips(ids)),"s"+i)});
+  var S=slateList(),now=Date.now();
+  // default: next slate that hasn't started, else Best
+  if(!PST.slate||(PST.slate!=="all"&&!S.some(function(x){return x.id===PST.slate}))){var up=S.filter(function(x){return x.t&&+new Date(x.t)>now})[0];PST.slate=up?up.id:"best"}
+  var chips=[{id:"all",label:"Everything"}].concat(S);
+  $("slateChips").innerHTML=chips.map(function(c){return'<button role="tab" data-slate="'+esc(c.id)+'" aria-selected="'+(c.id===PST.slate)+'">'+esc(c.label)+(c.count>1?"<small>"+c.count+"</small>":"")+'</button>'}).join("");
+  document.querySelectorAll("[data-pm]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pm===PST.mode)});
+  $("fLegs").value=PST.legs;$("fKind").value=PST.kind;
+  var html="",n=0;
+  function block(sl,showHead){
+    var L=rankSlips(sl.list()),cards=L.map(function(x,i){return slipCard(x,"q"+(n++))}).join("");
+    var note=sl.team?teamNote():sl.note;
+    return(showHead?'<h2 class="pgroup">'+esc(sl.label)+'</h2>':"")+'<p class="sub">'+esc(note)+'</p>'+
+      (L.length?'<div class="pgrid">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
+  }
+  if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
+  else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
+  if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
+  $("pList").innerHTML=html;
+  var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
 }
 function renderTeam(){
   var sel=$("fTeam"),teams=[];
@@ -521,7 +595,6 @@ function renderSync(){
 
 function renderAll(){
   build();renderGames();renderProps();
-  renderPresetRow("presets",ENG.gamePresets(),"g");renderPresetRow("ppresets",ENG.playerPresets(),"p");
   renderParlays();renderTeam();renderResults();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
@@ -552,6 +625,8 @@ document.addEventListener("click",function(e){
     else toast("This browser won't save it (private mode?).",true)}
   else if(t.dataset.mydel){var a=myLoad().filter(function(b){return b.id!==t.dataset.mydel});mySave(a);renderMyBets()}
   else if(t.dataset.id&&t.dataset.myset!==undefined){var a2=myLoad();a2.forEach(function(b){if(b.id===t.dataset.id)b.manual=t.dataset.myset||null});mySave(a2);renderMyBets()}
+  else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
+  else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
@@ -559,6 +634,8 @@ document.addEventListener("click",function(e){
   else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
 });
 $("fRes").addEventListener("change",renderResults);
+$("fLegs").addEventListener("change",function(){PST.legs=$("fLegs").value;savePST();renderParlays()});
+$("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePST();renderParlays()});
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
 // Sport-specific labels
