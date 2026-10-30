@@ -1028,7 +1028,8 @@ function renderTeam(){
   var quiet=true,fit=function(i){var c=tr.children[i];if(c)tr.style.height=c.offsetHeight+"px"};
   var jump=function(){if(!tr.clientWidth){requestAnimationFrame(jump);return}tr.style.scrollSnapType="none";tr.scrollLeft=cardLeft(tr,idx);tr.style.scrollSnapType="";setDots(tr,idx);fit(idx);setTimeout(function(){quiet=false},400)};
   jump();
-  FLIPTO=null; // arriving from the Parlays spotlight: show the same card face up, with its team below
+  // arriving from the Parlays spotlight: same card face up, then scroll down to that team's parlays
+  if(FLIPTO){FLIPTO=null;setTimeout(function(){var h=$("teamSide");if(h){window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-70,behavior:"smooth"})}},450)}
   tr.addEventListener("click",function(){setTimeout(function(){fit(cardIdx(tr))},220)});
   var tmr=null;tr.addEventListener("scroll",function(){if(quiet||!tr.clientWidth)return;clearTimeout(tmr);tmr=setTimeout(function(){
     var i=cardIdx(tr),g=TEAMGAMES[i];setDots(tr,i);fit(i);if(!g)return;var m=DATA.games[g.id];
@@ -1329,7 +1330,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
   else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
-  else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM;window.scrollTo(0,0)}
+  else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
   else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
   else if(t.dataset.side==="BOTH"){TSIDE="both";renderTeamLower();renderSlip()}
   else if(t.dataset.side){TSIDE="team";TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}
