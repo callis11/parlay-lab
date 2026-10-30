@@ -378,16 +378,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
-  <details class="gen" id="gen"><summary><span class="gen-t">⚡ Parlay generator</span><span class="gen-s">Pick a few things, we build one and tell you why</span></summary>
-    <div class="gen-b">
-      <div class="gen-row"><label>Legs</label><div class="seg" id="gLegs"><button data-gl="2">2</button><button data-gl="3">3</button><button data-gl="4">4</button><button data-gl="5">5</button></div></div>
-      <div class="gen-row"><label>Style</label><div class="seg" id="gStyle"><button data-gs="safe">Safe</button><button data-gs="bal">Balanced</button><button data-gs="long">Long shot</button></div></div>
-      <div class="gen-row"><label>Bets</label><div class="seg" id="gKind"><button data-gk="mix">Both</button><button data-gk="p">Players</button><button data-gk="g">Game lines</button></div></div>
-      <div class="gen-row"><label>Games</label><select id="gGames"></select></div>
-      <button class="btn flag" id="genGo" style="width:100%;margin-top:6px">Generate a parlay</button>
-      <div id="genOut"></div>
-    </div>
-  </details>
+  <div id="genMount_par"></div>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
@@ -405,6 +396,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <section id="v-props" role="tabpanel" aria-labelledby="t-props" hidden>
   <h2>Players</h2>
+  <div id="genMount_ply"></div>
   <div class="filters">
     <select id="fGame" aria-label="Game"><option value="">All games</option></select>
     <select id="fMkt" aria-label="Market"><option value="">All markets</option></select>
@@ -443,6 +435,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   <div class="filters"><select id="fDiv" aria-label="Division"></select><select id="fTeam" aria-label="Team"></select></div>
   <div id="teamCar"></div>
   <div class="seg tside" id="teamSide" role="group" aria-label="Team"></div>
+  <div id="genMount_tm"></div>
   <h2 id="teamParH">Team parlays</h2>
   <p class="sub" id="teamNote"></p>
   <div class="presets" id="pr-team"></div>
@@ -595,6 +588,7 @@ function piece(l){
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 function renderProps(){
+  try{genUI("ply")}catch(e){}
   var fg=$("fGame").value,fm=$("fMkt").value,so=$("fSort").value;
   var list=playerGroups(PROPS.filter(function(p){return(!fg||p.ev===fg)&&(!fm||p.label===fm)}));
   list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="value"?function(a,b){return b.best-a.best}:function(a,b){return b.top-a.top});
@@ -637,30 +631,53 @@ function propCard(p){return playerCard({ps:[p]})}
 
 
 // ---------- Parlay generator: builds a parlay from your choices and explains each leg ----------
-var GEN={legs:3,style:"bal",kind:"mix",games:"all"};
-try{var _g=JSON.parse(localStorage.getItem("gen_"+SPORT)||"{}");if(_g.set)Object.assign(GEN,_g.set);if(!_g.v2)GEN.games="all"}catch(e){}
-function genSaved(){try{return JSON.parse(localStorage.getItem("gen_"+SPORT)||"{}").last||[]}catch(e){return[]}}
-function genSave(last){try{localStorage.setItem("gen_"+SPORT,JSON.stringify({set:GEN,last:last,v2:1}))}catch(e){}}
-function genUI(){
-  [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"]].forEach(function(a){document.querySelectorAll("#"+a[0]+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(GEN[a[2]]))})});
-  var sel=$("gGames");if(!sel)return;var o='<option value="all">All games</option><option value="slate">The slate picked below</option>',teams=[];
-  GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m){teams.push([m.away,g.away]);teams.push([m.home,g.home])}});
-  teams.sort(function(a,b){return a[1].localeCompare(b[1])}).forEach(function(t){o+='<option value="t:'+esc(t[0])+'">Only '+esc(t[1])+'</option>'});
-  sel.innerHTML=o;sel.value=GEN.games;if(sel.value!==GEN.games){GEN.games="all";sel.value="all"}
-  $("genGo").textContent=genSaved().length?"Generate another":"Generate a parlay";
-  renderGenOut();
+// Three copies share this code: Parlays tab (par), Players tab (ply, player props only), Teams tab (tm, this game only)
+var GENCX={par:{key:"gen_",title:"⚡ Parlay generator",sub:"Pick a few things, we build one and tell you why"},
+  ply:{key:"genp_",title:"⚡ Player parlay generator",sub:"Player props only, built from the best lines on the board"},
+  tm:{key:"gent_",title:"⚡ Build one for this game",sub:"Legs from the game on the card above"}};
+var GENS={};
+["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
+  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply")GENS[cx].kind="p"}catch(e){}});
+var GEN=GENS.par;
+function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}").last||[]}catch(e){return[]}}
+function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
+function genBox(cx){
+  var C=GENCX[cx],x=function(id){return id+"_"+cx};
+  return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'</span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
+    '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'</div></div>'+
+    '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
+    (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
+    (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"><button data-cx="tm" data-gt="team">This team</button><button data-cx="tm" data-gt="both">Both teams</button></div></div>'
+      :'<div class="gen-row"><label>Games</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div>')+
+    '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div></div></details>';
+}
+function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+cx);if(m&&!m.firstChild){m.innerHTML=genBox(cx);var sel=$("gGames_"+cx);if(sel)sel.addEventListener("change",function(){GENS[cx].games=sel.value;genSave(cx,genSaved(cx))})}})}
+function genUI(cx){
+  cx=cx||"par";genMount();var G=GENS[cx],x=function(id){return id+"_"+cx};
+  [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"],["gSide","gt","side"]].forEach(function(a){document.querySelectorAll("#"+x(a[0])+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(G[a[2]]))})});
+  var sel=$(x("gGames"));
+  if(sel){var o='<option value="all">All games</option>'+(cx==="par"?'<option value="slate">The slate picked below</option>':""),teams=[];
+    GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m){teams.push([m.away,g.away]);teams.push([m.home,g.home])}});
+    var seen={};teams.filter(function(t){if(seen[t[0]])return false;seen[t[0]]=1;return true}).sort(function(a,b){return a[1].localeCompare(b[1])}).forEach(function(t){o+='<option value="t:'+esc(t[0])+'">Only '+esc(t[1])+'</option>'});
+    sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}}
+  if($(x("genGo")))$(x("genGo")).textContent=genSaved(cx).length?"Generate another":"Generate a parlay";
+  renderGenOut(cx);
 }
 // Each style targets a payout range and only uses legs with a real chance
 var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Safe"},bal:{lo:0.45,amin:-500,amax:200,dmin:2.0,dmax:4.2,name:"Balanced"},long:{lo:0.25,amin:-400,amax:450,dmin:5,dmax:12,name:"Long shot"}};
-function genPool(){
-  var now=Date.now(),ids={},S=slateList(),sel=S.filter(function(x){return x.id===PST.slate})[0];
+function genPool(cx){
+  cx=cx||"par";var G=GENS[cx],now=Date.now(),ids={},S=slateList(),sel=S.filter(function(x){return x.id===PST.slate})[0];
   var gl=GAMES.filter(function(g){return+new Date(g.t)>now});
-  if(GEN.games==="slate"&&sel&&sel.games)gl=gl.filter(function(g){return sel.games.some(function(x){return x.id===g.id})});
-  if(GEN.games.slice(0,2)==="t:"){var t=GEN.games.slice(2);gl=gl.filter(function(g){var m=DATA.games[g.id]||{};return m.away===t||m.home===t})}
+  if(cx==="tm"){var r=ENG.teamSlips(TEAM,TGAME);gl=r.g&&+new Date(r.g.t)>now?[r.g]:[]}
+  else{
+    if(G.games==="slate"&&sel&&sel.games)gl=gl.filter(function(g){return sel.games.some(function(x){return x.id===g.id})});
+    if(G.games.slice(0,2)==="t:"){var t=G.games.slice(2);gl=gl.filter(function(g){var m=DATA.games[g.id]||{};return m.away===t||m.home===t})}
+  }
   gl.forEach(function(g){ids[g.id]=1});
-  var st=STYLE[GEN.style],out=[];
-  if(GEN.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id,ev:g.id,pe:L.p})})});
-  if(GEN.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;p.rungs.forEach(function(r){
+  var only=cx==="tm"&&G.side==="team"?TEAM:null;
+  var st=STYLE[G.style],out=[];
+  if(G.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(only&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p})})});
+  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&p.team!==only)return;p.rungs.forEach(function(r){
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
     // Trust a leg less when its record at this exact line since 2023 is worse than our estimate
     var pe=r.p;if(r.since&&r.since[1]>=8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
@@ -671,15 +688,14 @@ function genPool(){
 }
 // Search for the parlays with the best real chance that land in the style's payout range.
 // "Generate another" walks down this list, so each spin is the next-best one you haven't seen.
-function genRank(pool,n){
-  var st=Object.assign({},STYLE[GEN.style]),team=GEN.games.slice(0,2)==="t:";
-  if(n>=4){st.dmax*=GEN.style==="long"?1.7:1.4}
+function genRank(pool,n,cx){
+  cx=cx||"par";var G=GENS[cx],st=Object.assign({},STYLE[G.style]),team=cx==="tm"||G.games.slice(0,2)==="t:";
+  if(n>=4){st.dmax*=G.style==="long"?1.7:1.4}
   // keep legs whose price fits the style's per-leg share of the payout target
   var lo=Math.pow(st.dmin,1/n)/1.8,hi=Math.pow(st.dmax,1/n)*1.8;
   var fit=pool.filter(function(x){var d=dec(x.leg.a);return d>=lo&&d<=hi}),seenC={},c=[];
-  // candidates: the likeliest legs, plus the likeliest legs that pay more (so bigger targets are reachable)
-  var per=Math.pow(st.dmin,1/n);
   // price tiers around the per-leg target, the likeliest legs from each, so every payout range is reachable
+  var per=Math.pow(st.dmin,1/n);
   var tiers=[0,0.9,1.15,1.5,2].map(function(m){return fit.filter(function(x){return dec(x.leg.a)>=per*m}).sort(function(a,b){return b.pe-a.pe}).slice(0,30)});
   [].concat.apply([],tiers)
     .forEach(function(x){var k=x.leg.k+"|"+(x.leg.t||"")+"|"+(x.leg.line||"");if(!seenC[k]){seenC[k]=1;c.push(x)}});
@@ -687,7 +703,7 @@ function genRank(pool,n){
   for(var k=0;k<n;k++){
     var next=[];
     beam.forEach(function(b){for(var i=b.ix+1;i<c.length;i++){var x=c[i];
-      if(b.who[x.who])continue;if(x.leg.kind==="g"&&b.gev[x.ev])continue;
+      if(b.who[x.who])continue; // one side and one total per game at most
       var d=b.d*dec(x.leg.a);if(d>st.dmax*1.15)continue;if(k===n-1&&d<st.dmin)continue;
       var same=b.evs[x.ev]&&!team?0.85:1; // legs from the same game fail together more often
       var w=Object.assign({},b.who);w[x.who]=1;var g=Object.assign({},b.gev);if(x.leg.kind==="g")g[x.ev]=1;var e=Object.assign({},b.evs);e[x.ev]=1;
@@ -701,8 +717,8 @@ function genRank(pool,n){
   var list=(inRange.length?inRange:full).sort(function(a,b){return b.pr-a.pr});
   return list.map(function(b){return{legs:b.legs,key:b.legs.map(function(x){return x.leg.k+"|"+(x.leg.t||"")+"|"+(x.leg.line||"")}).sort().join(),inRange:inRange.length>0}});
 }
-function genPick(pool,n,avoid){
-  var all=genRank(pool,n);
+function genPick(pool,n,avoid,cx){
+  var all=genRank(pool,n,cx);
   // skip anything already shown, and anything that's just one leg away from the last one (so spins feel different)
   var lastLegs=avoid.length?avoid[0].split(","):[];
   for(var i=0;i<all.length;i++){var x=all[i];if(avoid.indexOf(x.key)>=0)continue;
@@ -730,28 +746,30 @@ function legWhy(x){
   }
   return bits.join(" · ");
 }
-function genRun(){
-  var P=genPool(),n=GEN.legs,last=genSaved();
-  if(!P.games.length){toast("No upcoming games for that choice. Try All games.",true);return}
-  var got=genPick(P.pool,n,last.map(function(x){return x.key}));
-  if(!got){toast("Not enough legs fit those choices. Try fewer legs, another style, or All games.",true);return}
+function genRun(cx){
+  cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
+  // one game with only game lines can make at most a side + the total
+  if(cx==="tm"&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
+  if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
+  var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
+  if(!got){toast("Not enough legs fit those choices. Try fewer legs or another style"+(cx==="tm"?", or Both teams.":", or All games."),true);return}
   var d=1,raw=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);raw*=x.pe;if(evs[x.ev])sg=true;evs[x.ev]=1});
   var f=genFactor(n),ch=raw*f;
   var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
-  var item={t:Date.now(),key:got.key,set:Object.assign({},GEN),d:d,ch:ch,raw:raw,sg:sg,
+  var item={t:Date.now(),key:got.key,set:Object.assign({},G),d:d,ch:ch,raw:raw,sg:sg,
     legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
     note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
       (Math.abs(f-1)>0.01?n+"-leg slips hit about "+Math.round(f*100)+"% as often as their legs suggested, so "+Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"%. ":"")+
       (sg?"Some legs are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every leg is from a different game.")};
-  last.unshift(item);last=last.slice(0,3);genSave(last);
-  $("genGo").textContent="Generate another";renderGenOut();
+  last.unshift(item);last=last.slice(0,3);genSave(cx,last);
+  $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
 }
-function renderGenOut(){
-  var last=genSaved(),el=$("genOut");if(!el)return;
+function renderGenOut(cx){
+  cx=cx||"par";var last=genSaved(cx),el=$("genOut_"+cx);if(!el)return;
   if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
   var now=Date.now();
   el.innerHTML=last.map(function(it,i){
-    var key="gen"+i;PRE[key]=it.legs.map(function(x){return x.leg});
+    var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
       '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
@@ -1088,6 +1106,7 @@ function bothSlips(g){
 }
 var TSIDE="team";
 function renderTeamLower(){
+  try{genUI("tm")}catch(e){}
   var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
   var r=ENG.teamSlips(v,TGAME),m=r.g&&DATA&&DATA.games[r.g.id]||{};
   $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(TSIDE==="team"&&t[0]===v)+'">'+esc(t[1])+'</button>'}).join("")+'<button data-side="BOTH" aria-pressed="'+(TSIDE==="both")+'">Both</button>':"";
@@ -1323,8 +1342,8 @@ document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
-  else if(t.dataset.gl||t.dataset.gs||t.dataset.gk){if(t.dataset.gl)GEN.legs=+t.dataset.gl;if(t.dataset.gs)GEN.style=t.dataset.gs;if(t.dataset.gk)GEN.kind=t.dataset.gk;genSave(genSaved());genUI()}
-  else if(t.id==="genGo"){genRun()}
+  else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
+  else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.pre){
     try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
@@ -1364,7 +1383,7 @@ document.addEventListener("click",function(e){
 $("fRes").addEventListener("change",renderResults);
 $("fLegs").addEventListener("change",function(){PST.legs=$("fLegs").value;savePST();renderParlays()});
 $("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePST();renderParlays()});
-$("gGames").addEventListener("change",function(){GEN.games=$("gGames").value;genSave(genSaved())});
+
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
 // Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
