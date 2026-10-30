@@ -750,7 +750,20 @@ function slateList(){
       note:sl.g.length===1?first.away+" at "+first.home+", "+when(first.t)+". Same-game parlays, so your book's payout will be lower than shown.":sl.g.length+" games, "+when(first.t)+". One leg per game.",
       list:function(){return ENG.likelySlips(gi).concat(ENG.slateSlips(gi))}});
   });
-  if(o.featured)out.push({id:"team",label:o.featuredName,team:true,list:function(){return ENG.teamSlips(o.featured).l}});
+  if(o.featured){
+    var ft=ENG.teamSlips(o.featured),now=Date.now();
+    if(ft.g&&+new Date(ft.g.t)>now-3.5*36e5)out.push({id:"team",label:o.featuredName,team:true,list:function(){return ENG.teamSlips(o.featured).l}});
+    else{
+      // Our team is off: this spot becomes the game of the week (college: the highest-ranked team's game)
+      var up=GAMES.filter(function(g){return+new Date(g.t)>now}).sort(function(a,b){return new Date(a.t)-new Date(b.t)}),pick=null,lab="",why="";
+      if(COL){var best=99;up.forEach(function(g){[g.away,g.home].forEach(function(nm){var r=/^#(\d+)/.exec(nm||"");if(r&&+r[1]<best){best=+r[1];pick=g}})});
+        if(pick){lab="Top-ranked game";why="The "+o.featuredName+" aren't playing in these lines, so here's the game with the highest-ranked team (#"+best+")."}}
+      if(!pick){var lim=now+(SPORT==="nba"?24:7*24)*36e5,pool=up.filter(function(g){return+new Date(g.t)<lim});pick=topGame(pool.length?pool:up);lab=SPORT==="nba"?"Game of the night":"Game of the week";why="The "+o.featuredName+" aren't playing this week, so here's the "+lab.toLowerCase()+": the closest spread with the most points expected."}
+      if(pick){var pid=[pick.id];out.push({id:"team",label:lab,games:[pick],t:pick.t,count:1,
+        note:pick.away+" at "+pick.home+", "+when(pick.t)+". "+why+" Same-game parlays, so your book's payout will be lower than shown.",
+        list:function(){var l=ENG.likelySlips(pid).concat(ENG.slateSlips(pid)),m=DATA.games[pid[0]]||{};return l.length?l:ENG.teamSlips(m.home).l.concat(ENG.teamSlips(m.away).l)}})}
+    }
+  }
   return out;
 }
 function teamNote(){
