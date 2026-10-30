@@ -314,6 +314,8 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .pf{flex:none;scroll-snap-align:none;perspective:1000px;cursor:auto;min-width:0}
 .pgrid .pf{display:block}
 .pgrid .pf.back{grid-column:1/-1}
+.pgrid .pf:has(details[open]),.pgrid > details[open]{grid-column:1/-1}
+.piece>div{min-width:0}
 .whyb{display:block;font:inherit;font-size:12px;font-weight:700;color:var(--flag);background:none;border:0;padding:8px 0 0;cursor:pointer;text-align:left}
 .why{background:var(--surface);border:1px solid color-mix(in srgb,var(--flag) 40%,var(--line));border-radius:8px;padding:12px;font-size:13px;line-height:1.45}
 .why .fbh b{font-family:"Barlow Condensed",sans-serif;font-size:20px}
