@@ -123,6 +123,15 @@ th{color:var(--muted);font-weight:600}
 .pc .nm{font-weight:700;font-size:15px;line-height:1.25;margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis}
 .pc .od{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-size:26px;font-weight:700;line-height:1}
 .pc .mt{font-size:12px;color:var(--muted);margin-top:4px}
+.pc .odrow{display:flex;justify-content:space-between;align-items:flex-end;gap:6px}
+.pc .pct{text-align:right;font-size:11px;color:var(--muted);line-height:1.1}
+.pc .pct b{display:block;font-size:20px;color:var(--ink)}
+.pc .rec{font-size:12px;font-weight:600;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+.pc .rec.up{color:var(--green)}.pc .rec.dn{color:var(--red)}.pc .rec.new{color:var(--muted);font-weight:500}
+.pc .lg{list-style:none;padding:0}
+.pc .lg li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+.pc .lg .lp{white-space:nowrap;color:var(--muted)}
+.pc .lg .lp b{color:var(--ink)}
 .pc .bd{padding:0 12px 12px;border-top:1px solid var(--line)}
 .pc .bd ul{margin:8px 0;padding-left:18px;font-size:14px}
 .pc .bd .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
@@ -360,12 +369,19 @@ function rankSlips(raw){
   return PST.mode==="top"?top:top.concat(rest);
 }
 var TAGS={safe:"Safest",value:"Best value",big:"Big payout"};
+// Track record for a slip type (by name), from graded results at $10 a slip
+function recLine(name){
+  var r=CALIB&&CALIB.byStrategy&&CALIB.byStrategy[name];
+  if(!r||!r.n)return'<div class="rec new">No results yet</div>';
+  return'<div class="rec '+(r.profit>=0?"up":"dn")+'">Record '+r.w+"–"+(r.n-r.w)+" · "+(r.profit>=0?"+":"-")+"$"+Math.abs(r.profit).toFixed(0)+'</div>';
+}
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
   return'<details class="pc"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div><div class="nm">'+esc(p.n)+'</div>'+
-    '<div class="od">'+(x.sg?"~":"")+am(x.d)+'</div><div class="mt">'+(x.ch!==null?Math.round(x.ch*100)+"% to hit · ":"")+"$10 wins "+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+shop+
+    '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span>'+(x.ch!==null?'<span class="pct"><b>'+Math.round(x.ch*100)+'%</b>to hit</span>':"")+'</div>'+
+    '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'</summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><ul class="lg">'+p.l.map(function(l){return"<li><span>"+esc(l.n)+'</span><span class="lp">'+fmt(l.a)+(l.p!==undefined&&l.p!==null?" · <b>"+Math.round(l.p*100)+"%</b>":"")+"</span></li>"}).join("")+'</ul>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the card top to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
