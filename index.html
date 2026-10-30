@@ -465,10 +465,11 @@ var ICO={
  un:'<path d="M12 20l7-8h-4.5V4h-5v8H5z" fill="currentColor"/>'
 };
 ICO.fb=ICO.rush;
+ICO.mltxt='<text x="12" y="16.6" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="12.5" fill="currentColor">ML</text>';
 var HOOPS=SPORT==="nba"||SPORT==="cbb";
 // Game lines get players too: football ML = TD celebration, spread = running back, total = QB; hoops ML = rebound, spread = shooter, total = three
 function icoKey(l){
-  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?(HOOPS?"reb":"td"):t==="sp"?(HOOPS?"bb":"rush"):(HOOPS?"three":"pass")}
+  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?"mltxt":t==="sp"?(HOOPS?"bb":"rush"):(HOOPS?"three":"pass")}
   var b=(l.label||"").toLowerCase();
   if(l.td||/touchdown|td/.test(b))return"td";if(/pass/.test(b))return"pass";if(/rush/.test(b)&&!/rec/.test(b))return"rush";if(/rec/.test(b))return"rec";
   if(/three|3/.test(b))return"three";if(/rebound/.test(b))return"reb";if(/assist/.test(b))return"ast";return SPORT==="nba"?"bb":"fb";
