@@ -47,18 +47,20 @@ function parse(j) {
   const place = (city, st) => city + (st ? ", " + (ST[st] || st) : "");
   const places = readJSON(SP + "/places.json", {});
   all.forEach(g => { if (g.venue && !places[g.h.abbr]) places[g.h.abbr] = place(g.venue.city, g.venue.state); });
-  let looked = 0;
-  for (const g of all) for (const x of [g.a, g.h]) {
-    if (places[x.abbr] || !x.id || looked >= 120) continue;
-    looked++;
-    try {
-      const j = await getJSON(`${ESPN}/teams/${x.id}`), tm = j.team || {};
-      const ad = (tm.venue && tm.venue.address) || (tm.franchise && tm.franchise.venue && tm.franchise.venue.address);
-      places[x.abbr] = ad && ad.city ? place(ad.city, ad.state) : "";
-    } catch (e) { places[x.abbr] = ""; }
+  // One-time backfill: last season's home games give nearly every school's home city
+  for (const k in places) if (!places[k]) delete places[k];
+  if (!places._backfilled) {
+    const back = SP === "cbb" ? ["20260110","20260113","20260117","20260120","20260124","20260127","20260131","20260203","20260207","20260210","20260214","20260221","20260228"]
+      : ["20250906","20250913","20250920","20250927","20251004","20251011","20251018","20251025","20251101","20251108","20251115","20251122"];
+    for (const d of back) {
+      try { parse(await getJSON(`${ESPN}/scoreboard?dates=${d}&groups=${GROUPS}&limit=500`)).forEach(g => { if (g.venue && !places[g.h.abbr]) places[g.h.abbr] = place(g.venue.city, g.venue.state); }); }
+      catch (e) { console.warn("backfill", d, e.message); }
+    }
+    places._backfilled = true;
   }
+  const looked = 0;
   fs.writeFileSync(SP + "/places.json", JSON.stringify(places));
-  console.log("Places known:", Object.values(places).filter(Boolean).length, "of", Object.keys(places).length, "(looked up", looked, "team pages)");
+  console.log("Places known:", Object.keys(places).length - 1);
 
   // Match each odds game to ESPN by school names and kickoff time
   const hist0 = readJSON(SP + "/history.json", {});
