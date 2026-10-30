@@ -311,6 +311,17 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .preset .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .pct2{font-family:"Barlow Condensed",sans-serif;font-size:28px;font-weight:700;line-height:1;text-align:right;white-space:nowrap}
 .pct2 small{display:block;font-family:"Barlow",sans-serif;font-size:11px;font-weight:500;color:var(--muted)}
+.pf{flex:none;scroll-snap-align:none;perspective:1000px;cursor:auto;min-width:0}
+.pgrid .pf{display:block}
+.pgrid .pf.back{grid-column:1/-1}
+.whyb{display:block;font:inherit;font-size:12px;font-weight:700;color:var(--flag);background:none;border:0;padding:8px 0 0;cursor:pointer;text-align:left}
+.why{background:var(--surface);border:1px solid color-mix(in srgb,var(--flag) 40%,var(--line));border-radius:8px;padding:12px;font-size:13px;line-height:1.45}
+.why .fbh b{font-family:"Barlow Condensed",sans-serif;font-size:20px}
+.wl{padding:8px 0;border-top:1px solid var(--line)}
+.wlh{display:flex;align-items:center;gap:8px}.wlh b{flex:1;font-size:13px}.wlh span{font-weight:800}
+.wl p{margin:4px 0 0;color:var(--muted)}
+.wst{margin:10px 0 0;padding-left:18px;color:var(--muted)}.wst li{margin:6px 0}.wst b{color:var(--ink)}
+.wnote{font-size:11px;color:var(--muted);margin:10px 0 0;font-style:italic}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -734,7 +745,7 @@ function renderGenOut(){
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
       '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x){var l=x.leg;return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span> <small>'+fmt(l.a)+'</small><div class="gw">'+esc(x.why)+'</div></div></div>'}).join("")+
-      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'</div>'}).join("");
+      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
@@ -837,6 +848,41 @@ function renderBacktest(){
     '<div class="card"><h3>Parlay types, $10 each</h3><table class="ht">'+sl.map(function(x){return'<tr><td>'+esc(x.k)+'<br><small>'+x.n+' slips · we said '+Math.round(100*x.exp/x.n)+'%</small></td><td class="r">'+x.w+"–"+(x.n-x.w)+' <small class="'+(x.profit>=0?"up":"dn")+'">'+(x.profit>=0?"+":"-")+"$"+Math.abs(x.profit).toFixed(0)+'</small></td></tr>'}).join("")+'</table></div>'+
     '<div class="card"><h3>Are our percentages honest?</h3><table class="ht">'+pb+'</table></div>';
 }
+// ---------- "How we got this %": the back of every parlay card ----------
+function legBreakdown(l){
+  var pct=function(x){return Math.round(x*100)+"%"},imp=1/dec(l.a),lines=[],src=[];
+  if(l.kind==="p"){
+    var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0];
+    if(r){src.push((l.td?"Scored in ":"Hit it in ")+r.hits+" of his last "+r.n+" games");
+      if(r.since&&r.since[1]>r.n)src.push(r.since[0]+" of "+r.since[1]+" games since 2023");
+      if(pp.oppF>=1.04)src.push(pp.opp+" give up more than average here, so we nudged it up");else if(pp.oppF&&pp.oppF<=0.96)src.push(pp.opp+" are tough here, so we nudged it down");
+      if(pp.windF&&pp.windF<1)src.push("wind expected, so lowered");
+      var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];if(v&&v[0]+v[1]>=2)src.push("vs "+pp.opp+" in past seasons: "+v[0]+" of "+(v[0]+v[1])+" overs")}
+  }else{
+    var m=DATA.games[l.ev]||{},tm=/-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"",T2=BT&&BT.teams&&BT.teams[tm];
+    src.push("the book's price with its cut removed says "+pct(l.p0||l.p));
+    if(T2&&/^sp|^ml/.test(l.t))src.push(tm+" "+T2.ats[0]+"–"+T2.ats[1]+" against the spread since 2021");
+    if((l.t==="ov"||l.t==="un")&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home])src.push("overs since 2021: "+m.away+" "+BT.teams[m.away].ou[0]+"–"+BT.teams[m.away].ou[1]+", "+m.home+" "+BT.teams[m.home].ou[0]+"–"+BT.teams[m.home].ou[1]);
+  }
+  var adj=l.p0!==undefined&&l.p0!==null&&Math.abs(l.p0-l.p)>=0.01&&l.kind==="p"?" Past seasons showed legs like this hit "+(l.p<l.p0?"less":"more")+" often than estimated, so "+pct(l.p0)+" became "+pct(l.p)+".":"";
+  return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+pct(l.p)+'</span></div>'+
+    '<p>'+esc(src.join(" · "))+'. The book\'s '+fmt(l.a)+' means about '+pct(imp)+' (before its cut).'+esc(adj)+'</p></div>';
+}
+function slipWhy(legs,name){
+  var pct=function(x){return Math.round(x*100)+"%"},raw=1,d=1,evs={},sg=false;
+  legs.forEach(function(l){raw*=l.p;d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
+  var h=name&&slipHist(name),ch=h?Math.max(0.001,Math.min(0.99,raw*h.fac)):raw,be=1/d,b=SPORT==="nfl"&&BTR&&BTR.slips&&BTR.slips[name];
+  var avg=legs.reduce(function(a,l){return a+l.p},0)/legs.length,bk=BTR&&BTR.legs&&BTR.legs.byP&&BTR.legs.byP[Math.min(9,Math.floor(avg*10))];
+  var steps=['<li><b>Each leg:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>',
+    '<li><b>Multiply:</b> '+legs.map(function(l){return pct(l.p)}).join(" × ")+' = <b>'+pct(raw)+'</b> if the legs were independent.</li>'];
+  if(h&&Math.round(raw*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
+  if(sg)steps.push('<li><b>Same game:</b> some legs come from the same game. They tend to win or lose together, so treat the % as rough, and your book will pay less than shown.</li>');
+  if(bk&&bk.n)steps.push('<li><b>Track record:</b> in past seasons, legs we rated '+Math.floor(avg*10)*10+'–'+(Math.floor(avg*10)*10+10)+'% hit '+pct(bk.w/bk.n)+' of the time ('+bk.n.toLocaleString()+' legs).</li>');
+  steps.push('<li><b>Price vs chance:</b> at '+am(d)+' you need it to hit '+pct(be)+' of the time to break even. We think it hits '+pct(ch)+(ch>=be*1.03?", a little better than the price, but small edges swing a lot over a few bets.":ch>=be*0.97?", about what the price says.":", less than the price needs, so it loses money over many tries. Bet it for fun, not as an edge.")+'</li>');
+  if(b&&b.n>=10)steps.push('<li><b>This type in past seasons:</b> '+b.w+'–'+(b.n-b.w)+', '+(b.profit>=0?"+":"-")+'$'+Math.abs(b.profit).toFixed(0)+' at $10 a slip.</li>');
+  return'<div class="why"><div class="fbh"><b>How we got '+pct(ch)+'</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+legs.map(legBreakdown).join("")+'<ol class="wst">'+steps.join("")+'</ol><p class="wnote">Estimates, not guarantees. One game is a coin toss; these numbers only hold up over many bets.</p></div>';
+}
+function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
@@ -844,11 +890,12 @@ function slipCard(x,key){
     (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit'+(x.h&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+Math.round(x.raw*100)+"%":"")+'</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
-    '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'</summary>'+
+    '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
     '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><div class="pieces">'+p.l.map(piece).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
+function slipCardW(x,key){return whyWrap(slipCard(x,key),x.s.l,x.s.n)}
 // ---------- spotlight game (hero) ----------
 var TC={nfl:{ARI:"#C8264A",ATL:"#D8263C",BAL:"#8467D7",BUF:"#4A86E8",CAR:"#2BA3DE",CHI:"#F0752E",CIN:"#FB5A1E",CLE:"#FF5A1F",DAL:"#6C9BD8",DEN:"#FB5A1E",DET:"#3D9BE0",GB:"#FFB612",HOU:"#E0344A",IND:"#4A86E8",JAX:"#16A9B8",KC:"#EE2B45",LV:"#B9C0C4",LAC:"#2D9BE6",LA:"#FFC72C",MIA:"#14B8C2",MIN:"#9572E0",NE:"#E2364E",NO:"#D3BC8D",NYG:"#4C7BE0",NYJ:"#22B573",PHI:"#3FBFA3",PIT:"#FFB612",SF:"#E8434B",SEA:"#79C842",TB:"#E8433B",TEN:"#5BA4E8",WAS:"#E3B23C"},
  nba:{ATL:"#E8434B",BOS:"#2EB35A",BKN:"#B8BEC4",CHA:"#25AFC9",CHI:"#E3264A",CLE:"#B8475E",DAL:"#3D8BE8",DEN:"#FEC524",DET:"#E0315A",GS:"#FFC72C",HOU:"#E3264A",IND:"#FDBB30",LAC:"#E3264A",LAL:"#FDB927",MEM:"#7FA2DD",MIA:"#E0405A",MIL:"#3FA266",MIN:"#58AEEA",NO:"#C4A86E",NY:"#F58426",OKC:"#F07A45",ORL:"#3D8BE8",PHI:"#4A86E8",PHX:"#F07030",POR:"#E8434B",SAC:"#9A72DA",SA:"#C4CED4",TOR:"#E3264A",UTAH:"#9A72DA",WSH:"#E8434B"}};
@@ -928,7 +975,7 @@ function renderParlays(){
   $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);
   var html="",n=0;
   function block(sl,showHead){
-    var L=rankSlips(sl.list()),cards=L.map(function(x,i){return slipCard(x,"q"+(n++))}).join("");
+    var L=rankSlips(sl.list()),cards=L.map(function(x,i){return slipCardW(x,"q"+(n++))}).join("");
     var note=sl.team?teamNote():sl.note;
     return(showHead?'<h2 class="pgroup">'+esc(sl.label)+'</h2>':"")+'<p class="sub">'+esc(note)+'</p>'+
       (L.length?'<div class="pgrid">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
@@ -1173,7 +1220,7 @@ function renderPresetRow(el,list,prefix){
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=dec(l.best?l.best.a:l.a)});
     var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each leg for the best price: up to '+am(bd)+'</span><br>':"";
-    return '<div class="preset"><h3 class="ph">'+p.n+(ch!==null?'<span class="pct2" style="color:'+(ch>=0.5?"var(--green)":ch>=0.25?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game legs move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
+    return whyWrap('<div class="preset"><h3 class="ph">'+p.n+(ch!==null?'<span class="pct2" style="color:'+(ch>=0.5?"var(--green)":ch>=0.25?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game legs move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
 function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
@@ -1266,7 +1313,7 @@ document.addEventListener("click",function(e){
   else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM;window.scrollTo(0,0)}
-  else if(t.dataset.flip){var fc=t.closest(".flip");if(fc)flipCard(fc)}
+  else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
   else if(t.dataset.side==="BOTH"){TSIDE="both";renderTeamLower();renderSlip()}
   else if(t.dataset.side){TSIDE="team";TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
