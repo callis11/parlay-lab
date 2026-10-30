@@ -16,12 +16,13 @@ function parse(j) {
     const c = ev.competitions && ev.competitions[0]; if (!c) return null;
     const side = w => c.competitors.find(x => x.homeAway === w);
     const h = side("home"), a = side("away"); if (!h || !a) return null;
-    const t = x => ({ abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
+    const t = x => ({ id: x.team.id, abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
       rank: x.curatedRank && x.curatedRank.current && x.curatedRank.current <= 25 ? x.curatedRank.current : null,
       rec: (x.records || []).find(r => r.type === "total" || r.name === "overall") ? (x.records.find(r => r.type === "total" || r.name === "overall").summary) : (x.records && x.records[0] && x.records[0].summary) || null });
     // ESPN lists kickoff times not yet announced as midnight Eastern; flag those as TBD
     const tbd = (c.timeValid === false) || /T0[45]:00Z$/.test(ev.date);
-    return { id: ev.id, t: ev.date, tbd, d: etDate(tbd ? new Date(+new Date(ev.date) + 6 * 36e5).toISOString() : ev.date), h: t(h), a: t(a), neutral: !!c.neutralSite, done: !!(ev.status && ev.status.type && ev.status.type.completed) };
+    const ad = c.venue && c.venue.address;
+    return { venue: !c.neutralSite && ad && ad.city ? { city: ad.city, state: ad.state || "" } : null, id: ev.id, t: ev.date, tbd, d: etDate(tbd ? new Date(+new Date(ev.date) + 6 * 36e5).toISOString() : ev.date), h: t(h), a: t(a), neutral: !!c.neutralSite, done: !!(ev.status && ev.status.type && ev.status.type.completed) };
   }).filter(Boolean);
 }
 
@@ -40,6 +41,24 @@ function parse(j) {
   fs.writeFileSync(SP + "/logs.json", JSON.stringify(logs));
   const all = Object.values(logs.games);
   console.log("ESPN games cached:", all.length);
+
+  // Where each school is from ("Durham, NC"): its home arena/stadium from the scoreboards, else ESPN's team page (cached)
+  const ST = { Alabama:"AL",Alaska:"AK",Arizona:"AZ",Arkansas:"AR",California:"CA",Colorado:"CO",Connecticut:"CT",Delaware:"DE","District of Columbia":"DC",Florida:"FL",Georgia:"GA",Hawaii:"HI",Idaho:"ID",Illinois:"IL",Indiana:"IN",Iowa:"IA",Kansas:"KS",Kentucky:"KY",Louisiana:"LA",Maine:"ME",Maryland:"MD",Massachusetts:"MA",Michigan:"MI",Minnesota:"MN",Mississippi:"MS",Missouri:"MO",Montana:"MT",Nebraska:"NE",Nevada:"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",Ohio:"OH",Oklahoma:"OK",Oregon:"OR",Pennsylvania:"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",Tennessee:"TN",Texas:"TX",Utah:"UT",Vermont:"VT",Virginia:"VA",Washington:"WA","West Virginia":"WV",Wisconsin:"WI",Wyoming:"WY" };
+  const place = (city, st) => city + (st ? ", " + (ST[st] || st) : "");
+  const places = readJSON(SP + "/places.json", {});
+  all.forEach(g => { if (g.venue && !places[g.h.abbr]) places[g.h.abbr] = place(g.venue.city, g.venue.state); });
+  let looked = 0;
+  for (const g of all) for (const x of [g.a, g.h]) {
+    if (places[x.abbr] || !x.id || looked >= 120) continue;
+    looked++;
+    try {
+      const j = await getJSON(`${ESPN}/teams/${x.id}`), tm = j.team || {};
+      const ad = (tm.venue && tm.venue.address) || (tm.franchise && tm.franchise.venue && tm.franchise.venue.address);
+      places[x.abbr] = ad && ad.city ? place(ad.city, ad.state) : "";
+    } catch (e) { places[x.abbr] = ""; }
+  }
+  fs.writeFileSync(SP + "/places.json", JSON.stringify(places));
+  console.log("Places known:", Object.values(places).filter(Boolean).length, "of", Object.keys(places).length, "(looked up", looked, "team pages)");
 
   // Match each odds game to ESPN by school names and kickoff time
   const hist0 = readJSON(SP + "/history.json", {});
@@ -75,6 +94,6 @@ function parse(j) {
     if (!next[g.h.abbr]) next[g.h.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.a.loc, home: true };
     if (!next[g.a.abbr]) next[g.a.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.h.loc, home: false };
   });
-  fs.writeFileSync(SP + "/data.json", JSON.stringify({ sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next }));
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
   console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();
