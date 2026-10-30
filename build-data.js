@@ -143,6 +143,9 @@ async function buildData(odds, ctx) {
     const k = norm(r.player_display_name); (byPlayer[k] = byPlayer[k] || []).push(r);
   });
   for (const k in byPlayer) byPlayer[k].sort((a, b) => (+a.season - +b.season) || (+a.week - +b.week));
+  // Every regular-season game since 2023 (ctx.statsOld adds the older seasons), for "hit this exact line in X of Y games"
+  const longRun = {};
+  [...(ctx.statsOld || []), ...statsPrev, ...statsNow].filter(r => r.season_type === "REG").forEach(r => { const k = norm(r.player_display_name); (longRun[k] = longRun[k] || []).push(r); });
   // Favor this season: use up to the last 10 games this season, topping up from last season only if fewer than 6
   function history(name) {
     const all = byPlayer[norm(name)] || [];
@@ -237,6 +240,7 @@ async function buildData(odds, ctx) {
         if (vals.length >= MIN_GAMES) {
           const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);
           out.p = +r.p.toFixed(3); out.hits = r.hits; out.n = r.n; out.fair = toAm(r.p);
+          if (ctx.statsOld) { const all = (longRun[norm(L.player)] || []).map(L.stat); out.since = [all.filter(v => L.td ? v > 0 : v > line).length, all.length]; }
         }
         return out;
       });
@@ -259,10 +263,12 @@ async function main() {
     getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`),
     getCSV(`${NFLVERSE}/injuries/injuries_${SEASON}.csv`)
   ]);
+  const statsOld = [];
+  for (let y = 2023; y < SEASON - 1; y++) statsOld.push(...await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${y}.csv`));
   console.log("injury rows:", injuries.length);
   console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
   let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
-  const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0 });
+  const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0, statsOld });
   // Keep history only for games from the last 3 weeks
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];
   fs.writeFileSync("history.json", JSON.stringify(hist0));

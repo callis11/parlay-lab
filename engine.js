@@ -145,7 +145,7 @@
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: r.under ? r.under[book] : undefined };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: r.under ? r.under[book] : undefined };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
@@ -156,7 +156,7 @@
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
