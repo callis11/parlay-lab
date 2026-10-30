@@ -9,6 +9,7 @@ const fs = require("fs"), zlib = require("zlib");
 const Engine = require("../engine.js");
 const { buildData, getCSV, norm, TEAM, NFLVERSE } = require("../build-data.js");
 const BOOK = "fanduel";
+TEAM["Washington Football Team"] = "WAS"; // 2021 name
 const load = n => { try { return JSON.parse(zlib.gunzipSync(fs.readFileSync("backtest/raw/" + n + ".json.gz"))); } catch (e) { return null; } };
 const dec = Engine.dec;
 
@@ -50,13 +51,15 @@ const imp = a => 1 / dec(a);
     const byGid = {}; statsNow.forEach(r => { (byGid[r.game_id] = byGid[r.game_id] || []).push(r); });
     const games = {}; sched.forEach(g => { games[g.game_id] = g; });
     // group every saved kickoff into its NFL week
-    const weeks = {};
-    for (const kick in lines) for (const ev of lines[kick].events) {
+    const weeks = {}, best = {};
+    // a game can show up in two kickoff snapshots (1 PM and 4 PM are 3 hours apart): keep the one taken right before it
+    for (const kick in lines) for (const ev of lines[kick].events) { const d = Math.abs(new Date(ev.commence_time) - new Date(kick)); if (!best[ev.id] || d < best[ev.id].d) best[ev.id] = { d, ev }; }
+    for (const id in best) { const ev = best[id].ev; {
       const a = TEAM[ev.away_team], h = TEAM[ev.home_team];
       const row = sched.find(g => +g.season === season && g.game_type === "REG" && g.away_team === a && g.home_team === h);
       if (!row) continue;
       (weeks[row.week] = weeks[row.week] || []).push({ ev, row, props: props[ev.id] && !props[ev.id].error ? props[ev.id] : null });
-    }
+    } }
     const S = R.seasons[season] = { weeks: 0, games: 0, propGames: 0, legs: 0, slips: 0 };
     for (const wk of Object.keys(weeks).map(Number).sort((a, b) => a - b)) {
       const W = weeks[wk], first = Math.min(...W.map(x => +new Date(x.ev.commence_time))), now = first - 36e5;
