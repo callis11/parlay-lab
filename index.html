@@ -308,6 +308,9 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 #teamCar .htrack{align-items:flex-start}
 .tside{display:flex;margin:4px 0 6px}.tside button{flex:1}.tside button[data-side="BOTH"]{flex:.7}
 #fDiv[hidden]{display:none}
+.preset .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.pct2{font-family:"Barlow Condensed",sans-serif;font-size:28px;font-weight:700;line-height:1;text-align:right;white-space:nowrap}
+.pct2 small{display:block;font-family:"Barlow",sans-serif;font-size:11px;font-weight:500;color:var(--muted)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -1170,7 +1173,7 @@ function renderPresetRow(el,list,prefix){
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=dec(l.best?l.best.a:l.a)});
     var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each leg for the best price: up to '+am(bd)+'</span><br>':"";
-    return '<div class="preset"><h3>'+p.n+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px">Our estimate: <b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game legs move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
+    return '<div class="preset"><h3 class="ph">'+p.n+(ch!==null?'<span class="pct2" style="color:'+(ch>=0.5?"var(--green)":ch>=0.25?"var(--flag)":"var(--red)")+'">~'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div></div>'}).join("");
 }
 function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
