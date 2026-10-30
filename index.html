@@ -964,7 +964,7 @@ function heroCarousel(list){
   var n=list.length,dots=n<=14?'<div class="hdots">'+list.map(function(_,i){return'<i'+(i?"":' class="on"')+'></i>'}).join("")+'</div>':'<div class="hdots"><span class="hcount">1 of '+n+'</span></div>';
   return'<div class="hcar"><div class="htrack">'+list.map(heroCard).join("")+'</div>'+dots+'<p class="hhint">Swipe for '+(n-1)+' more game'+(n>2?"s":"")+' ›</p></div>';
 }
-function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=Math.round(tr.scrollLeft/tr.clientWidth),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
+function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=cardIdx(tr),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
 function renderParlays(){
   try{genUI()}catch(e){}
   var S=slateList(),now=Date.now();
@@ -1026,16 +1026,19 @@ function renderTeam(){
   var tr=$("tTrack"),idx=Math.max(0,list.findIndex(function(g){var m=DATA.games[g.id];return FLIPTO?g.id===FLIPTO:(m.away===v||m.home===v)}));
   // jump to the picked team's game; ignore the scroll events that jump causes
   var quiet=true,fit=function(i){var c=tr.children[i];if(c)tr.style.height=c.offsetHeight+"px"};
-  var jump=function(){if(!tr.clientWidth){requestAnimationFrame(jump);return}tr.style.scrollSnapType="none";tr.scrollLeft=idx*tr.clientWidth;tr.style.scrollSnapType="";setDots(tr,idx);fit(idx);setTimeout(function(){quiet=false},400)};
+  var jump=function(){if(!tr.clientWidth){requestAnimationFrame(jump);return}tr.style.scrollSnapType="none";tr.scrollLeft=cardLeft(tr,idx);tr.style.scrollSnapType="";setDots(tr,idx);fit(idx);setTimeout(function(){quiet=false},400)};
   jump();
-  if(FLIPTO){var fc=tr.children[idx];FLIPTO=null;if(fc)setTimeout(function(){flipCard(fc);setTimeout(function(){fit(idx)},220)},300)}
-  tr.addEventListener("click",function(){setTimeout(function(){fit(Math.round(tr.scrollLeft/(tr.clientWidth||1)))},220)});
+  FLIPTO=null; // arriving from the Parlays spotlight: show the same card face up, with its team below
+  tr.addEventListener("click",function(){setTimeout(function(){fit(cardIdx(tr))},220)});
   var tmr=null;tr.addEventListener("scroll",function(){if(quiet||!tr.clientWidth)return;clearTimeout(tmr);tmr=setTimeout(function(){
-    var i=Math.round(tr.scrollLeft/tr.clientWidth),g=TEAMGAMES[i];setDots(tr,i);fit(i);if(!g)return;var m=DATA.games[g.id];
+    var i=cardIdx(tr),g=TEAMGAMES[i];setDots(tr,i);fit(i);if(!g)return;var m=DATA.games[g.id];
     if(TEAM!==m.away&&TEAM!==m.home){TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;sel.value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower()}},140)},{passive:true});
   renderTeamLower();
 }
 function slateOf(g){var k="";ENG.slates().forEach(function(sl){if(sl.g.some(function(x){return x.id===g.id}))k=sl.k});return k}
+// Which card is showing / scroll to a card (cards have a gap between them, so use each card's real position)
+function cardIdx(tr){var x=tr.scrollLeft,b=0,bd=1e9;for(var i=0;i<tr.children.length;i++){var d=Math.abs(tr.children[i].offsetLeft-tr.children[0].offsetLeft-x);if(d<bd){bd=d;b=i}}return b}
+function cardLeft(tr,i){var c=tr.children[i];return c?c.offsetLeft-tr.children[0].offsetLeft:0}
 function setDots(tr,i){var c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length}
 // Below the cards: the picked team's parlays, players and past seasons, with a toggle between the two teams in that game
 // "Both" parlays: the best legs from each team in one game (at least one from each side)
