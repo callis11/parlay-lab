@@ -251,6 +251,12 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hbar{height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px;width:90px;margin-left:auto}
 .hbar i{display:block;height:100%}
 .rec.past{border-top:0;padding-top:0;margin-top:2px;opacity:.85}
+.hb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:5px;vertical-align:1px}
+.hb.pr{background:var(--green);color:var(--green-ink)}.hb.wk{background:var(--red);color:#fff}
+.piece .hh{color:var(--flag);opacity:.9}
+.hero .trends{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-top:8px}
+.hero .trends small{width:100%;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.hero .trends b{color:var(--ink)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -475,11 +481,20 @@ function legTeam(l){
 function legColor(l){var t=legTeam(l);return t?teamColor(t,"a"):"#F7C600"}
 function icon(k,c,sm,bd){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c+'"><svg viewBox="0 0 24 24">'+ICO[k]+'</svg>'+(bd?'<i class="bd2">'+bd+'</i>':"")+'</span>'}
 function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,l.kind==="g"&&l.t==="ov"?"O":l.kind==="g"&&l.t==="un"?"U":l.kind==="g"&&l.t.slice(0,2)==="sp"?"±":"")}
+// Past-season record for one leg: the player's main-line record for that stat, or the team's spread / over-under record
+function legHist(l){
+  if(SPORT!=="nfl"||!BT||!BT.teams)return"";
+  if(l.kind==="p"){var pp=pmap()[l.k],x=pp&&playerPast(pp.team,pp.player,pp.label);return x&&x[0]+x[1]>=4?(l.td?"Scored in ":"Main line hit ")+x[0]+" of "+(x[0]+x[1])+" past games":""}
+  var tm=legTeam(l),T=tm&&BT.teams[tm],m=DATA&&DATA.games[l.ev]||{};
+  if(/^sp|^ml/.test(l.t)&&T&&T.ats[0]+T.ats[1])return tm+" "+T.ats[0]+"–"+T.ats[1]+" against the spread since 2021";
+  if((l.t==="ov"||l.t==="un")&&BT.teams[m.away]&&BT.teams[m.home]){var a=BT.teams[m.away].ou,h=BT.teams[m.home].ou;return"Overs: "+m.away+" "+a[0]+"–"+a[1]+", "+m.home+" "+h[0]+"–"+h[1]+" since 2021"}
+  return"";
+}
 function piece(l){
-  var c=legColor(l),tm=legTeam(l),g=null;GAMES.forEach(function(x){if(x.id===l.ev)g=x});
+  var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
   var mu=g?(DATA&&DATA.games[g.id]&&DATA.games[g.id].away||g.away)+" @ "+(DATA&&DATA.games[g.id]&&DATA.games[g.id].home||g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"";
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div><div class="sub2">'+(tm?esc(tm)+" · ":"")+esc(mu)+" · "+fmt(l.a)+(l.best&&l.best.a!==l.a?" ("+esc(l.best.book)+" "+fmt(l.best.a)+")":"")+'</div></div>'+
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div><div class="sub2">'+(tm?esc(tm)+" · ":"")+esc(mu)+" · "+fmt(l.a)+(l.best&&l.best.a!==l.a?" ("+esc(l.best.book)+" "+fmt(l.best.a)+")":"")+'</div>'+(hh?'<div class="sub2 hh">'+esc(hh)+'</div>':"")+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 function renderProps(){
@@ -496,7 +511,8 @@ function propCard(p){
       var dots=!p.td&&p.recent&&p.recent.length?'<span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span>':"";
       return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
-      (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"")+(function(){var x=SPORT==="nfl"&&playerPast(p.team,p.player,p.label);return x&&x[0]+x[1]>=4?'<span class="chip">Past seasons: main line hit '+x[0]+" of "+(x[0]+x[1])+'</span>':""})();
+      (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"")+(function(){var x=SPORT==="nfl"&&playerPast(p.team,p.player,p.label);var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
+      return(x&&x[0]+x[1]>=4?'<span class="chip">Past seasons: main line hit '+x[0]+" of "+(x[0]+x[1])+'</span>':"")+(v&&v[0]+v[1]>=2?'<span class="chip">vs '+esc(p.opp)+': '+v[0]+" of "+(v[0]+v[1])+' overs</span>':"")})();
     var pc=p.team?teamColor(p.team,"a"):"#5B9BFF";
     return '<div class="card pl" style="--c:'+pc+'"><h3><div class="phead">'+icon(icoKey({kind:"p",label:p.label,td:p.td}),pc)+'<div>'+esc(p.player)+' <span>'+(p.team||"")+'</span></div></div><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
       '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
@@ -506,11 +522,19 @@ function propCard(p){
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
 try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind","exp"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
 function savePST(){try{localStorage.setItem("pst_"+SPORT,JSON.stringify(PST))}catch(e){}}
+// Past-season record for a parlay type (NFL): correction factor, and Proven / Weak history flags
+function slipHist(name){
+  var b=SPORT==="nfl"&&BTR&&BTR.slips&&BTR.slips[name];if(!b||b.n<30)return null;
+  var said=b.exp/b.n,K=60,fac=said>0?((b.w+K*said)/(b.n+K))/said:1,roi=b.profit/(10*b.n);
+  return{n:b.n,w:b.w,roi:roi,fac:Math.max(0.5,Math.min(1.3,fac)),weak:b.n>=40&&roi<=-0.2,proven:b.n>=40&&roi>=0};
+}
 function slipInfo(p){
   var d=1,evs={},sg=false,props=0,games=0;
   p.l.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.kind==="p")props++;else games++});
-  var ch=Engine.chance(p.l);
-  return{s:p,d:d,ch:ch,ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
+  var ch=Engine.chance(p.l),h=slipHist(p.n),raw=ch;
+  // Correct the chance by how often this parlay type really hit over past seasons (shrunk toward no change)
+  if(ch!==null&&h)ch=Math.max(0.001,Math.min(0.99,ch*h.fac));
+  return{s:p,d:d,ch:ch,raw:raw,h:h,weak:!!(h&&h.weak),proven:!!(h&&h.proven),ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
 }
 function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join();if(seen[k])return false;seen[k]=1;return true})}
 // Slates: "Best of week" (or "Best overall" for NBA), each kickoff slate, then the hometown team
@@ -537,7 +561,7 @@ function teamNote(){
 function rankSlips(raw){
   var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||x.kind===PST.kind)});
   var used={},top=[];
-  function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
+  function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||x.weak||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
   pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null});
   pick("value",function(x){return x.ev},function(x){return x.ev!==null&&x.ch>=0.15});
   pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
@@ -585,8 +609,8 @@ function renderBacktest(){
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
-    (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
+  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+    (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit'+(x.h&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+Math.round(x.raw*100)+"%":"")+'</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
     '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'</summary>'+
@@ -610,6 +634,11 @@ function fitHero(){document.querySelectorAll(".hero .tn").forEach(function(e){e.
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(window.fitHero)fitHero()});
 window.addEventListener("resize",function(){if($("pList"))fitHero()});
 function tnSize(n){var L=Math.max(String(n).length,4);return'font-size:min(78px,calc((100vw - 64px) / '+(L*0.56).toFixed(2)+'),'+Math.round(620/(L*0.56))+'px)'}
+function heroTrends(m){
+  if(SPORT!=="nfl"||!BT||!BT.teams)return"";var A=BT.teams[m.away],H=BT.teams[m.home];if(!A||!H)return"";
+  var r=function(t,T){return'<span><b>'+esc(t)+'</b> '+T.ats[0]+"–"+T.ats[1]+" ATS · overs "+T.ou[0]+"–"+T.ou[1]+'</span>'};
+  return'<div class="trends"><small>Since 2021</small>'+r(m.away,A)+r(m.home,H)+'</div>';
+}
 function heroCard(sp0){
   if(!sp0||!sp0.g)return"";var g=sp0.g;var m=DATA&&DATA.games[g.id]||{},ca=teamColor(m.away,"a"),ch=teamColor(m.home,"h");
   var sp=g.legs["sp-h"],fav=sp.pt<0?(m.home||g.home):(m.away||g.away),line=sp.pt<0?sp.pt:-sp.pt;
@@ -620,7 +649,7 @@ function heroCard(sp0){
   return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+
     '<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div>'+(isPro&&cityA?'<div class="city">'+esc(cityA)+'</div>':"")+
     '<div class="at">AT</div><div class="tn h" style="color:'+ch+';'+tnSize(nmH)+'">'+esc(nmH)+'</div>'+(isPro&&cityH?'<div class="city h">'+esc(cityH)+'</div>':"")+
-    winBar(g)+'<div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+
+    winBar(g)+'<div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+heroTrends(m)+
     '<div class="go"><span class="sub" style="margin:0">'+(g.alt?esc(g.alt)+" line":esc((Engine.BOOK_NAMES[BOOK]||""))+" line")+'</span><button data-goto="'+esc(g.id)+'">Game page ›</button></div></div>';
 }
 // Spotlight: always the hometown team's game (Lions / Pistons / Michigan State); if they're off, the game of the week

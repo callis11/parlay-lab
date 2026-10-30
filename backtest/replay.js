@@ -12,6 +12,8 @@ const BOOK = "fanduel";
 TEAM["Washington Football Team"] = "WAS"; // 2021 name
 const load = n => { try { return JSON.parse(zlib.gunzipSync(fs.readFileSync("backtest/raw/" + n + ".json.gz"))); } catch (e) { return null; } };
 const dec = Engine.dec;
+const CAL = process.env.CALIB === "1" ? JSON.parse(fs.readFileSync("calibration.json", "utf8")) : null;
+const newTeam = () => ({ ats: [0, 0], ou: [0, 0], props: {}, vs: {}, players: {}, pvs: {}, parlays: {} });
 
 function grade(l, g, rows) {
   if (!g || g.result === "") return null;
@@ -65,7 +67,8 @@ const imp = a => 1 / dec(a);
       const W = weeks[wk], first = Math.min(...W.map(x => +new Date(x.ev.commence_time))), now = first - 36e5;
       const odds = { fetchedAt: new Date(now).toISOString(), lines: W.map(x => x.ev), props: W.filter(x => x.props).map(x => x.props) };
       const data = await buildData(odds, { season, asOf: first, sched, statsNow, statsPrev, injuries, hist0: {} });
-      const E = Engine.make(odds, data, BOOK, now, Engine.OPTS.nfl);
+      // CALIB=1 replays with the model's learned corrections, like the live site uses now
+      const E = Engine.make(odds, data, BOOK, now, Object.assign({}, Engine.OPTS.nfl, { calib: CAL }));
       S.weeks++; S.games += W.length; S.propGames += odds.props.length;
       const meta = id => { const m = data.games[id] || {}; return { gid: m.gid, away: m.away, home: m.home }; };
 
@@ -80,10 +83,13 @@ const imp = a => 1 / dec(a);
           if (leg.p !== undefined) add(R.legs.byP, pBucket(leg.p), won, L.a, leg.p);
           graded.push([cat, +(leg.p || 0).toFixed(3), won ? 1 : 0, first]);
         });
+        // team over/under record
+        const tr = grade({ kind: "g", t: "ov", pt: g.legs["ov"].pt }, G0);
+        if (tr === "won" || tr === "lost") [m.away, m.home].forEach(t => { const T = teams[t] = teams[t] || newTeam(); T.ou[tr === "won" ? 0 : 1]++; });
         // team ATS / favorites (5 seasons of game lines)
         const res = grade({ kind: "g", t: "sp-h", pt: g.legs["sp-h"].pt }, G0);
         if (res === "won" || res === "lost") { const cov = res === "won" ? m.home : m.away, other = res === "won" ? m.away : m.home;
-          [cov, other].forEach(t => { const T = teams[t] = teams[t] || { ats: [0, 0], props: {}, vs: {}, players: {}, parlays: {} }; T.ats[t === cov ? 0 : 1]++; }); }
+          [cov, other].forEach(t => { const T = teams[t] = teams[t] || newTeam(); T.ats[t === cov ? 0 : 1]++; }); }
       }
       const pieces = {}, straights = {}, tds = {};
       for (const p of E.P) {
@@ -100,10 +106,11 @@ const imp = a => 1 / dec(a);
             const won = res === "won";
             // team history: main lines only (the ones with an under price), overs
             if (sd.side === "over" && (r.under !== undefined || p.td) && p.team) {
-              const T = teams[p.team] = teams[p.team] || { ats: [0, 0], props: {}, vs: {}, players: {}, parlays: {} };
+              const T = teams[p.team] = teams[p.team] || newTeam();
               const k = p.label; (T.props[k] = T.props[k] || [0, 0])[won ? 0 : 1]++;
               if (opp) { const v = T.vs[opp] = T.vs[opp] || {}; (v[k] = v[k] || [0, 0])[won ? 0 : 1]++; }
               const P = T.players[p.player] = T.players[p.player] || {}; (P[k] = P[k] || [0, 0])[won ? 0 : 1]++;
+              if (opp) { const V = (T.pvs[p.player] = T.pvs[p.player] || {})[opp] = (T.pvs[p.player] || {})[opp] || [0, 0]; V[won ? 0 : 1]++; }
             }
             if (sd.p === undefined || r.n < 6) continue;
             if (sd.a < -400 || sd.a > 250) { if (!(p.td || sd.side === "over")) continue; }
@@ -142,7 +149,7 @@ const imp = a => 1 / dec(a);
       for (const t of playing) {
         const ts = E.teamSlips(t); if (!ts.g) continue;
         for (const s of ts.l) { const r = gradeSlip(s); if (!r) continue;
-          const T = teams[t] = teams[t] || { ats: [0, 0], props: {}, vs: {}, players: {}, parlays: {} };
+          const T = teams[t] = teams[t] || newTeam();
           const nm = s.n.replace(/^\S+\s/, ""), x = T.parlays[nm] = T.parlays[nm] || [0, 0, 0]; x[0]++; if (r.won) x[1]++; x[2] += r.won ? 10 * (r.d - 1) : -10; }
       }
       S.legs = graded.length;
@@ -154,7 +161,7 @@ const imp = a => 1 / dec(a);
   r2(R.legs.byCat); r2(R.legs.byP); r2(R.legs.byMarket); r2(R.slips);
   R.cards = Object.fromEntries(Object.entries(R.cards).map(([k, c]) => [k, { n: c[0], w: c[1], ours: +c[2].toFixed(1), book: +c[3].toFixed(1) }]));
   // team file: keep players with at least 4 graded main lines
-  for (const t in teams) { const T = teams[t]; for (const p in T.players) { const tot = Object.values(T.players[p]).reduce((a, b) => a + b[0] + b[1], 0); if (tot < 4) delete T.players[p]; }
+  for (const t in teams) { const T = teams[t]; for (const p in T.players) { const tot = Object.values(T.players[p]).reduce((a, b) => a + b[0] + b[1], 0); if (tot < 4) { delete T.players[p]; delete T.pvs[p]; } }
     for (const k in T.parlays) T.parlays[k][2] = +T.parlays[k][2].toFixed(2); }
   fs.writeFileSync("backtest/results.json", JSON.stringify(R, null, 1));
   fs.writeFileSync("backtest/teams.json", JSON.stringify({ builtAt: R.builtAt, seasons: Object.keys(R.seasons), teams }));
