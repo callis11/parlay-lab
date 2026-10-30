@@ -297,6 +297,17 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
+.flip{flex:0 0 100%;scroll-snap-align:center;perspective:1200px;cursor:pointer}
+.flip .fi{transition:transform .17s ease-in;transform-origin:50% 50%}
+.flip.turn .fi{transform:rotateY(90deg)}
+.flip .fb{display:none}.flip.back .ff{display:none}.flip.back .fb{display:block}
+.flip .hero{margin:0}
+.fbk{margin:0;border-color:color-mix(in srgb,var(--flag) 40%,var(--line))}
+.fbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.fbh .lnk{padding:4px 0}
+#teamCar .htrack{align-items:flex-start}
+.tside{display:flex;margin:4px 0 6px}.tside button{flex:1}
+#fDiv[hidden]{display:none}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -335,7 +346,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 
 <div class="tabs" role="tablist">
   <button class="tab" role="tab" id="t-parlays" data-v="parlays" aria-selected="true" aria-controls="v-parlays">Parlays</button>
-  <button class="tab" role="tab" id="t-games" data-v="games" aria-selected="false" aria-controls="v-games">Games</button>
+  <button class="tab" role="tab" id="t-games" data-v="games" aria-selected="false" aria-controls="v-games" hidden>Games</button>
   <button class="tab" role="tab" id="t-props" data-v="props" aria-selected="false" aria-controls="v-props">Players</button>
   <button class="tab" role="tab" id="t-team" data-v="team" aria-selected="false" aria-controls="v-team">Teams</button>
   <button class="tab" role="tab" id="t-results" data-v="results" aria-selected="false" aria-controls="v-results">Results</button>
@@ -403,13 +414,14 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 </section>
 
 <section id="v-team" role="tabpanel" aria-labelledby="t-team" hidden>
-  <h2>Team parlays</h2>
-  <div class="filters"><select id="fTeam" aria-label="Team"></select></div>
-  <div id="teamHero"></div>
+  <h2>Teams</h2>
+  <div class="filters"><select id="fDiv" aria-label="Division"></select><select id="fTeam" aria-label="Team"></select></div>
+  <div id="teamCar"></div>
+  <div class="seg tside" id="teamSide" role="group" aria-label="Team"></div>
+  <h2 id="teamParH">Team parlays</h2>
   <p class="sub" id="teamNote"></p>
   <div class="presets" id="pr-team"></div>
-  <h2 id="teamGameH">This week's game</h2>
-  <div id="teamGame"></div>
+  <div id="teamGame" hidden></div>
   <h2>Players</h2>
   <div id="teamProps"></div>
   <div id="teamHist"></div>
@@ -931,21 +943,51 @@ function renderParlays(){
   fitHero();
   var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
 }
+var DIVS={nfl:{"AFC East":["BUF","MIA","NE","NYJ"],"AFC North":["BAL","CIN","CLE","PIT"],"AFC South":["HOU","IND","JAX","TEN"],"AFC West":["DEN","KC","LV","LAC"],"NFC East":["DAL","NYG","PHI","WAS"],"NFC North":["CHI","DET","GB","MIN"],"NFC South":["ATL","CAR","NO","TB"],"NFC West":["ARI","LA","SF","SEA"]},
+ nba:{"Atlantic":["BOS","BKN","NY","PHI","TOR"],"Central":["CHI","CLE","DET","IND","MIL"],"Southeast":["ATL","CHA","MIA","ORL","WSH"],"Northwest":["DEN","MIN","OKC","POR","UTAH"],"Pacific":["GS","LAC","LAL","PHX","SAC"],"Southwest":["DAL","HOU","MEM","NO","SA"]}};
+var FLIPTO=null,TEAMGAMES=[];
+function teamName(abbr){var n="";GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m&&m.away===abbr)n=g.away;if(m&&m.home===abbr)n=g.home});return n||abbr}
+function flipCard(el){el.classList.add("turn");setTimeout(function(){el.classList.toggle("back");el.classList.remove("turn");if(!el.classList.contains("back"))fitHero()},170)}
+// Teams tab: one flip card per game (front = matchup, back = the game's lines and stats), filtered by division and team
 function renderTeam(){
-  var sel=$("fTeam"),teams=[];
-  GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m){teams.push([m.away,g.away]);teams.push([m.home,g.home])}});
+  var sel=$("fTeam"),dv=$("fDiv"),now=Date.now(),o=Engine.OPTS[SPORT]||{},D=DIVS[SPORT];
+  if(D){var dsv=dv.value;dv.hidden=false;dv.innerHTML='<option value="">All divisions</option>'+Object.keys(D).map(function(k){return'<option>'+k+'</option>'}).join("");dv.value=dsv}else dv.hidden=true;
+  var inDiv=function(m){return!D||!dv.value||D[dv.value].indexOf(m.away)>=0||D[dv.value].indexOf(m.home)>=0};
+  var list=GAMES.filter(function(g){var m=DATA&&DATA.games[g.id];return m&&+new Date(g.t)>now-3.5*36e5&&inDiv(m)}).sort(byRankTime);
+  var mineG=list.filter(isMine)[0];if(mineG)list=[mineG].concat(list.filter(function(g){return g!==mineG}));
+  TEAMGAMES=list;
+  var teams=[];list.forEach(function(g){var m=DATA.games[g.id];[[m.away,g.away],[m.home,g.home]].forEach(function(t){if(!D||!dv.value||D[dv.value].indexOf(t[0])>=0)teams.push(t)})});
   teams.sort(function(a,b){return a[1].localeCompare(b[1])});
-  var v=sel.value||TEAM||"DET";if(!teams.some(function(t){return t[0]===v}))v=teams.length?teams[0][0]:"";
-  sel.innerHTML=teams.map(function(t){return'<option value="'+t[0]+'">'+t[1]+'</option>'}).join("");sel.value=v;TEAM=v;
-  if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
-  var r=ENG.teamSlips(v);
+  var v=TEAM||o.featured||"";if(!teams.some(function(t){return t[0]===v}))v=teams.length?teams[0][0]:"";
+  sel.innerHTML=teams.map(function(t){return'<option value="'+t[0]+'">'+esc(t[1])+'</option>'}).join("");sel.value=v;TEAM=v;
+  if(!list.length){$("teamCar").innerHTML='<p class="empty">No games for this filter yet.</p>';$("teamSide").innerHTML="";renderTeamLower();return}
+  $("teamCar").innerHTML='<div class="hcar"><div class="htrack" id="tTrack">'+list.map(function(g){var m=DATA.games[g.id];
+    var lab=isMine(g)?o.featuredName+" game":(COL&&colRank(g)<99?"Top 25 matchup":(slateOf(g)||"Game"));
+    return'<div class="flip" data-gid="'+esc(g.id)+'"><div class="fi"><div class="ff">'+heroCard({g:g,lab:lab}).replace('data-goto=','data-flip=').replace('Game page ›','Game stats ⟳')+'</div>'+
+      '<div class="fb"><div class="card fbk"><div class="fbh"><b>Game stats</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+gameCard(g,true).replace('id="gc-','data-x="').replace('<details>','<details open>')+'</div></div></div></div>'}).join("")+'</div>'+
+    (list.length>1?'<div class="hdots">'+(list.length<=14?list.map(function(_,i){return'<i'+(i?"":' class="on"')+'></i>'}).join(""):'<span class="hcount">1 of '+list.length+'</span>')+'</div><p class="hhint">Tap a card to flip it · swipe for '+(list.length-1)+' more</p>':'<p class="hhint">Tap the card to flip it</p>')+'</div>';
+  fitHero();
+  var tr=$("tTrack"),idx=Math.max(0,list.findIndex(function(g){var m=DATA.games[g.id];return FLIPTO?g.id===FLIPTO:(m.away===v||m.home===v)}));
+  tr.scrollLeft=idx*tr.clientWidth;setDots(tr,idx);
+  if(FLIPTO){var fc=tr.children[idx];FLIPTO=null;if(fc)setTimeout(function(){flipCard(fc)},250)}
+  var tmr=null;tr.addEventListener("scroll",function(){clearTimeout(tmr);tmr=setTimeout(function(){
+    var i=Math.round(tr.scrollLeft/tr.clientWidth),g=TEAMGAMES[i];setDots(tr,i);if(!g)return;var m=DATA.games[g.id];
+    if(TEAM!==m.away&&TEAM!==m.home){TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;sel.value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower()}},140)},{passive:true});
+  renderTeamLower();
+}
+function slateOf(g){var k="";ENG.slates().forEach(function(sl){if(sl.g.some(function(x){return x.id===g.id}))k=sl.k});return k}
+function setDots(tr,i){var c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length}
+// Below the cards: the picked team's parlays, players and past seasons, with a toggle between the two teams in that game
+function renderTeamLower(){
+  var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
+  var r=ENG.teamSlips(v),m=r.g&&DATA&&DATA.games[r.g.id]||{};
+  $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(t[0]===v)+'">'+esc(t[1])+'</button>'}).join(""):"";
+  $("teamParH").textContent=teamName(v)+" parlays";
   $("teamNote").textContent=r.g?"Same-game parlays from "+r.g.away+" at "+r.g.home+", so your book's payout will be lower than shown.":"No game this week.";
   renderPresetRow("pr-team",r.l,"t");
-  $("teamHero").innerHTML=r.g?heroCard({g:r.g,lab:(teams.filter(function(t){return t[0]===v})[0]||[,""])[1]+" game"}):"";if(r.g)fitHero();
-  $("teamGame").innerHTML=r.g?gameCard(r.g,true):"";
   var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
   $("teamProps").innerHTML=tp.length?playerGroups(tp).map(playerCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
-  var mm=r.g&&DATA&&DATA.games[r.g.id]||{};renderTeamHist(v,mm.away===v?mm.home:mm.away);
+  renderTeamHist(v,m.away===v?m.home:m.away);
 }
 
 // ---------- results ----------
@@ -1189,7 +1231,9 @@ document.addEventListener("click",function(e){
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
   else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
-  else if(t.dataset.goto){var id=t.dataset.goto;location.hash="games";setTimeout(function(){var c=$("gc-"+id);if(c){var d=c.querySelector("details");if(d)d.open=true;c.scrollIntoView({block:"start"});window.scrollBy(0,-60)}},120)}
+  else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM;window.scrollTo(0,0)}
+  else if(t.dataset.flip){var fc=t.closest(".flip");if(fc)flipCard(fc)}
+  else if(t.dataset.side){TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
@@ -1229,13 +1273,15 @@ if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight'
   $("gateNo").onclick=function(){$("gateMsg").hidden=false;$("gateYes").hidden=true;$("gateNo").hidden=true}})();
 // Pages: #parlays, #games, #props, #team-DET (shareable links)
 function route(){
-  var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0?"team":h;
+  var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0||h==="games"?"team":h;
   if(["parlays","games","props","team","results"].indexOf(v)<0)v="parlays";
-  if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();if(DATA){$("fTeam").value="";renderTeam();renderSlip()}}
+  if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();if(DATA){renderTeam();renderSlip()}}
   ["parlays","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
 }
 window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
+$("fDiv").addEventListener("change",function(){TEAM="";renderTeam();renderSlip()});
+$("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
