@@ -30,7 +30,9 @@ header h1{font-size:44px;line-height:1;margin:8px 0 4px;font-weight:800;font-sty
 header p{margin:0;color:var(--muted);max-width:46ch}
 h2{font-size:26px;margin:24px 0 10px;font-weight:700}
 select{font:inherit;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
-.tabs{display:flex;gap:0;margin:18px 0 0;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:4;padding-top:env(safe-area-inset-top,0px)}
+.tabs{display:flex;gap:0;margin:18px 0 0;border-bottom:2px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:4}
+/* covers the iPhone status bar area so content scrolls under it cleanly */
+body:before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:6}
 .sub{color:var(--muted);margin:-4px 0 10px;font-size:14px}
 .preset .sg{color:var(--muted);font-size:12px;margin:0 0 8px}
 .tabs{overflow-x:auto}
