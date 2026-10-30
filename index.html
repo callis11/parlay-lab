@@ -305,7 +305,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .fbk{margin:0;border-color:color-mix(in srgb,var(--flag) 40%,var(--line))}
 .fbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .fbh .lnk{padding:4px 0}
-#teamCar .htrack{align-items:flex-start}
+#teamCar .htrack{align-items:flex-start;overflow-y:hidden;transition:height .2s}
 .tside{display:flex;margin:4px 0 6px}.tside button{flex:1}.tside button[data-side="BOTH"]{flex:.7}
 #fDiv[hidden]{display:none}
 .preset .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -1024,10 +1024,14 @@ function renderTeam(){
     (list.length>1?'<div class="hdots">'+(list.length<=14?list.map(function(_,i){return'<i'+(i?"":' class="on"')+'></i>'}).join(""):'<span class="hcount">1 of '+list.length+'</span>')+'</div><p class="hhint">Tap a card to flip it · swipe for '+(list.length-1)+' more</p>':'<p class="hhint">Tap the card to flip it</p>')+'</div>';
   fitHero();
   var tr=$("tTrack"),idx=Math.max(0,list.findIndex(function(g){var m=DATA.games[g.id];return FLIPTO?g.id===FLIPTO:(m.away===v||m.home===v)}));
-  tr.scrollLeft=idx*tr.clientWidth;setDots(tr,idx);
-  if(FLIPTO){var fc=tr.children[idx];FLIPTO=null;if(fc)setTimeout(function(){flipCard(fc)},250)}
-  var tmr=null;tr.addEventListener("scroll",function(){clearTimeout(tmr);tmr=setTimeout(function(){
-    var i=Math.round(tr.scrollLeft/tr.clientWidth),g=TEAMGAMES[i];setDots(tr,i);if(!g)return;var m=DATA.games[g.id];
+  // jump to the picked team's game; ignore the scroll events that jump causes
+  var quiet=true,fit=function(i){var c=tr.children[i];if(c)tr.style.height=c.offsetHeight+"px"};
+  var jump=function(){if(!tr.clientWidth){requestAnimationFrame(jump);return}tr.style.scrollSnapType="none";tr.scrollLeft=idx*tr.clientWidth;tr.style.scrollSnapType="";setDots(tr,idx);fit(idx);setTimeout(function(){quiet=false},400)};
+  jump();
+  if(FLIPTO){var fc=tr.children[idx];FLIPTO=null;if(fc)setTimeout(function(){flipCard(fc);setTimeout(function(){fit(idx)},220)},300)}
+  tr.addEventListener("click",function(){setTimeout(function(){fit(Math.round(tr.scrollLeft/(tr.clientWidth||1)))},220)});
+  var tmr=null;tr.addEventListener("scroll",function(){if(quiet||!tr.clientWidth)return;clearTimeout(tmr);tmr=setTimeout(function(){
+    var i=Math.round(tr.scrollLeft/tr.clientWidth),g=TEAMGAMES[i];setDots(tr,i);fit(i);if(!g)return;var m=DATA.games[g.id];
     if(TEAM!==m.away&&TEAM!==m.home){TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;sel.value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower()}},140)},{passive:true});
   renderTeamLower();
 }
@@ -1044,7 +1048,15 @@ function bothSlips(g){
   var tot=["ov","un"].map(function(t){return gameLeg(g,t)}).sort(function(a,b){return b.p-a.p})[0];
   legs.sort(function(a,b){return b.pe-a.pe});
   var side=function(t){return legs.filter(function(x){return x.team===t})};
-  var A=side(m.away),H=side(m.home);if(!A.length||!H.length)return[];
+  var A=side(m.away),H=side(m.home);
+  // No player props for this game (college): build from the game lines instead
+  if(!legs.some(function(x){return x.leg.kind==="p"})){
+    var gl=function(t){return gameLeg(g,t)},ml=[gl("ml-a"),gl("ml-h")].sort(function(a,b){return b.p-a.p})[0],sp=[gl("sp-a"),gl("sp-h")].sort(function(a,b){return b.p-a.p})[0],o2=[];
+    if(tot)o2.push({n:"Winner + Total",d:"The likelier winner plus the likelier side of the total.",l:[ml,tot]});
+    if(tot)o2.push({n:"Cover + Total",d:"The likelier side of the spread plus the likelier side of the total.",l:[sp,tot]});
+    return o2;
+  }
+  if(!A.length||!H.length)return[];
   var take=function(list,used,n){var out=[];list.forEach(function(x){if(out.length<n&&!used[x.who]){used[x.who]=1;out.push(x)}});return out};
   var mk=function(n,d,arr){return{n:n,d:d,l:arr.map(function(x){return x.leg?x.leg:x})}},out=[];
   var u1={};var a1=take(A,u1,1),h1=take(H,u1,1);out.push(mk("Best of Both","The single most likely leg from each team.",a1.concat(h1)));
@@ -1057,10 +1069,10 @@ var TSIDE="team";
 function renderTeamLower(){
   var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
   var r=ENG.teamSlips(v),m=r.g&&DATA&&DATA.games[r.g.id]||{};
-  $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(TSIDE==="team"&&t[0]===v)+'">'+esc(t[1])+'</button>'}).join("")+(SPORT==="nfl"?'<button data-side="BOTH" aria-pressed="'+(TSIDE==="both")+'">Both</button>':""):"";
-  if(TSIDE==="both"&&r.g&&SPORT==="nfl"){
+  $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(TSIDE==="team"&&t[0]===v)+'">'+esc(t[1])+'</button>'}).join("")+'<button data-side="BOTH" aria-pressed="'+(TSIDE==="both")+'">Both</button>':"";
+  if(TSIDE==="both"&&r.g){
     $("teamParH").textContent=r.g.away+" + "+r.g.home+" parlays";
-    $("teamNote").textContent="The best legs from each team in "+r.g.away+" at "+r.g.home+", at least one from each side. Same-game parlays, so your book's payout will be lower than shown.";
+    $("teamNote").textContent=(COL?"The strongest game-line combos in ":"The best legs from each team in ")+r.g.away+" at "+r.g.home+(COL?".":", at least one from each side.")+" Same-game parlays, so your book's payout will be lower than shown.";
     renderPresetRow("pr-team",bothSlips(r.g),"b");
     var bp=PROPS.filter(function(p){return p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
     $("teamProps").innerHTML=bp.length?playerGroups(bp).map(playerCard).join(""):'<p class="empty">No rated props for this game yet.</p>';
@@ -1359,8 +1371,8 @@ if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight'
 function route(){
   var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0||h==="games"?"team":h;
   if(["parlays","games","props","team","results"].indexOf(v)<0)v="parlays";
-  if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();if(DATA){renderTeam();renderSlip()}}
   ["parlays","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
+  if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();TSIDE="team";if(DATA){renderTeam();renderSlip()}}
 }
 window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
