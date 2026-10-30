@@ -5,7 +5,7 @@ const fs = require("fs");
 // SPORT=cbb builds men's college basketball (cbb/) from ESPN's Division I scoreboard instead
 const SP = process.env.SPORT === "cbb" ? "cbb" : "cfb";
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/" + (SP === "cbb" ? "basketball/mens-college-basketball" : "football/college-football");
-const GROUPS = SP === "cbb" ? 50 : 80, BACK = SP === "cbb" ? -3 : -4, AHEAD = SP === "cbb" ? 3 : 9;
+const GROUPS = SP === "cbb" ? 50 : 80, BACK = SP === "cbb" ? -3 : -4, AHEAD = SP === "cbb" ? 5 : 9;
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
 const etDate = t => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(t));
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " and ").replace(/\bst\b\.?/g, "state").replace(/[^a-z0-9]/g, "");
@@ -50,7 +50,11 @@ function parse(j) {
     const cands = all.filter(g => Math.abs(+new Date(g.t) - t) < (g.tbd ? 30 : 12) * 36e5);
     let g = cands.find(g => same(ev.home_team, g.h) && same(ev.away_team, g.a));
     if (!g) g = cands.find(g => norm(ev.home_team) === norm(g.h.name) || norm(ev.away_team) === norm(g.a.name));
+    // Neutral-site games: the books and ESPN sometimes list home and away the other way round
+    let flip = false;
+    if (!g) { g = cands.find(g => same(ev.home_team, g.a) && same(ev.away_team, g.h)); flip = !!g; }
     if (!g) continue;
+    if (flip) g = Object.assign({}, g, { h: g.a, a: g.h, neutral: true });
     matched++;
     const nm = x => (x.rank ? "#" + x.rank + " " : "") + x.loc;
     names[ev.home_team] = nm(g.h); names[ev.away_team] = nm(g.a);
