@@ -64,7 +64,8 @@
   // Per-sport settings: how far ahead to show games, how to group them, and whether to show a "Best of the week" row
   // featured: the hometown team that gets its own section on the Parlays page
   var OPTS = { nfl: { featured: "DET", featuredName: "Lions" }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" },
-    cfb: { windowH: 192, slate: "cfb", full: true, featured: "MSU", featuredName: "Michigan State" } };
+    cfb: { windowH: 192, slate: "cfb", full: true, featured: "MSU", featuredName: "Michigan State" },
+    cbb: { windowH: 40, slate: "date", noWeek: true, full: true, featured: "MSU", featuredName: "Michigan State" } };
 
   // College slates in US Eastern time: "Sat Noon", "Sat 3:30", "Sat Night", "Fri Night", "Tue Night", plus holidays
   function cfbSlate(iso) {

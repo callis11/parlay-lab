@@ -119,6 +119,38 @@
       "inputs": {
         "auto": "true"
       }
+    },
+    {
+      "workflow": "cbb.yml",
+      "days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "times": [
+        "10:45",
+        "17:45"
+      ],
+      "inputs": {
+        "auto": "true"
+      }
+    },
+    {
+      "workflow": "cbb.yml",
+      "days": [
+        "Sat",
+        "Sun"
+      ],
+      "times": [
+        "11:05"
+      ],
+      "inputs": {
+        "auto": "true"
+      }
     }
   ]
 }

@@ -2,7 +2,10 @@
 // (school names, AP ranks, records, final scores for grading). Run from the repo root after cfb/fetch.js.
 
 const fs = require("fs");
-const ESPN = "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
+// SPORT=cbb builds men's college basketball (cbb/) from ESPN's Division I scoreboard instead
+const SP = process.env.SPORT === "cbb" ? "cbb" : "cfb";
+const ESPN = "https://site.api.espn.com/apis/site/v2/sports/" + (SP === "cbb" ? "basketball/mens-college-basketball" : "football/college-football");
+const GROUPS = SP === "cbb" ? 50 : 80, BACK = SP === "cbb" ? -3 : -4, AHEAD = SP === "cbb" ? 3 : 9;
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
 const etDate = t => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(t));
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " and ").replace(/\bst\b\.?/g, "state").replace(/[^a-z0-9]/g, "");
@@ -23,23 +26,23 @@ function parse(j) {
 }
 
 (async () => {
-  const odds = readJSON("cfb/odds.json", null);
-  if (!odds) { console.log("No cfb/odds.json yet."); return; }
-  const logs = readJSON("cfb/logs.json", { games: {} });
+  const odds = readJSON(SP + "/odds.json", null);
+  if (!odds) { console.log("No " + SP + "/odds.json yet."); return; }
+  const logs = readJSON(SP + "/logs.json", { games: {} });
   // Scoreboards from 4 days ago through 9 days ahead (covers grading and the coming week)
   const days = [];
-  for (let i = -4; i <= 9; i++) days.push(new Date(Date.now() + i * 864e5).toISOString().slice(0, 10).replace(/-/g, ""));
+  for (let i = BACK; i <= AHEAD; i++) days.push(new Date(Date.now() + i * 864e5).toISOString().slice(0, 10).replace(/-/g, ""));
   for (const d of days) {
-    try { parse(await getJSON(`${ESPN}/scoreboard?dates=${d}&groups=80&limit=300`)).forEach(g => { logs.games[g.id] = g; }); }
+    try { parse(await getJSON(`${ESPN}/scoreboard?dates=${d}&groups=${GROUPS}&limit=500`)).forEach(g => { logs.games[g.id] = g; }); }
     catch (e) { console.warn("scoreboard", d, e.message); }
   }
   for (const id in logs.games) if (new Date(logs.games[id].t) < Date.now() - 60 * 864e5) delete logs.games[id];
-  fs.writeFileSync("cfb/logs.json", JSON.stringify(logs));
+  fs.writeFileSync(SP + "/logs.json", JSON.stringify(logs));
   const all = Object.values(logs.games);
   console.log("ESPN games cached:", all.length);
 
   // Match each odds game to ESPN by school names and kickoff time
-  const hist0 = readJSON("cfb/history.json", {});
+  const hist0 = readJSON(SP + "/history.json", {});
   const games = {}, names = {}; let matched = 0;
   const same = (oddsName, team) => { const o = norm(oddsName); return o === norm(team.name) || (norm(team.loc).length > 3 && o.startsWith(norm(team.loc)) && o.length - norm(team.loc).length < 18); };
   for (const ev of odds.lines || []) {
@@ -61,13 +64,13 @@ function parse(j) {
       open: hist0[ev.id] && hist0[ev.id].open, now };
   }
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 14 * 864e5) delete hist0[id];
-  fs.writeFileSync("cfb/history.json", JSON.stringify(hist0));
+  fs.writeFileSync(SP + "/history.json", JSON.stringify(hist0));
   // Each team's next game, for the pinned team's "plays next" note
   const next = {};
   all.filter(g => !g.done && +new Date(g.t) > Date.now() - 3 * 36e5).sort((a, b) => a.t.localeCompare(b.t)).forEach(g => {
     if (!next[g.h.abbr]) next[g.h.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.a.loc, home: true };
     if (!next[g.a.abbr]) next[g.a.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.h.loc, home: false };
   });
-  fs.writeFileSync("cfb/data.json", JSON.stringify({ sport: "cfb", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next }));
-  console.log("Saved cfb/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next }));
+  console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();

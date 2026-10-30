@@ -244,7 +244,7 @@ html.nba .hero:before{display:none}
 </div></div>
 <div class="wrap">
 <header>
-  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a></nav>
+  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
@@ -339,8 +339,8 @@ html.nba .hero:before{display:none}
 <script>document.write('<script src="engine.js?v='+(((location.search.match(/[?&]r=(\d+)/)||[])[1])||Date.now().toString(36).slice(0,-4))+'"><\/script>')</script>
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
-if(/[?&](nba|sport=nba)\b/.test(location.search))document.documentElement.classList.add("nba");
-var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
+if(/[?&](nba|cbb|sport=nba|sport=cbb)\b/.test(location.search))document.documentElement.classList.add("nba");
+var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":/[?&](cbb|sport=cbb)\b/.test(location.search)?"cbb":"nfl",COL=SPORT==="cfb"||SPORT==="cbb",DIR=SPORT==="nfl"?"":SPORT+"/";
 var SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
@@ -487,7 +487,7 @@ function slateList(){
 }
 function teamNote(){
   var o=Engine.OPTS[SPORT]||{},r=ENG.teamSlips(o.featured),nm=o.featuredName;
-  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(SPORT==="cfb"?". Pairs "+nm+" lines with the best lines from other games; slips with two legs from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
+  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(COL?". Pairs "+nm+" lines with the best lines from other games; slips with two legs from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
   var nx=DATA&&DATA.next&&DATA.next[o.featured];
   return nx?"The "+nm+" play next "+(nx.tbd?new Date(nx.day+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" (time TBD)":when(nx.t))+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
 }
@@ -541,7 +541,7 @@ function heroCard(sp0){
   if(!sp0||!sp0.g)return"";var g=sp0.g;var m=DATA&&DATA.games[g.id]||{},ca=teamColor(m.away,"a"),ch=teamColor(m.home,"h");
   var sp=g.legs["sp-h"],fav=sp.pt<0?(m.home||g.home):(m.away||g.away),line=sp.pt<0?sp.pt:-sp.pt;
   var mv="";if(m.open&&m.now&&m.open.spread!=null&&m.now.spread!=null&&m.open.spread!==m.now.spread){var d=m.now.spread-m.open.spread,tw=d<0?(m.home||g.home):(m.away||g.away),os=m.open.spread,ot=os<0?(m.home||g.home):(m.away||g.away);mv='<span class="mv up">'+Math.abs(+d.toFixed(1))+" → "+esc(tw)+"</span> opened "+(os===0?"PK":esc(ot)+" "+(-Math.abs(os)))}
-  var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=SPORT!=="cfb";
+  var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=!COL;
   var cityA=m.away||"",cityH=m.home||"";
   return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+
     '<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div>'+(isPro?'<div class="city">'+esc(cityA)+'</div>':"")+
@@ -768,7 +768,7 @@ function renderSlip(){
 function ago(ms){var m=Math.round(ms/60000);if(m<1)return"just now";if(m<60)return m+" min ago";var h=Math.round(m/60);return h<48?h+" hr ago":Math.round(h/24)+" days ago"}
 function nextSync(){
   if(!SCHED||!SCHED.jobs)return null;
-  var wf=SPORT==="nba"?"nba.yml":SPORT==="cfb"?"cfb.yml":"refresh.yml",tz=SCHED.timezone||"America/New_York";
+  var wf=SPORT==="nba"?"nba.yml":SPORT==="cfb"?"cfb.yml":SPORT==="cbb"?"cbb.yml":"refresh.yml",tz=SCHED.timezone||"America/New_York";
   var fmt=new Intl.DateTimeFormat("en-US",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit"});
   // Days (Eastern) with games in the current lines; the refresh skips days without games unless forced
   var gameDay={},now=Date.now();
@@ -781,7 +781,7 @@ function nextSync(){
       if(j.days.indexOf(o.weekday)<0||j.times.indexOf(hm)<0)continue;
       var forced=j.inputs&&j.inputs.force==="true";
       // NFL: only game days (or forced). NBA: only if a game starts within 18 hours of the run
-      if(SPORT==="cfb"){}
+      if(COL){}
       else if(SPORT==="nba"){var ok=(ODDS&&ODDS.lines||[]).some(function(e){var g=+new Date(e.commence_time);return g>t-3*36e5&&g<t+18*36e5});if(!ok)continue}
       else if(!forced&&!gameDay[key])continue;
       return t;
@@ -866,6 +866,7 @@ document.addEventListener("visibilitychange",function(){
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
 if(SPORT==="cfb"){document.title="ParlayLabs · NCAAF parlays";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
+if(SPORT==="cbb"){document.title="ParlayLabs · NCAAB parlays";$("tagline").textContent="Every Division I men's basketball game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="nba"){document.title="ParlayLabs · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}

@@ -1,0 +1,44 @@
+name: Refresh College Basketball
+on:
+  # Main timer is Cloudflare (schedule.json). This daily run is a backup. Each odds pull costs about 3 credits (game lines only).
+  schedule:
+    - cron: "43 15 * * *"
+  workflow_dispatch:
+    inputs:
+      auto:
+        description: "Started by the Cloudflare timer (skips if refreshed in the last 45 minutes)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+jobs:
+  cbb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: f
+        run: node cfb/fetch.js
+        env:
+          SPORT: cbb
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          AUTO_GUARD: ${{ github.event_name == 'schedule' || inputs.auto }}
+      # ESPN scores (free) run every time to keep grading current
+      - run: node cfb/build.js
+        env:
+          SPORT: cbb
+      - run: node picks.js
+        env:
+          SPORT: cbb
+          RECORD: ${{ steps.f.outputs.fetched == 'true' }}
+      - run: |
+          git pull --rebase --autostash origin main || true
+          git config user.name "odds-bot"
+          git config user.email "odds-bot@users.noreply.github.com"
+          git add cbb/*.json
+          git diff --cached --quiet || (git commit -m "Update college basketball odds and results" && git push)

@@ -87,7 +87,7 @@ function buildCards(cards, book) {
   for (const g of E.G) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
-    if (SPORT === "cfb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] })) }; made++; continue; } // no props: grade game lines only
+    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] })) }; made++; continue; } // no props: grade game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -162,8 +162,8 @@ function gradeLeg(l, games, stats) {
   const openBook = Object.keys(cards.book).filter(id => +new Date(cards.book[id].t) <= now);
   if (open.length || openCards.length || openBook.length) {
     const games = {}, stats = {};
-    if (SPORT === "cfb") {
-      const logs = readJSON("cfb/logs.json", { games: {} });
+    if (SPORT === "cfb" || SPORT === "cbb") {
+      const logs = readJSON(SPORT + "/logs.json", { games: {} });
       for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.h.score, away_score: g.a.score }; }
     } else if (SPORT === "nba") {
       const logs = readJSON("nba/logs.json", { games: {}, box: {} });

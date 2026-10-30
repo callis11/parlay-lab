@@ -5,10 +5,12 @@
 const fs = require("fs");
 const KEY = process.env.ODDS_API_KEY;
 if (!KEY) { console.error("Set ODDS_API_KEY first."); process.exit(1); }
-const BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf";
+// SPORT=cbb pulls men's college basketball into cbb/ the same way
+const SP = process.env.SPORT === "cbb" ? "cbb" : "cfb";
+const BASE = "https://api.the-odds-api.com/v4/sports/" + (SP === "cbb" ? "basketball_ncaab" : "americanfootball_ncaaf");
 const BOOKS = "fanduel,draftkings,betmgm,betrivers";
 
-function readOld() { try { return JSON.parse(fs.readFileSync("cfb/odds.json", "utf8")); } catch (e) { return null; } }
+function readOld() { try { return JSON.parse(fs.readFileSync(SP + "/odds.json", "utf8")); } catch (e) { return null; } }
 
 (async () => {
   // Automatic runs skip if odds were pulled in the last 45 minutes (two timers, one refresh)
@@ -17,7 +19,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync("cfb/odds.json", "u
   const remaining = res.headers.get("x-requests-remaining");
   if (!res.ok) { console.error("Odds API error", res.status, (await res.text()).slice(0, 200)); process.exit(1); }
   const lines = await res.json();
-  fs.writeFileSync("cfb/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), creditsRemaining: remaining === null ? null : +remaining, lines, props: [] }));
-  console.log("Saved cfb/odds.json:", lines.length, "games. Credits remaining:", remaining);
+  fs.writeFileSync(SP + "/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), creditsRemaining: remaining === null ? null : +remaining, lines, props: [] }));
+  console.log("Saved", SP + "/odds.json:", lines.length, "games. Credits remaining:", remaining);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "fetched=true\n");
 })();
