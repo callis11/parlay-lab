@@ -324,6 +324,11 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .wl p{margin:4px 0 0;color:var(--muted)}
 .wst{margin:10px 0 0;padding-left:18px;color:var(--muted)}.wst li{margin:6px 0}.wst b{color:var(--ink)}
 .wnote{font-size:11px;color:var(--muted);margin:10px 0 0;font-style:italic}
+.presets .pf{flex:0 0 82%;max-width:320px;scroll-snap-align:start}
+.presets .pf .preset{max-width:none;height:100%;box-sizing:border-box}
+.presets .pf.back{flex-basis:94%;max-width:520px}
+.pf .why{overflow-wrap:anywhere}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -868,14 +873,15 @@ function legBreakdown(l){
   }
   var adj=l.p0!==undefined&&l.p0!==null&&Math.abs(l.p0-l.p)>=0.01&&l.kind==="p"?" Past seasons showed legs like this hit "+(l.p<l.p0?"less":"more")+" often than estimated, so "+pct(l.p0)+" became "+pct(l.p)+".":"";
   return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+pct(l.p)+'</span></div>'+
-    '<p>'+esc(src.join(" · "))+'. The book\'s '+fmt(l.a)+' means about '+pct(imp)+' (before its cut).'+esc(adj)+'</p></div>';
+    '<p>'+esc((function(t){return t.charAt(0).toUpperCase()+t.slice(1)})(src.join(" · ")))+'. The book\'s '+fmt(l.a)+' means about '+pct(imp)+' (before its cut).'+esc(adj)+'</p></div>';
 }
 function slipWhy(legs,name){
   var pct=function(x){return Math.round(x*100)+"%"},raw=1,d=1,evs={},sg=false;
   legs.forEach(function(l){raw*=l.p;d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
   var h=name&&slipHist(name),ch=h?Math.max(0.001,Math.min(0.99,raw*h.fac)):raw,be=1/d,b=SPORT==="nfl"&&BTR&&BTR.slips&&BTR.slips[name];
   var avg=legs.reduce(function(a,l){return a+l.p},0)/legs.length,bk=BTR&&BTR.legs&&BTR.legs.byP&&BTR.legs.byP[Math.min(9,Math.floor(avg*10))];
-  var steps=['<li><b>Each leg:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>',
+  var anyProp=legs.some(function(l){return l.kind==="p"});
+  var steps=[anyProp?'<li><b>Each leg:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>':'<li><b>Each leg:</b> we take the sportsbook\'s price, remove its cut to get a fair chance, and adjust it by how those kinds of bets did in past seasons.</li>',
     '<li><b>Multiply:</b> '+legs.map(function(l){return pct(l.p)}).join(" × ")+' = <b>'+pct(raw)+'</b> if the legs were independent.</li>'];
   if(h&&Math.round(raw*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
   if(sg)steps.push('<li><b>Same game:</b> some legs come from the same game. They tend to win or lose together, so treat the % as rough, and your book will pay less than shown.</li>');
