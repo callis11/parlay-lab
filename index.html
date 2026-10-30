@@ -476,8 +476,9 @@ function matchup(g){
 }
 function renderGames(){
   if(!GAMES.length){$("games").innerHTML='<p class="empty">No lines yet. The next odds refresh will fill this in.</p>';return}
-  var out="",last="";
-  GAMES.forEach(function(g){var d=when(g.t).split(",").slice(0,2).join(",");
+  var out="",last="",dayOf=function(g){return when(g.t).split(",").slice(0,2).join(",")};
+  var list=GAMES.slice();if(COL)list.sort(function(a,b){return(new Date(a.t).toDateString()===new Date(b.t).toDateString())?byRankTime(a,b):new Date(a.t)-new Date(b.t)});
+  list.forEach(function(g){var d=dayOf(g);
     if(d!==last){last=d;out+='<div class="day">'+d+'</div>'}
     out+=gameCard(g);
   });
@@ -869,6 +870,9 @@ function heroCard(sp0){
 }
 // Spotlight: always the hometown team's game (Lions / Pistons / Michigan State); if they're off, the game of the week
 function gameScore(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});return sc}
+// College: best AP rank in the matchup (99 if neither team is ranked)
+function colRank(g){var b=99;[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r&&+r[1]<b)b=+r[1]});return b}
+function byRankTime(a,b){return COL?(colRank(a)-colRank(b))||(new Date(a.t)-new Date(b.t)):new Date(a.t)-new Date(b.t)}
 function isMine(g){var o=Engine.OPTS[SPORT]||{},m=DATA&&DATA.games[g.id]||{};return!!o.featured&&(m.away===o.featured||m.home===o.featured)}
 function topGame(list){var b=null,bs=-1e9;list.forEach(function(g){var sc=gameScore(g);if(sc>bs){bs=sc;b=g}});return b}
 // Spotlight carousel, following the slate chips:
@@ -886,9 +890,9 @@ function heroList(S){
   var lab=function(g){return isMine(g)?o.featuredName+" game":g===gow?GOWL:(slateOf[g.id]||"")};
   var sel=S.filter(function(x){return x.id===PST.slate})[0];
   if(sel&&sel.team){add(mine,lab(mine))}
-  else if(sel&&sel.games){var gs=sel.games.filter(function(g){return+new Date(g.t)>now-3.5*36e5});if(!gs.length)gs=sel.games;var f=gs.filter(isMine)[0]||topGame(gs);add(f,isMine(f)?lab(f):f===gow?GOWL:"Top game · "+(slateOf[f.id]||""));gs.forEach(function(g){add(g,lab(g))})}
+  else if(sel&&sel.games){var gs=sel.games.filter(function(g){return+new Date(g.t)>now-3.5*36e5});if(!gs.length)gs=sel.games;gs=gs.slice().sort(byRankTime);var f=gs.filter(isMine)[0]||(COL&&colRank(gs[0])<99?gs[0]:topGame(gs));add(f,isMine(f)?lab(f):f===gow?GOWL:"Top game · "+(slateOf[f.id]||""));gs.forEach(function(g){add(g,lab(g))})}
   else if(PST.slate==="best"){add(gow,GOWL);add(mine,lab(mine));up.slice().sort(function(a,b){return gameScore(b)-gameScore(a)}).forEach(function(g){add(g,lab(g))})}
-  else{add(mine||gow,mine?lab(mine):GOWL);if(mine)add(gow,GOWL);up.forEach(function(g){add(g,lab(g))})}
+  else{add(mine||gow,mine?lab(mine):GOWL);if(mine)add(gow,GOWL);up.slice().sort(byRankTime).forEach(function(g){add(g,lab(g))})}
   return out.slice(0,40);
 }
 function heroCarousel(list){
