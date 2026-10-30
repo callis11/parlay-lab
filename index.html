@@ -23,7 +23,10 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,.03) 0 90px,rgba(0,0,0,.06) 90px 180px),radial-gradient(1200px 500px at 50% -120px,#1D5A2C 0%,rgba(7,21,11,0) 70%),var(--bg);background-color:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:120px}
+body{margin:0;background:
+  radial-gradient(circle at 50% 150px,transparent 0 110px,rgba(255,255,255,.07) 110px 113px,transparent 114px),
+  linear-gradient(180deg,transparent 148px,rgba(255,255,255,.06) 148px 152px,transparent 152px) no-repeat,
+  repeating-linear-gradient(180deg,rgba(255,255,255,.03) 0 90px,rgba(0,0,0,.06) 90px 180px),radial-gradient(1200px 500px at 50% -120px,#1D5A2C 0%,rgba(7,21,11,0) 70%),var(--bg);background-color:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:120px}
 h1,h2,.num{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
 .wrap{max-width:720px;margin:0 auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
 header h1{font-size:44px;line-height:1;margin:8px 0 4px;font-weight:800;font-style:italic;letter-spacing:.01em}
@@ -211,8 +214,9 @@ html.nba body,body{min-height:100vh}
 html{background:var(--bg)}
 html.nba{--bg:#1A0F07;--surface:#2A190C;--surface2:#331F0F;--line:#4B311A;--muted:#C4AA8E}
 html.nba body{background:
-  radial-gradient(circle at 50% 760px,transparent 0 170px,rgba(255,255,255,.09) 170px 173px,transparent 174px),
-  linear-gradient(90deg,transparent calc(50% - 1.5px),rgba(255,255,255,.07) calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px)),
+  radial-gradient(circle at 50% 150px,transparent 0 120px,rgba(255,255,255,.075) 120px 123px,transparent 124px),
+  radial-gradient(circle at 50% 150px,transparent 0 38px,rgba(255,255,255,.06) 38px 40px,transparent 41px),
+  linear-gradient(180deg,transparent 148px,rgba(255,255,255,.06) 148px 152px,transparent 152px) no-repeat,
   repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 44px,rgba(0,0,0,.18) 44px 46px),
   repeating-linear-gradient(180deg,rgba(255,220,170,.025) 0 7px,transparent 7px 19px),
   radial-gradient(1100px 520px at 50% -140px,#7A4319 0%,rgba(26,15,7,0) 72%),var(--bg);background-color:var(--bg)}
