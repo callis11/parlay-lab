@@ -25,6 +25,7 @@ jobs:
           node-version: 20
       - run: |
           set -o pipefail
+          mkdir -p backtest/raw
           node backtest/fetch.js 2>&1 | tee backtest/raw/last-run.log
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -34,5 +35,6 @@ jobs:
         run: |
           git config user.name "odds-bot"
           git config user.email "odds-bot@users.noreply.github.com"
+          mkdir -p backtest/raw
           git add backtest/raw
           git diff --cached --quiet || (git commit -m "Backtest: historical NFL odds" && git pull --rebase --autostash origin main && git push)
