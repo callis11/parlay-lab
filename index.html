@@ -268,6 +268,9 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .pmh b{font-size:15px}
 .pmh small{color:var(--muted);font-size:12px;margin-left:auto;text-align:right}
 .l5w{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;margin-top:3px}
+.legend{margin:22px 0 6px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px;color:var(--muted);line-height:1.45}
+.legend>b{display:block;color:var(--ink);font-size:14px;margin-bottom:6px}
+.legend p{margin:8px 0 0}.legend p b{color:var(--ink)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -741,6 +744,12 @@ function renderParlays(){
   if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
   if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
+  html+='<div class="legend"><b>How to read these cards</b>'+
+    '<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>'+
+    '<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>'+
+    '<p><b>adj. from 59%</b> The chance to hit is corrected by how often this type really hit in past seasons, since legs on the same slip tend to win or lose together.</p>'+
+    '<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>'+
+    '<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p></div>';
   $("pList").innerHTML=heroCarousel(heroList(S))+html;wireCarousel();
   fitHero();
   var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
