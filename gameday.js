@@ -12,10 +12,10 @@ const fs = require("fs");
     play = lines.some(l => l.split(",")[col] === today);
   } catch (e) { console.warn("Schedule check failed, refreshing anyway:", e.message); }
   if (process.env.FORCE === "true") play = true;
-  // Automatic runs (GitHub schedule or the Cloudflare timer) skip if odds were pulled in the last 45 minutes,
-  // so the two timers never pay for the same refresh twice
+  // Automatic runs skip if odds were pulled recently, so the two timers never pay for the same refresh twice.
+  // Cloudflare timer: 20 minutes (Sunday runs can be 30 minutes apart). GitHub backup cron: 60 minutes (it often fires late).
   if (play && process.env.AUTO_GUARD === "true") {
-    try { const last = JSON.parse(fs.readFileSync("odds.json", "utf8")).fetchedAt; if (Date.now() - new Date(last) < 45 * 60e3) { play = false; console.log("Odds already pulled at", last, "- skipping"); } } catch (e) {}
+    try { const last = JSON.parse(fs.readFileSync("odds.json", "utf8")).fetchedAt; if (Date.now() - new Date(last) < (+process.env.GUARD_MIN || 45) * 60e3) { play = false; console.log("Odds already pulled at", last, "- skipping"); } } catch (e) {}
   }
   console.log(today, play ? "game day: refreshing" : "no games today: skipping");
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `play=${play}\n`);

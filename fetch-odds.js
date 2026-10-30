@@ -35,7 +35,9 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
   const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american&includeLinks=true&includeSids=true`);
   console.log("credits remaining after game lines:", remaining);
   const weekEnd = Date.now() + 7 * 24 * 3600 * 1000;
-  const upcoming = lines.filter(x => new Date(x.commence_time) < weekEnd);
+  // Only buy props for games that haven't kicked off (Sunday afternoon pulls skip the 1 PM games, etc.)
+  const upcoming = lines.filter(x => new Date(x.commence_time) < weekEnd && new Date(x.commence_time) > Date.now());
+  const started = new Set(lines.filter(x => new Date(x.commence_time) <= Date.now()).map(x => x.id));
   let props = [], markets = CORE_MARKETS.concat(EXTRA_MARKETS), propsAt = new Date().toISOString();
 
   if (remaining !== null && remaining < MIN_CREDITS_FOR_PROPS + upcoming.length * markets.length) {
@@ -57,6 +59,8 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
       }
     }
   }
+  // Games already underway keep the props from the last pull before kickoff
+  if (old && old.props) for (const p of old.props) if (started.has(p.id) && !props.some(x => x.id === p.id)) props.push(p);
   fs.writeFileSync("odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, lines, props }));
   console.log("Saved odds.json:", lines.length, "games,", props.length, "prop events. Credits remaining:", remaining);
 })();

@@ -36,6 +36,7 @@ jobs:
         env:
           FORCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) || github.event.schedule == '43 14 * * 2' }}
           AUTO_GUARD: ${{ github.event_name == 'schedule' || inputs.auto }}
+          GUARD_MIN: ${{ github.event_name == 'schedule' && '60' || '20' }}
       - if: steps.gd.outputs.play == 'true'
         run: node fetch-odds.js
         env:
