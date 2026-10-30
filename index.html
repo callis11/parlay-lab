@@ -105,7 +105,7 @@ th{color:var(--muted);font-weight:600}
 .sum .num{font-size:26px}
 .panel{display:none;margin-top:10px;max-height:45vh;overflow:auto}
 .placed{margin:10px 0;padding:10px;border:1px dashed var(--line);border-radius:4px}
-.sync{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.sync{margin:28px 0 0;padding:12px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px}
 .sync b{color:var(--ink);font-weight:600}
 .sync .stale{color:var(--red);font-weight:600}
 .chiprow{display:flex;gap:8px;overflow-x:auto;padding:14px 0 6px;scrollbar-width:none}
@@ -183,7 +183,6 @@ th{color:var(--muted);font-weight:600}
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
-  <p class="sync" id="sync" aria-live="polite"></p>
 </header>
 
 <div class="tabs" role="tablist">
@@ -251,6 +250,7 @@ th{color:var(--muted);font-weight:600}
   <div id="teamProps"></div>
 </section>
 
+<p class="sync" id="sync" aria-live="polite"></p>
 <p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. "Value" means our estimate beats the book's price, not that the bet will win. Payouts for legs from the same game are estimates, since books price same-game parlays differently. Picks and payouts are estimates only. We are not responsible for losses; bet at your own risk. 21+ only. <a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a>. Gambling problem? Call 1-800-GAMBLER.</p>
 </div>
 
