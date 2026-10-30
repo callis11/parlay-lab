@@ -156,7 +156,7 @@ th{color:var(--muted);font-weight:600}
 .pgroup{margin:18px 0 6px;font-size:20px}
 .brand{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
 .brand img{border-radius:10px;flex:0 0 auto}
-.brand h1{margin:0;flex:1;min-width:0;font-size:clamp(30px,9vw,44px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand h1{margin:0;flex:1;min-width:0;font-size:clamp(24px,7.4vw,44px);white-space:nowrap;overflow:visible;position:relative}
 .refresh{flex:0 0 auto;font:inherit;font-weight:700;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:40px;white-space:nowrap}
 .refresh[disabled]{opacity:.6}
 .hero{position:relative;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 90px,rgba(0,0,0,.05) 90px 180px),linear-gradient(160deg,#1A4A27 0%,#0F2A16 55%,#0A1D0F 100%);padding:16px 16px 14px;margin:6px 0 16px}
@@ -296,6 +296,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gp{font-weight:800}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
+.beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -327,7 +328,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 <div class="wrap">
 <header>
   <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav>
-  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
+  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
