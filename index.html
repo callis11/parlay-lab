@@ -518,7 +518,7 @@ function renderProps(){
 function propCard(p){
     var cur=SLIP["P|"+p.id];
     var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
-      var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+(r.since&&r.since[1]>r.n?" · "+r.since[0]+" of "+r.since[1]+" since 2023":"")+" · our estimate "+pct(r.p):"Not enough games to rate";
+      var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+(r.since&&r.since[1]>r.n?" · "+r.since[0]+" of "+r.since[1]+" since 2023":""):"Not enough games to rate";
       var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5">Last 5 games: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5"> newest</span>':"";
       return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
