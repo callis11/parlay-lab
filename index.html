@@ -194,10 +194,10 @@ th{color:var(--muted);font-weight:600}
 .piece .who{font-weight:700;font-size:14px;line-height:1.2}
 .piece .sub2{font-size:12px;color:var(--muted);margin-top:2px}
 .piece .hp{text-align:right;line-height:1}
-.piece .hp b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:26px;color:var(--green)}
+.piece .hp b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:26px;color:var(--c,var(--green))}
 .piece .hp small{font-size:11px;color:var(--muted)}
 .piece .meter{grid-column:1/-1;height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:-2px}
-.piece .meter i{display:block;height:100%;background:var(--green)}
+.piece .meter i{display:block;height:100%;background:var(--c,var(--green))}
 .pl h3 .ic{margin-right:10px}
 .pl .phead{display:flex;align-items:center;gap:10px;min-width:0}
 .pl h3 .ic svg{color:#08101F}
@@ -484,7 +484,9 @@ function legTeam(l){
   if(l.kind==="p"){var p=pmap()[l.k];return p&&p.team||""}
   var m=DATA&&DATA.games[l.ev]||{};return /-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"";
 }
-function legColor(l){var t=legTeam(l);return t?teamColor(t,"a"):"#F7C600"}
+// Leg color = how likely it is to hit: green 70%+, yellow 50-69%, red under 50%, gray if not rated
+function hitColor(p){return p===undefined||p===null?"#8A97A8":p>=0.7?"#36D399":p>=0.5?"#F7C600":"#FF6B5E"}
+function legColor(l){return hitColor(l.p)}
 function icon(k,c,sm,bd){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c+'"><svg viewBox="0 0 24 24">'+ICO[k]+'</svg>'+(bd?'<i class="bd2">'+bd+'</i>':"")+'</span>'}
 function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,"")}
 // Past-season record for one leg: the player's main-line record for that stat, or the team's spread / over-under record
@@ -519,7 +521,7 @@ function propCard(p){
     var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
       (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"")+(function(){var x=SPORT==="nfl"&&playerPast(p.team,p.player,p.label);var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
       return(x&&x[0]+x[1]>=4?'<span class="chip">Past seasons: main line hit '+x[0]+" of "+(x[0]+x[1])+'</span>':"")+(v&&v[0]+v[1]>=2?'<span class="chip">vs '+esc(p.opp)+': '+v[0]+" of "+(v[0]+v[1])+' overs</span>':"")})();
-    var pc=p.team?teamColor(p.team,"a"):"#5B9BFF";
+    var pc="#8A97A8";
     return '<div class="card pl" style="--c:'+pc+'"><h3><div class="phead">'+icon(icoKey({kind:"p",label:p.label,td:p.td}),pc)+'<div>'+esc(p.player)+' <span>'+(p.team||"")+'</span></div></div><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
       '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
 }
