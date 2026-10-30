@@ -97,6 +97,9 @@ th{color:var(--muted);font-weight:600}
 .sum .num{font-size:26px}
 .panel{display:none;margin-top:10px;max-height:45vh;overflow:auto}
 .placed{margin:10px 0;padding:10px;border:1px dashed var(--line);border-radius:4px}
+.sync{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.sync b{color:var(--ink);font-weight:600}
+.sync .stale{color:var(--red);font-weight:600}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -131,6 +134,7 @@ th{color:var(--muted);font-weight:600}
   <h1>Parlay Lab</h1>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
+  <p class="sync" id="sync" aria-live="polite"></p>
 </header>
 
 <div class="tabs" role="tablist">
@@ -224,7 +228,7 @@ th{color:var(--muted);font-weight:600}
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
-var CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
+var SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -479,6 +483,42 @@ function renderSlip(){
   $("sumL").textContent=legs.length+(legs.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
+// ---------- odds sync status: last pull and next scheduled pull ----------
+function ago(ms){var m=Math.round(ms/60000);if(m<1)return"just now";if(m<60)return m+" min ago";var h=Math.round(m/60);return h<48?h+" hr ago":Math.round(h/24)+" days ago"}
+function nextSync(){
+  if(!SCHED||!SCHED.jobs)return null;
+  var wf=SPORT==="nba"?"nba.yml":"refresh.yml",tz=SCHED.timezone||"America/New_York";
+  var fmt=new Intl.DateTimeFormat("en-US",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit"});
+  // Days (Eastern) with games in the current lines; the refresh skips days without games unless forced
+  var gameDay={},now=Date.now();
+  (ODDS&&ODDS.lines||[]).forEach(function(e){var t=+new Date(e.commence_time);if(t>now-6*36e5){var p=fmt.formatToParts(new Date(t)),o={};p.forEach(function(x){o[x.type]=x.value});gameDay[o.year+o.month+o.day]=1}});
+  var jobs=SCHED.jobs.filter(function(j){return j.workflow===wf});
+  for(var t=Math.ceil(now/3e5)*3e5;t<now+8*864e5;t+=3e5){
+    var o={};fmt.formatToParts(new Date(t)).forEach(function(x){o[x.type]=x.value});
+    var hm=o.hour+":"+o.minute,key=o.year+o.month+o.day;
+    for(var i=0;i<jobs.length;i++){var j=jobs[i];
+      if(j.days.indexOf(o.weekday)<0||j.times.indexOf(hm)<0)continue;
+      var forced=j.inputs&&j.inputs.force==="true";
+      // NFL: only game days (or forced). NBA: only if a game starts within 18 hours of the run
+      if(SPORT==="nba"){var ok=(ODDS&&ODDS.lines||[]).some(function(e){var g=+new Date(e.commence_time);return g>t-3*36e5&&g<t+18*36e5});if(!ok)continue}
+      else if(!forced&&!gameDay[key])continue;
+      return t;
+    }
+  }
+  return null;
+}
+function renderSync(){
+  if(!ODDS||!ODDS.fetchedAt){$("sync").textContent="";return}
+  var last=+new Date(ODDS.fetchedAt),n=nextSync(),now=Date.now();
+  var tf={weekday:"short",hour:"numeric",minute:"2-digit"};
+  var stale=now-last>30*36e5;
+  // Every run also grades results and saves picks.json, so its time shows the last run even when no odds were pulled
+  var ran=PICKS&&PICKS.updated?+new Date(PICKS.updated):0,chk="";
+  if(ran>last+10*60e3)chk='<br>Last check <b>'+new Date(ran).toLocaleString("en-US",tf)+'</b> ('+ago(now-ran)+'): ran, no new odds needed'+(SPORT==="nba"?" (no games soon)":" (no game that day)");
+  $("sync").innerHTML='Odds updated <b>'+new Date(last).toLocaleString("en-US",tf)+'</b> <span'+(stale?' class="stale"':"")+'>('+ago(now-last)+')</span>'+
+    (n?' · Next update <b>'+new Date(n).toLocaleString("en-US",tf)+'</b>':'')+chk;
+}
+
 function renderAll(){
   build();renderGames();renderProps();
   renderPresetRow("presets",ENG.gamePresets(),"g");renderPresetRow("ppresets",ENG.playerPresets(),"p");
@@ -541,7 +581,7 @@ $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.re
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];renderAll()});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 </body>
 </html>
