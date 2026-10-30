@@ -222,7 +222,11 @@ th{color:var(--muted);font-weight:600}
 <section id="v-results" role="tabpanel" aria-labelledby="t-results" hidden>
   <div id="mySec"><h2>My bets</h2>
   <p class="sub">Only on this phone. Saved from the slip with "I placed this bet." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
-  <div id="myBets"></div></div>
+  <div id="myBets"></div>
+  <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Add bets from a code</summary>
+    <p class="sub">Paste a code here (for example, one Claude made from your bet screenshots) and tap Add. Adding the same code twice won't duplicate bets.</p>
+    <textarea id="impCode" rows="3" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea>
+    <button class="btn" id="impBtn" style="margin-top:6px">Add</button></details></div>
   <h2>How our picks did</h2>
   <p class="sub">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
   <div id="resSummary"></div>
@@ -458,18 +462,32 @@ function myStatus(b){
   if(rs.indexOf("pending")>=0)return Date.now()>b.last+6*36e5?"check":"pending";
   return rs.every(function(r){return r==="void"||r==="push"})?"push":"won";
 }
+// Import bets from a code (base64 JSON list) or a #import= link. Works in Safari and in the home-screen app.
+function importBets(code){
+  try{
+    var txt=decodeURIComponent(escape(atob(String(code).trim().replace(/-/g,"+").replace(/_/g,"/"))));
+    var list=JSON.parse(txt);if(!Array.isArray(list))throw 0;
+    var all=myLoad(),have={};all.forEach(function(b){have[b.id]=1});
+    var added=0,sports={};list.forEach(function(b){if(b&&b.id&&!have[b.id]&&b.legs){all.push(b);added++;sports[b.sport]=1}});
+    if(!mySave(all)){toast("This browser won't save bets (private mode?).",true);return}
+    var other=Object.keys(sports).filter(function(x){return x!==SPORT});
+    toast(added?"Added "+added+" bet"+(added>1?"s":"")+" to My bets"+(other.length?". Some are on the "+other.join(", ").toUpperCase()+" page.":"."):"Those bets were already saved.");
+    renderMyBets();
+  }catch(e){toast("That code didn't work. Copy the whole thing and try again.",true)}
+}
+if(/^#import=/.test(location.hash)){var _ic=location.hash.slice(8);history.replaceState(null,"",location.pathname+location.search+"#results");setTimeout(function(){importBets(_ic)},800)}
 function renderMyBets(){
   var all=myLoad().filter(function(b){return b.sport===SPORT});
   if(!all.length){$("myBets").innerHTML='<p class="empty">Nothing saved yet. Build or load a slip, open it at the bottom, and tap "Save to My bets" after you place it.</p>';return}
   var by={},tot={n:0,st:0,pl:0};
   all.forEach(function(b){var s=myStatus(b),x=by[b.book]=by[b.book]||{n:0,st:0,pl:0,w:0,l:0};x.n++;x.st+=b.stake;
-    var pl=s==="won"?b.stake*(dec(b.odds)-1):s==="lost"?-b.stake:0;x.pl+=pl;if(s==="won")x.w++;if(s==="lost")x.l++;tot.n++;tot.st+=b.stake;tot.pl+=pl});
+    var pl=(s==="won"?(b.ret!=null?b.ret-b.stake:b.stake*(dec(b.odds)-1)):s==="lost"?-b.stake:0)-(b.fee||0);x.pl+=pl;if(s==="won")x.w++;if(s==="lost")x.l++;tot.n++;tot.st+=b.stake;tot.pl+=pl});
   var apps=Object.keys(by).map(function(k){var x=by[k];return"<tr><td>"+esc(Engine.BOOK_NAMES[k]||k)+"</td><td>"+x.n+" ("+x.w+"-"+x.l+")</td><td>$"+x.st.toFixed(0)+'</td><td class="'+(x.pl>=0?"pos":"neg")+'">'+money(x.pl)+"</td></tr>"}).join("");
   var lab={won:"Won",lost:"Lost",push:"Push",pending:"Live",check:"Check app"};
   $("myBets").innerHTML='<table><thead><tr><th>App</th><th>Bets</th><th>Staked</th><th>Profit</th></tr></thead><tbody>'+apps+'<tr><td><b>Total</b></td><td>'+tot.n+'</td><td>$'+tot.st.toFixed(0)+'</td><td class="'+(tot.pl>=0?"pos":"neg")+'"><b>'+money(tot.pl)+'</b></td></tr></tbody></table>'+
     all.slice().reverse().slice(0,30).map(function(b){var s=myStatus(b);
       return'<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(Engine.BOOK_NAMES[b.book]||b.book)+' <span>· $'+b.stake.toFixed(0)+" at "+fmt(b.odds)+" · "+new Date(b.saved).toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span></span><span class="badge '+(s==="won"||s==="lost"?s:"")+'">'+lab[s]+'</span></h3>'+
-        '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+m+'</span>'+esc(l.n)+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul>'+
+        '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+(l.res?{won:"✓",lost:"✗"}[l.res]:m)+'</span>'+esc(l.n)+'</span><span>'+(l.a?fmt(l.a):"")+'</span></li>'}).join("")+'</ul>'+(b.fee?'<p class="sub" style="margin:4px 0 0">Includes $'+b.fee.toFixed(2)+' add-on fee'+(b.ret!=null?", app paid $"+b.ret.toFixed(2):"")+'</p>':"")+
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="more" data-mydel="'+b.id+'">Delete</button></p></div>'}).join("");
 }
 function renderResults(){
@@ -646,6 +664,7 @@ document.addEventListener("click",function(e){
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="impBtn"){importBets($("impCode").value);$("impCode").value=""}
   else if(t.id==="placeSave"){
     var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some legs to the slip first.",true);return}
     var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=parseOdds($("placeOdds").value);
