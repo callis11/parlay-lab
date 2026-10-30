@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ParlayLabs · NFL parlay builder</title>
+<title>ParlayLabs</title>
+<meta property="og:title" content="ParlayLabs">
+<meta property="og:site_name" content="ParlayLabs">
+<meta property="og:image" content="https://callis11.github.io/parlay-lab/icon-512.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.json">
@@ -14,7 +17,7 @@
 <meta name="theme-color" content="#07150B">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<meta name="description" content="NFL game lines, matchup history, weather and player prop ladders with hit rates. Build parlays and see the payout.">
+<meta name="description" content="NFL game lines, matchup history, weather and player props with hit rates. Build parlays and see the payout.">
 <style>
 :root{
   /* Stadium-at-night palette: deep navy field, ParlayLabs yellow, turf green */
@@ -1039,9 +1042,9 @@ document.addEventListener("visibilitychange",function(){
 });
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
-if(SPORT==="cfb"){document.title="ParlayLabs · NCAAF parlays";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
-if(SPORT==="cbb"){document.title="ParlayLabs · NCAAB parlays";$("tagline").textContent="Every Division I men's basketball game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
-if(SPORT==="nba"){document.title="ParlayLabs · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
+if(SPORT==="cfb"){document.title="ParlayLabs";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
+if(SPORT==="cbb"){document.title="ParlayLabs";$("tagline").textContent="Every Division I men's basketball game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
+if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
   if(ok)return;$("gate").hidden=false;$("gateYes").focus();
