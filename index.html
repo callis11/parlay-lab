@@ -180,6 +180,9 @@ th{color:var(--muted);font-weight:600}
 .gcbar .winbar .lab{font-size:15px}
 .ic{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:var(--c,#5B9BFF);color:#08101F;box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--c,#5B9BFF)}
 .ic svg{width:20px;height:20px}
+.ic{position:relative}
+.ic.sm .bd2{display:none}
+.ic .bd2{position:absolute;right:-5px;bottom:-4px;min-width:15px;height:15px;border-radius:8px;background:var(--ink);color:#08101F;font:800 10px/15px "Barlow",sans-serif;font-style:normal;text-align:center;padding:0 2px;box-shadow:0 0 0 2px var(--surface)}
 .ic.sm{width:28px;height:28px}.ic.sm svg{width:18px;height:18px}
 .pcs{display:flex;align-items:center;margin:2px 0 8px;padding-left:4px}
 .pcs .ic{margin-left:-6px}
@@ -202,6 +205,8 @@ th{color:var(--muted);font-weight:600}
 .rung .hit{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-right:8px}
 .rung[aria-pressed="true"] .hit{color:inherit}
 /* NBA: dark hardwood court */
+html.nba body,body{min-height:100vh}
+html{background:var(--bg)}
 html.nba{--bg:#1A0F07;--surface:#2A190C;--surface2:#331F0F;--line:#4B311A;--muted:#C4AA8E}
 html.nba body{background:
   radial-gradient(circle at 50% 760px,transparent 0 170px,rgba(255,255,255,.09) 170px 173px,transparent 174px),
@@ -419,8 +424,10 @@ var ICO={
  un:'<path d="M12 20l7-8h-4.5V4h-5v8H5z" fill="currentColor"/>'
 };
 ICO.fb=ICO.rush;
+var HOOPS=SPORT==="nba"||SPORT==="cbb";
+// Game lines get players too: football ML = TD celebration, spread = running back, total = QB; hoops ML = rebound, spread = shooter, total = three
 function icoKey(l){
-  if(l.kind==="g")return l.t==="ov"?"ov":l.t==="un"?"un":l.t.slice(0,2)==="ml"?"ml":"sp";
+  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?(HOOPS?"reb":"td"):t==="sp"?(HOOPS?"bb":"rush"):(HOOPS?"three":"pass")}
   var b=(l.label||"").toLowerCase();
   if(l.td||/touchdown|td/.test(b))return"td";if(/pass/.test(b))return"pass";if(/rush/.test(b)&&!/rec/.test(b))return"rush";if(/rec/.test(b))return"rec";
   if(/three|3/.test(b))return"three";if(/rebound/.test(b))return"reb";if(/assist/.test(b))return"ast";return SPORT==="nba"?"bb":"fb";
@@ -431,8 +438,8 @@ function legTeam(l){
   var m=DATA&&DATA.games[l.ev]||{};return /-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"";
 }
 function legColor(l){var t=legTeam(l);return t?teamColor(t,"a"):"#F7C600"}
-function icon(k,c,sm){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c+'"><svg viewBox="0 0 24 24">'+ICO[k]+'</svg></span>'}
-function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm)}
+function icon(k,c,sm,bd){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c+'"><svg viewBox="0 0 24 24">'+ICO[k]+'</svg>'+(bd?'<i class="bd2">'+bd+'</i>':"")+'</span>'}
+function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,l.kind==="g"&&l.t==="ov"?"O":l.kind==="g"&&l.t==="un"?"U":l.kind==="g"&&l.t.slice(0,2)==="sp"?"±":"")}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null;GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
@@ -557,7 +564,7 @@ function spotlight(){
   if(mine)return{g:mine,lab:o.featuredName+" game"};
   // Game of the week: tight spread + high total, from games in the next 7 days (NBA: tonight)
   var lim=now+(SPORT==="nba"?24:7*24)*36e5,pool=up.filter(function(g){return+new Date(g.t)<lim});if(!pool.length)pool=up;
-  var best=null,bs=-1e9;pool.forEach(function(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)-2.2*sp;[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=40-+r[1]});if(sc>bs){bs=sc;best=g}});
+  var best=null,bs=-1e9;pool.forEach(function(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});if(sc>bs){bs=sc;best=g}});
   return{g:best,lab:SPORT==="nba"?"Game of the night":"Game of the week"};
 }
 function renderParlays(){
