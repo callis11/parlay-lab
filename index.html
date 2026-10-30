@@ -997,7 +997,7 @@ function renderParlays(){
 }
 var DIVS={nfl:{"AFC East":["BUF","MIA","NE","NYJ"],"AFC North":["BAL","CIN","CLE","PIT"],"AFC South":["HOU","IND","JAX","TEN"],"AFC West":["DEN","KC","LV","LAC"],"NFC East":["DAL","NYG","PHI","WAS"],"NFC North":["CHI","DET","GB","MIN"],"NFC South":["ATL","CAR","NO","TB"],"NFC West":["ARI","LA","SF","SEA"]},
  nba:{"Atlantic":["BOS","BKN","NY","PHI","TOR"],"Central":["CHI","CLE","DET","IND","MIL"],"Southeast":["ATL","CHA","MIA","ORL","WSH"],"Northwest":["DEN","MIN","OKC","POR","UTAH"],"Pacific":["GS","LAC","LAL","PHX","SAC"],"Southwest":["DAL","HOU","MEM","NO","SA"]}};
-var FLIPTO=null,TEAMGAMES=[];
+var FLIPTO=null,TEAMGAMES=[],TGAME=null;
 function teamName(abbr){var n="";GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m&&m.away===abbr)n=g.away;if(m&&m.home===abbr)n=g.home});return n||abbr}
 function flipCard(el){el.classList.add("turn");setTimeout(function(){el.classList.toggle("back");el.classList.remove("turn");if(!el.classList.contains("back"))fitHero()},170)}
 // Teams tab: one flip card per game (front = matchup, back = the game's lines and stats), filtered by division and team
@@ -1023,8 +1023,10 @@ function renderTeam(){
       '<div class="fb"><div class="card fbk"><div class="fbh"><b>Game stats</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+gameCard(g,true).replace('id="gc-','data-x="').replace('<details>','<details open>')+'</div></div></div></div>'}).join("")+'</div>'+
     (list.length>1?'<div class="hdots">'+(list.length<=14?list.map(function(_,i){return'<i'+(i?"":' class="on"')+'></i>'}).join(""):'<span class="hcount">1 of '+list.length+'</span>')+'</div><p class="hhint">Tap a card to flip it · swipe for '+(list.length-1)+' more</p>':'<p class="hhint">Tap the card to flip it</p>')+'</div>';
   fitHero();
-  var tr=$("tTrack"),idx=Math.max(0,list.findIndex(function(g){var m=DATA.games[g.id];return FLIPTO?g.id===FLIPTO:(m.away===v||m.home===v)}));
+  var has=function(g){var m=DATA.games[g.id];return m.away===v||m.home===v};
+  var tr=$("tTrack"),idx=list.findIndex(function(g){return FLIPTO?g.id===FLIPTO:g.id===TGAME&&has(g)});if(idx<0)idx=Math.max(0,list.findIndex(has));
   // jump to the picked team's game; ignore the scroll events that jump causes
+  TGAME=list[idx]?list[idx].id:null;
   var quiet=true,fit=function(i){var c=tr.children[i];if(c)tr.style.height=c.offsetHeight+"px"};
   var jump=function(){if(!tr.clientWidth){requestAnimationFrame(jump);return}tr.style.scrollSnapType="none";tr.scrollLeft=cardLeft(tr,idx);tr.style.scrollSnapType="";setDots(tr,idx);fit(idx);setTimeout(function(){quiet=false},400)};
   jump();
@@ -1033,6 +1035,7 @@ function renderTeam(){
   tr.addEventListener("click",function(){setTimeout(function(){fit(cardIdx(tr))},220)});
   var tmr=null;tr.addEventListener("scroll",function(){if(quiet||!tr.clientWidth)return;clearTimeout(tmr);tmr=setTimeout(function(){
     var i=cardIdx(tr),g=TEAMGAMES[i];setDots(tr,i);fit(i);if(!g)return;var m=DATA.games[g.id];
+    if(TGAME!==g.id){TGAME=g.id;if(TEAM===m.away||TEAM===m.home){renderTeamLower();return}}
     if(TEAM!==m.away&&TEAM!==m.home){TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;sel.value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower()}},140)},{passive:true});
   renderTeamLower();
 }
@@ -1072,7 +1075,7 @@ function bothSlips(g){
 var TSIDE="team";
 function renderTeamLower(){
   var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
-  var r=ENG.teamSlips(v),m=r.g&&DATA&&DATA.games[r.g.id]||{};
+  var r=ENG.teamSlips(v,TGAME),m=r.g&&DATA&&DATA.games[r.g.id]||{};
   $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(TSIDE==="team"&&t[0]===v)+'">'+esc(t[1])+'</button>'}).join("")+'<button data-side="BOTH" aria-pressed="'+(TSIDE==="both")+'">Both</button>':"";
   if(TSIDE==="both"&&r.g){
     $("teamParH").textContent=r.g.away+" + "+r.g.home+" parlays";
@@ -1330,7 +1333,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
   else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
-  else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
+  else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;TGAME=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
   else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
   else if(t.dataset.side==="BOTH"){TSIDE="both";renderTeamLower();renderSlip()}
   else if(t.dataset.side){TSIDE="team";TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}

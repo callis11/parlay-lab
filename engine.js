@@ -240,8 +240,11 @@
       }
       return out;
     }
-    function teamSlips(abbr) {
-      var g = G.filter(function (x) { var m = data && data.games[x.id]; return m && (m.home === abbr || m.away === abbr); })[0];
+    function teamSlips(abbr, gid) {
+      // gid picks one of the team's games (college teams can have two in the window); default is the next one
+      var mine = G.filter(function (x) { var m = data && data.games[x.id]; return m && (m.home === abbr || m.away === abbr); });
+      var g = (gid && mine.filter(function (x) { return x.id === gid; })[0]) || mine[0];
+      var myIds = {}; mine.forEach(function (x) { myIds[x.id] = 1; });
       if (!g) return { g: null, l: [] };
       var Q = poolFor([g.id], abbr), out = [], nm = g[data.games[g.id].home === abbr ? "home" : "away"];
       function add(s) { if (s) out.push(s); }
@@ -253,7 +256,7 @@
       // No player props (college): pair the team with the best game lines from other games
       if (!out.length) {
         var A = poolFor(G.map(function (x) { return x.id; }));
-        var others = function (arr) { return arr.filter(function (x) { return x.ev !== g.id && x.a >= -600; }); };
+        var others = function (arr) { return arr.filter(function (x) { return !myIds[x.ev] && x.a >= -600; }); };
         add(mkSlip(nm + " + Favorites", nm + " plus the two safest favorites on the board", [[[Q.side(g, abbr)], 1], [others(A.favML), 2]], true));
         add(mkSlip(nm + " Cover + Total", nm + " to cover and the game total, same game", [[[Q.teamSP(g, abbr)], 1], [Q.over, 1]], false));
         add(mkSlip(nm + " Long Shot", nm + " to cover plus three other favorites to cover", [[[Q.teamSP(g, abbr)], 1], [others(A.favSP), 3]], true));
