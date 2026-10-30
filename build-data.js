@@ -5,7 +5,7 @@
 
 const fs = require("fs");
 
-const SEASON = 2026;
+const SEASON_NOW = 2026;
 const LAST_N = 10;          // recent games used for player hit %
 const MIN_GAMES = 4;        // need at least this many games to rate a prop
 const NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download";
@@ -88,16 +88,17 @@ function overProb(vals, line, label, raw) {
   return { p: 0.5 * emp + 0.5 * fit, hits, n, mean };
 }
 
-(async () => {
-  const odds = JSON.parse(fs.readFileSync("odds.json", "utf8"));
-  const [sched, statsNow, statsPrev, injuries] = await Promise.all([
-    getCSV(`${NFLVERSE}/schedules/games.csv`),
-    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON}.csv`),
-    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`),
-    getCSV(`${NFLVERSE}/injuries/injuries_${SEASON}.csv`)
-  ]);
-  console.log("injury rows:", injuries.length);
-  console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
+// Builds the site's data from odds + nflverse. ctx.asOf (ms) makes it point-in-time for the backtest:
+// only games played before asOf count, and weather comes from the schedule instead of a forecast.
+async function buildData(odds, ctx) {
+  const SEASON = ctx.season, asOf = ctx.asOf || null;
+  let { sched, statsNow, statsPrev, injuries } = ctx;
+  if (asOf) {
+    const day = {}; sched.forEach(g => { day[g.game_id] = +new Date(g.gameday + "T23:59:00Z"); });
+    const before = r => day[r.game_id] !== undefined && day[r.game_id] < asOf - 6 * 36e5;
+    statsNow = statsNow.filter(before); statsPrev = statsPrev.filter(before);
+    sched = sched.map(g => +new Date(g.gameday + "T23:59:00Z") < asOf - 6 * 36e5 ? g : Object.assign({}, g, { result: "" }));
+  }
 
   // ---------- team history ----------
   const done = sched.filter(g => g.result !== "" && g.game_type);
@@ -120,8 +121,9 @@ function overProb(vals, line, label, raw) {
   }
 
   // ---------- weather ----------
-  async function weather(home, iso, roof, neutral) {
+  async function weather(home, iso, roof, neutral, row) {
     if (neutral) return { note: "Neutral site" };
+    if (asOf) return roof === "dome" || roof === "closed" ? { roof: "dome" } : row && row.wind !== "" ? { roof: roof || "outdoors", temp: row.temp === "" ? null : +row.temp, wind: +row.wind } : { roof };
     if (roof === "dome" || roof === "closed") return { roof: "dome" };
     const c = STADIUM[home]; if (!c) return null;
     const hoursOut = (new Date(iso) - Date.now()) / 36e5;
@@ -172,7 +174,7 @@ function overProb(vals, line, label, raw) {
   });
 
   // ---------- line movement: remember the first line we saw for each game ----------
-  let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
+  let hist0 = ctx.hist0 || {};
   function snap(ev) {
     const b = (ev.bookmakers || []).find(x => x.key === "fanduel") || (ev.bookmakers || [])[0]; if (!b) return null;
     const m = k => (b.markets || []).find(x => x.key === k), o = (mk, n) => mk && mk.outcomes.find(x => x.name === n);
@@ -192,7 +194,7 @@ function overProb(vals, line, label, raw) {
       away, home, h2h, gid: row ? row.game_id : null, season: SEASON, week: row ? +row.week : null,
       rec: { [away]: teamRecord(away), [home]: teamRecord(home) },
       div: row ? row.div_game === "1" : false,
-      weather: await weather(home, ev.commence_time, row ? row.roof : null, row ? row.location === "Neutral" : false),
+      weather: await weather(home, ev.commence_time, row ? row.roof : null, row ? row.location === "Neutral" : false, row),
       stadium: row ? row.stadium : null
     };
     const now = snap(ev);
@@ -245,10 +247,28 @@ function overProb(vals, line, label, raw) {
     }
   }
 
+  return { games, props, hist0 };
+}
+
+async function main() {
+  const odds = JSON.parse(fs.readFileSync("odds.json", "utf8"));
+  const SEASON = SEASON_NOW;
+  const [sched, statsNow, statsPrev, injuries] = await Promise.all([
+    getCSV(`${NFLVERSE}/schedules/games.csv`),
+    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON}.csv`),
+    getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`),
+    getCSV(`${NFLVERSE}/injuries/injuries_${SEASON}.csv`)
+  ]);
+  console.log("injury rows:", injuries.length);
+  console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
+  let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
+  const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0 });
   // Keep history only for games from the last 3 weeks
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];
   fs.writeFileSync("history.json", JSON.stringify(hist0));
   fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props }));
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");
-})();
+}
+module.exports = { buildData, getCSV, norm, TEAM, NFLVERSE };
+if (require.main === module) main();
