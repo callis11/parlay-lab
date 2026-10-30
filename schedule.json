@@ -1,0 +1,11 @@
+{
+  "note": "Times are US Eastern and must end in 0 or 5. The Cloudflare timer checks this file every 5 minutes and starts the matching GitHub refresh. Edit this file to change times; no Cloudflare changes needed.",
+  "timezone": "America/New_York",
+  "jobs": [
+    { "workflow": "refresh.yml", "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "times": ["10:15", "14:15", "18:15"], "inputs": { "force": "false", "auto": "true" } },
+    { "workflow": "refresh.yml", "days": ["Sun"], "times": ["09:15", "10:15", "11:15", "12:15", "13:15", "15:15", "18:15"], "inputs": { "force": "false", "auto": "true" } },
+    { "workflow": "refresh.yml", "days": ["Thu", "Sun", "Mon"], "times": ["19:30"], "inputs": { "force": "false", "auto": "true" } },
+    { "workflow": "refresh.yml", "days": ["Tue"], "times": ["09:45"], "inputs": { "force": "true", "auto": "true" } },
+    { "workflow": "nba.yml", "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "times": ["10:35", "16:35"], "inputs": { "auto": "true" } }
+  ]
+}

@@ -26,6 +26,8 @@ function readOld() { try { return JSON.parse(fs.readFileSync("nba/odds.json", "u
 
 (async () => {
   const now = Date.now(), end = now + WINDOW_H * 36e5;
+  // Automatic runs skip if odds were pulled in the last 45 minutes (two timers, one refresh)
+  if (process.env.AUTO_GUARD === "true") { const o = readOld(); if (o && now - new Date(o.fetchedAt) < 45 * 60e3) { console.log("NBA odds already pulled at", o.fetchedAt, "- skipping"); process.exit(0); } }
   // Free: list of upcoming games
   const events = await get(`${BASE}/events?apiKey=${KEY}`);
   const soon = events.filter(e => { const t = +new Date(e.commence_time); return t > now - 3 * 36e5 && t < end; });

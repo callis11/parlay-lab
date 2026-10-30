@@ -32,3 +32,8 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 ## Report cards and learning
 - picks.js also builds a report card for every game (ladder legs, straight over/under picks, anytime TDs) until kickoff, then grades it (cards.json).
 - Every other rated prop and game line is graded too (gradebook.json -> graded-legs.json). calibration.json learns from all of them.
+
+## Timer (Cloudflare Worker)
+- GitHub's own schedule is unreliable, so cloudflare/worker.js runs every 5 minutes on Cloudflare and starts the GitHub refreshes at the times in schedule.json (US Eastern, handles daylight saving).
+- Change times by editing schedule.json; the Worker reads it each time.
+- GitHub's schedule stays on as a backup. Automatic runs skip if odds were pulled in the last 45 minutes, so the two never double-spend credits.
