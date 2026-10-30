@@ -333,6 +333,10 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .btn.rm{margin-left:auto;background:none;border:1px solid var(--red);color:var(--red)}
 .btn.rm.sure{background:var(--red);color:#fff}
+.genx{display:block;width:100%;margin-top:12px;font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
+.gen-t{display:flex;justify-content:space-between;align-items:center}
+.gen-c:after{content:"Open ▾";font-family:"Barlow",sans-serif;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0}
+.gen[open] .gen-c:after{content:"Close ✕"}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -643,13 +647,14 @@ function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GE
 function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
 function genBox(cx){
   var C=GENCX[cx],x=function(id){return id+"_"+cx};
-  return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'</span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
+  return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
     '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'</div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"><button data-cx="tm" data-gt="team">This team</button><button data-cx="tm" data-gt="both">Both teams</button></div></div>'
       :'<div class="gen-row"><label>Games</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div>')+
-    '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div></div></details>';
+    '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
+    '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
 }
 function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+cx);if(m&&!m.firstChild){m.innerHTML=genBox(cx);var sel=$("gGames_"+cx);if(sel)sel.addEventListener("change",function(){GENS[cx].games=sel.value;genSave(cx,genSaved(cx))})}})}
 function genUI(cx){
@@ -1344,6 +1349,9 @@ document.addEventListener("click",function(e){
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
+  else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
+    // Teams tab: go back up to the game cards; elsewhere: back to the generator's header
+    var tgt=gcx==="tm"?$("teamCar"):gd,r=tgt.getBoundingClientRect();if(gcx==="tm"||r.top<70)window.scrollTo({top:r.top+window.scrollY-120,behavior:"smooth"})}}
   else if(t.dataset.pre){
     try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
