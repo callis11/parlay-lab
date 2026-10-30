@@ -465,12 +465,14 @@ var ICO={
  un:'<path d="M12 20l7-8h-4.5V4h-5v8H5z" fill="currentColor"/>'
 };
 ICO.fb=ICO.rush;
+ICO.otxt='<text x="12" y="17.5" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="17" fill="currentColor">O</text>';
+ICO.utxt='<text x="12" y="17.5" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="17" fill="currentColor">U</text>';
 ICO.outxt='<text x="12" y="16" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="10.5" fill="currentColor">O/U</text>';
 ICO.mltxt='<text x="12" y="16.6" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="12.5" fill="currentColor">ML</text>';
 var HOOPS=SPORT==="nba"||SPORT==="cbb";
 // Game lines get players too: football ML = TD celebration, spread = running back, total = QB; hoops ML = rebound, spread = shooter, total = three
 function icoKey(l){
-  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?"mltxt":t==="sp"?(HOOPS?"bb":"rush"):"outxt"}
+  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?"mltxt":t==="sp"?(HOOPS?"bb":"rush"):l.t==="ov"?"otxt":"utxt"}
   var b=(l.label||"").toLowerCase();
   if(l.td||/touchdown|td/.test(b))return"td";if(/pass/.test(b))return"pass";if(/rush/.test(b)&&!/rec/.test(b))return"rush";if(/rec/.test(b))return"rec";
   if(/three|3/.test(b))return"three";if(/rebound/.test(b))return"reb";if(/assist/.test(b))return"ast";return SPORT==="nba"?"bb":"fb";
@@ -482,7 +484,7 @@ function legTeam(l){
 }
 function legColor(l){var t=legTeam(l);return t?teamColor(t,"a"):"#F7C600"}
 function icon(k,c,sm,bd){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c+'"><svg viewBox="0 0 24 24">'+ICO[k]+'</svg>'+(bd?'<i class="bd2">'+bd+'</i>':"")+'</span>'}
-function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,l.kind==="g"&&l.t==="ov"?"O":l.kind==="g"&&l.t==="un"?"U":l.kind==="g"&&l.t.slice(0,2)==="sp"?"±":"")}
+function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,l.kind==="g"&&l.t.slice(0,2)==="sp"?"±":"")}
 // Past-season record for one leg: the player's main-line record for that stat, or the team's spread / over-under record
 function legHist(l){
   if(SPORT!=="nfl"||!BT||!BT.teams)return"";
