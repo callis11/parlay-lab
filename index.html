@@ -274,6 +274,28 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .legend{margin:22px 0 6px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px;color:var(--muted);line-height:1.45}
 .legend>b{display:block;color:var(--ink);font-size:14px;margin-bottom:6px}
 .legend p{margin:8px 0 0}.legend p b{color:var(--ink)}
+.gen{background:linear-gradient(135deg,color-mix(in srgb,var(--flag) 14%,var(--surface)),var(--surface) 60%);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:12px;margin:4px 0 14px}
+.gen summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.gen summary::-webkit-details-marker{display:none}
+.gen-t{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:22px;color:var(--flag);letter-spacing:.02em}
+.gen-s{font-size:13px;color:var(--muted)}
+.gen-b{padding:0 14px 14px}
+.gen-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.gen-row label{width:52px;font-size:13px;font-weight:700;color:var(--muted)}
+.gen-row .seg{flex:1;display:flex}.gen-row .seg button{flex:1}
+.gen-row select{flex:1}
+.gcard{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.gcard.old{opacity:.8}
+.gcard .gh{display:flex;justify-content:space-between;align-items:flex-end}
+.gcard .big{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:700;color:var(--green);line-height:1}
+.gcard .big small{font-family:"Barlow",sans-serif;font-size:13px;color:var(--muted);margin-left:4px;font-weight:500}
+.gcard .od{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:700}
+.gleg{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+.gleg:first-of-type{margin-top:8px}
+.gleg b{font-size:14px}.gleg small{color:var(--muted)}
+.gp{font-weight:800}
+.gw{font-size:12px;color:var(--muted);margin-top:2px}
+.gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -319,6 +341,16 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
+  <details class="gen" id="gen"><summary><span class="gen-t">⚡ Parlay generator</span><span class="gen-s">Pick a few things, we build one and tell you why</span></summary>
+    <div class="gen-b">
+      <div class="gen-row"><label>Legs</label><div class="seg" id="gLegs"><button data-gl="2">2</button><button data-gl="3">3</button><button data-gl="4">4</button><button data-gl="5">5</button></div></div>
+      <div class="gen-row"><label>Style</label><div class="seg" id="gStyle"><button data-gs="safe">Safe</button><button data-gs="bal">Balanced</button><button data-gs="long">Long shot</button></div></div>
+      <div class="gen-row"><label>Bets</label><div class="seg" id="gKind"><button data-gk="mix">Both</button><button data-gk="p">Players</button><button data-gk="g">Game lines</button></div></div>
+      <div class="gen-row"><label>Games</label><select id="gGames"></select></div>
+      <button class="btn flag" id="genGo" style="width:100%;margin-top:6px">Generate a parlay</button>
+      <div id="genOut"></div>
+    </div>
+  </details>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
@@ -564,6 +596,97 @@ function playerCard(G){
 }
 function propCard(p){return playerCard({ps:[p]})}
 
+
+// ---------- Parlay generator: builds a parlay from your choices and explains each leg ----------
+var GEN={legs:3,style:"bal",kind:"mix",games:"slate"};
+try{var _g=JSON.parse(localStorage.getItem("gen_"+SPORT)||"{}");if(_g.set)Object.assign(GEN,_g.set)}catch(e){}
+function genSaved(){try{return JSON.parse(localStorage.getItem("gen_"+SPORT)||"{}").last||[]}catch(e){return[]}}
+function genSave(last){try{localStorage.setItem("gen_"+SPORT,JSON.stringify({set:GEN,last:last}))}catch(e){}}
+function genUI(){
+  [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"]].forEach(function(a){document.querySelectorAll("#"+a[0]+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(GEN[a[2]]))})});
+  var sel=$("gGames");if(!sel)return;var o='<option value="slate">The slate picked below</option><option value="all">Any game</option>',teams=[];
+  GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m){teams.push([m.away,g.away]);teams.push([m.home,g.home])}});
+  teams.sort(function(a,b){return a[1].localeCompare(b[1])}).forEach(function(t){o+='<option value="t:'+esc(t[0])+'">Only '+esc(t[1])+'</option>'});
+  sel.innerHTML=o;sel.value=GEN.games;if(sel.value!==GEN.games){GEN.games="slate";sel.value="slate"}
+  $("genGo").textContent=genSaved().length?"Generate another":"Generate a parlay";
+  renderGenOut();
+}
+var STYLE={safe:{lo:0.68,hi:1,amin:-700,amax:-120,name:"Safe"},bal:{lo:0.5,hi:0.85,amin:-450,amax:150,name:"Balanced"},long:{lo:0.3,hi:0.65,amin:-250,amax:400,name:"Long shot"}};
+function genPool(){
+  var now=Date.now(),ids={},S=slateList(),sel=S.filter(function(x){return x.id===PST.slate})[0];
+  var gl=GAMES.filter(function(g){return+new Date(g.t)>now});
+  if(GEN.games==="slate"&&sel&&sel.games)gl=gl.filter(function(g){return sel.games.some(function(x){return x.id===g.id})});
+  if(GEN.games.slice(0,2)==="t:"){var t=GEN.games.slice(2);gl=gl.filter(function(g){var m=DATA.games[g.id]||{};return m.away===t||m.home===t})}
+  gl.forEach(function(g){ids[g.id]=1});
+  var st=STYLE[GEN.style],out=[];
+  if(GEN.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(L.p>=st.lo&&L.p<=st.hi&&L.a>=Math.min(st.amin,-1000)&&L.a<=st.amax+100)out.push({leg:L,who:"G|"+g.id,ev:g.id})})});
+  if(GEN.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;p.rungs.forEach(function(r){if(r.p===undefined||r.n<6||r.p<st.lo||r.p>st.hi||r.a<st.amin||r.a>st.amax)return;out.push({leg:propLeg(p,r),who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r})})});
+  return{pool:out,games:gl};
+}
+function genPick(pool,n,avoid){
+  var team=GEN.games.slice(0,2)==="t:";
+  for(var tries=0;tries<40;tries++){
+    var used={},evs={},legs=[],c=pool.slice();
+    while(legs.length<n&&c.length){
+      // weighted random: likelier legs more often, plus a little luck so each spin is different
+      var tot=0,w=c.map(function(x){var v=Math.pow(x.leg.p,2)*(evs[x.ev]&&!team?0.25:1);tot+=v;return v}),r=Math.random()*tot,i=0;
+      while(i<w.length-1&&r>w[i]){r-=w[i];i++}
+      var x=c[i];legs.push(x);used[x.who]=1;evs[x.ev]=1;
+      c=c.filter(function(y){return!used[y.who]&&!(x.leg.kind==="g"&&y.leg.kind==="g"&&y.ev===x.ev)});
+    }
+    if(legs.length<n)return null;
+    var key=legs.map(function(x){return x.leg.k+"|"+(x.leg.t||"")+"|"+(x.leg.line||"")}).sort().join();
+    if(avoid.indexOf(key)<0)return{legs:legs,key:key};
+  }
+  return null;
+}
+// How often slips with this many legs really hit vs what they claimed (past seasons); falls back to 0.9
+function genFactor(n){var w=0,e=0;if(BTR&&BTR.slips)for(var k in BTR.slips){var x=BTR.slips[k];if(Math.round(x.legs/x.n)===n){w+=x.w;e+=x.exp}}return e>20?Math.max(0.6,Math.min(1.1,(w+30*0.9)/(e+30))):0.9}
+function legWhy(x){
+  var L=x.leg,p=x.p,r=x.r,bits=[];
+  if(L.kind==="p"){
+    bits.push("Hit "+r.hits+" of last "+r.n);
+    if(r.since&&r.since[1]>r.n)bits.push(r.since[0]+" of "+r.since[1]+" since 2023");
+    var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
+    if(v&&v[0]+v[1]>=2)bits.push("vs "+p.opp+" "+v[0]+" of "+(v[0]+v[1])+" overs");
+    if(p.oppF>=1.04)bits.push("soft "+p.opp+" defense");else if(p.oppF&&p.oppF<=0.96)bits.push("tough "+p.opp+" defense");
+    if(p.avg!==null&&!p.td)bits.push("averages "+p.avg);
+  }else{
+    var m=DATA.games[L.ev]||{},tm=/-a$/.test(L.t)?m.away:/-h$/.test(L.t)?m.home:"",T2=BT&&BT.teams&&BT.teams[tm];
+    bits.push("book's fair chance "+Math.round((L.p0||L.p)*100)+"%");
+    if(T2&&/^sp|^ml/.test(L.t))bits.push(tm+" "+T2.ats[0]+"–"+T2.ats[1]+" ATS since 2021");
+    if((L.t==="ov"||L.t==="un")&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home])bits.push("overs "+m.away+" "+BT.teams[m.away].ou[0]+"–"+BT.teams[m.away].ou[1]+", "+m.home+" "+BT.teams[m.home].ou[0]+"–"+BT.teams[m.home].ou[1]);
+  }
+  return bits.join(" · ");
+}
+function genRun(){
+  var P=genPool(),n=GEN.legs,last=genSaved();
+  if(!P.games.length){toast("No upcoming games for that choice. Try Any game.",true);return}
+  var got=genPick(P.pool,n,last.map(function(x){return x.key}));
+  if(!got){toast("Not enough legs fit those choices. Try fewer legs, another style, or Any game.",true);return}
+  var d=1,raw=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);raw*=x.leg.p;if(evs[x.ev])sg=true;evs[x.ev]=1});
+  var f=genFactor(n),ch=raw*f;
+  var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
+  var item={t:Date.now(),key:got.key,set:Object.assign({},GEN),d:d,ch:ch,raw:raw,sg:sg,
+    legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
+    note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
+      (Math.abs(f-1)>0.01?n+"-leg slips hit about "+Math.round(f*100)+"% as often as their legs suggested, so "+Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"%. ":"")+
+      (sg?"Some legs are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every leg is from a different game.")};
+  last.unshift(item);last=last.slice(0,3);genSave(last);
+  $("genGo").textContent="Generate another";renderGenOut();
+}
+function renderGenOut(){
+  var last=genSaved(),el=$("genOut");if(!el)return;
+  if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
+  var now=Date.now();
+  el.innerHTML=last.map(function(it,i){
+    var key="gen"+i;PRE[key]=it.legs.map(function(x){return x.leg});
+    var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
+    return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
+      '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
+      it.legs.map(function(x){var l=x.leg;return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span> <small>'+fmt(l.a)+'</small><div class="gw">'+esc(x.why)+'</div></div></div>'}).join("")+
+      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'</div>'}).join("");
+}
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
 try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind","exp"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
@@ -729,6 +852,7 @@ function heroCarousel(list){
 }
 function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=Math.round(tr.scrollLeft/tr.clientWidth),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
 function renderParlays(){
+  try{genUI()}catch(e){}
   var S=slateList(),now=Date.now();
   // default: next slate that hasn't started, else Best
   if(!PST.slate||(PST.slate!=="all"&&!S.some(function(x){return x.id===PST.slate}))){var up=S.filter(function(x){return x.t&&+new Date(x.t)>now})[0];PST.slate=up?up.id:"best"}
@@ -991,6 +1115,8 @@ document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
+  else if(t.dataset.gl||t.dataset.gs||t.dataset.gk){if(t.dataset.gl)GEN.legs=+t.dataset.gl;if(t.dataset.gs)GEN.style=t.dataset.gs;if(t.dataset.gk)GEN.kind=t.dataset.gk;genSave(genSaved());genUI()}
+  else if(t.id==="genGo"){genRun()}
   else if(t.dataset.pre){
     try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
@@ -1024,6 +1150,7 @@ document.addEventListener("click",function(e){
 $("fRes").addEventListener("change",renderResults);
 $("fLegs").addEventListener("change",function(){PST.legs=$("fLegs").value;savePST();renderParlays()});
 $("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePST();renderParlays()});
+$("gGames").addEventListener("change",function(){GEN.games=$("gGames").value;genSave(genSaved())});
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
 // Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
