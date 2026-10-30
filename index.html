@@ -951,7 +951,10 @@ function flipCard(el){el.classList.add("turn");setTimeout(function(){el.classLis
 // Teams tab: one flip card per game (front = matchup, back = the game's lines and stats), filtered by division and team
 function renderTeam(){
   var sel=$("fTeam"),dv=$("fDiv"),now=Date.now(),o=Engine.OPTS[SPORT]||{},D=DIVS[SPORT];
-  if(D){var dsv=dv.value;dv.hidden=false;dv.innerHTML='<option value="">All divisions</option>'+Object.keys(D).map(function(k){return'<option>'+k+'</option>'}).join("");dv.value=dsv}else dv.hidden=true;
+  // College: conferences from ESPN, only the ones with a game in the lines
+  if(COL&&DATA&&DATA.conf){D={};GAMES.forEach(function(g){var m=DATA.games[g.id]||{};[m.away,m.home].forEach(function(a){var c=DATA.conf[a];if(c){(D[c]=D[c]||[]);if(D[c].indexOf(a)<0)D[c].push(a)}})});
+    var srt={};Object.keys(D).sort().forEach(function(k){srt[k]=D[k]});D=Object.keys(srt).length?srt:null}
+  if(D){var dsv=dv.value;dv.hidden=false;dv.innerHTML='<option value="">'+(COL?"All conferences":"All divisions")+'</option>'+Object.keys(D).map(function(k){return'<option>'+k+'</option>'}).join("");dv.value=dsv}else dv.hidden=true;
   var inDiv=function(m){return!D||!dv.value||D[dv.value].indexOf(m.away)>=0||D[dv.value].indexOf(m.home)>=0};
   var list=GAMES.filter(function(g){var m=DATA&&DATA.games[g.id];return m&&+new Date(g.t)>now-3.5*36e5&&inDiv(m)}).sort(byRankTime);
   var mineG=list.filter(isMine)[0];if(mineG)list=[mineG].concat(list.filter(function(g){return g!==mineG}));

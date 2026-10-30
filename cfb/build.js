@@ -16,7 +16,7 @@ function parse(j) {
     const c = ev.competitions && ev.competitions[0]; if (!c) return null;
     const side = w => c.competitors.find(x => x.homeAway === w);
     const h = side("home"), a = side("away"); if (!h || !a) return null;
-    const t = x => ({ id: x.team.id, abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
+    const t = x => ({ id: x.team.id, conf: x.team.conferenceId || null, abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
       rank: x.curatedRank && x.curatedRank.current && x.curatedRank.current <= 25 ? x.curatedRank.current : null,
       rec: (x.records || []).find(r => r.type === "total" || r.name === "overall") ? (x.records.find(r => r.type === "total" || r.name === "overall").summary) : (x.records && x.records[0] && x.records[0].summary) || null });
     // ESPN lists kickoff times not yet announced as midnight Eastern; flag those as TBD
@@ -96,6 +96,14 @@ function parse(j) {
     if (!next[g.h.abbr]) next[g.h.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.a.loc, home: true };
     if (!next[g.a.abbr]) next[g.a.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.h.loc, home: false };
   });
-  fs.writeFileSync(SP + "/data.json", JSON.stringify({ sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
+  // Conference names (for the Teams tab filter): ESPN's conference list, with a fallback for the big ones
+  const CONF_FALLBACK = SP === "cbb" ? { 2: "ACC", 4: "Big East", 7: "Big Ten", 8: "Big 12", 23: "SEC", 62: "American", 44: "Mountain West", 29: "WCC", 3: "A-10" }
+    : { 1: "ACC", 4: "Big 12", 5: "Big Ten", 8: "SEC", 9: "Pac-12", 12: "C-USA", 15: "MAC", 17: "Mountain West", 18: "FBS Indep.", 37: "Sun Belt", 151: "American" };
+  const confName = Object.assign({}, CONF_FALLBACK);
+  try { const cj = await getJSON(`${ESPN}/scoreboard/conferences`); (cj.conferences || []).forEach(c => { if (c.groupId) confName[c.groupId] = c.shortName || c.name; }); console.log("Conferences:", (cj.conferences || []).length); }
+  catch (e) { console.warn("conference list", e.message); }
+  const conf = {};
+  all.forEach(g => [g.a, g.h].forEach(x => { if (x.conf && confName[x.conf] && !/^(FBS|NCAA|Division)/i.test(confName[x.conf])) conf[x.abbr] = confName[x.conf]; }));
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
   console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();
