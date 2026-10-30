@@ -13,7 +13,7 @@ const fs = require("fs");
   } catch (e) { console.warn("Schedule check failed, refreshing anyway:", e.message); }
   if (process.env.FORCE === "true") play = true;
   // Automatic runs skip if odds were pulled recently, so the two timers never pay for the same refresh twice.
-  // Cloudflare timer: 20 minutes (Sunday runs can be 30 minutes apart). GitHub backup cron: 60 minutes (it often fires late).
+  // Cloudflare timer: 12 minutes (Sunday runs can be 15-20 minutes apart). GitHub backup cron: 60 minutes (it often fires late).
   if (play && process.env.AUTO_GUARD === "true") {
     try { const last = JSON.parse(fs.readFileSync("odds.json", "utf8")).fetchedAt; if (Date.now() - new Date(last) < (+process.env.GUARD_MIN || 45) * 60e3) { play = false; console.log("Odds already pulled at", last, "- skipping"); } } catch (e) {}
   }
