@@ -262,7 +262,14 @@
     }
     function slates() {
       var groups = [], idx = {};
-      G.forEach(function (g) { var k = opts.slate === "date" ? dateName(g.t) : opts.slate === "cfb" ? cfbSlate(g.t) : slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
+      G.forEach(function (g) {
+        var k = opts.slate === "date" ? dateName(g.t) : opts.slate === "cfb" ? cfbSlate(g.t) : slateName(g.t);
+        // College: games more than 7 days out get their date in the name so they don't merge with this week's slot
+        if (opts.slate === "cfb" && +new Date(g.t) - now > 7 * 864e5) k += " " + new Date(g.t).toLocaleDateString("en-US", { month: "numeric", day: "numeric", timeZone: "America/New_York" });
+        if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
+      // soonest first, so anything a week or more away ends up at the end
+      groups.forEach(function (x) { x.g.sort(function (a, b) { return new Date(a.t) - new Date(b.t); }); });
+      groups.sort(function (a, b) { return new Date(a.g[0].t) - new Date(b.g[0].t); });
       return groups;
     }
     // ---------- most likely to hit ----------
