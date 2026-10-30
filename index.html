@@ -185,6 +185,7 @@ th{color:var(--muted);font-weight:600}
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
+    <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px">Expand all</button>
     <select id="fLegs" aria-label="Legs"><option value="">Any legs</option><option value="s">2–3 legs</option><option value="l">4+ legs</option></select>
     <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
   </div>
@@ -327,8 +328,8 @@ function propCard(p){
 }
 
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
-var PST={slate:null,mode:"top",legs:"",kind:""};
-try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
+var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
+try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind","exp"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
 function savePST(){try{localStorage.setItem("pst_"+SPORT,JSON.stringify(PST))}catch(e){}}
 function slipInfo(p){
   var d=1,evs={},sg=false,props=0,games=0;
@@ -378,12 +379,12 @@ function recLine(name){
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div><div class="nm">'+esc(p.n)+'</div>'+
+  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div><div class="nm">'+esc(p.n)+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span>'+(x.ch!==null?'<span class="pct"><b>'+Math.round(x.ch*100)+'%</b>to hit</span>':"")+'</div>'+
     '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'</summary>'+
     '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><ul class="lg">'+p.l.map(function(l){return"<li><span>"+esc(l.n)+'</span><span class="lp">'+fmt(l.a)+(l.p!==undefined&&l.p!==null?" · <b>"+Math.round(l.p*100)+"%</b>":"")+"</span></li>"}).join("")+'</ul>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
-    '<div class="row"><span class="mt">Tap the card top to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
+    '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
 function renderParlays(){
   var S=slateList(),now=Date.now();
@@ -393,6 +394,7 @@ function renderParlays(){
   $("slateChips").innerHTML=chips.map(function(c){return'<button role="tab" data-slate="'+esc(c.id)+'" aria-selected="'+(c.id===PST.slate)+'">'+esc(c.label)+(c.count>1?"<small>"+c.count+"</small>":"")+'</button>'}).join("");
   document.querySelectorAll("[data-pm]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pm===PST.mode)});
   $("fLegs").value=PST.legs;$("fKind").value=PST.kind;
+  $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);
   var html="",n=0;
   function block(sl,showHead){
     var L=rankSlips(sl.list()),cards=L.map(function(x,i){return slipCard(x,"q"+(n++))}).join("");
@@ -642,6 +644,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.mydel){var a=myLoad().filter(function(b){return b.id!==t.dataset.mydel});mySave(a);renderMyBets()}
   else if(t.dataset.id&&t.dataset.myset!==undefined){var a2=myLoad();a2.forEach(function(b){if(b.id===t.dataset.id)b.manual=t.dataset.myset||null});mySave(a2);renderMyBets()}
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
+  else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
