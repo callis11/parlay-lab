@@ -23,7 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node backtest/fetch.js
+      - run: |
+          set -o pipefail
+          node backtest/fetch.js 2>&1 | tee backtest/raw/last-run.log
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           TEST: ${{ inputs.test && '1' || '0' }}
