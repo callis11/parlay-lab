@@ -552,7 +552,7 @@ function winBar(g){
   return'<div class="winbar"><div class="lab"><span style="color:'+ca+'">'+esc(m.away||g.away)+" "+Math.round(pa*100)+'%</span><small>CHANCE TO WIN</small><span style="color:'+ch+'">'+Math.round(ph*100)+"% "+esc(m.home||g.home)+'</span></div>'+
     '<div class="wb"><i style="width:'+(pa*100).toFixed(1)+'%;background:'+ca+'"></i><i style="flex:1;background:'+ch+'"></i></div></div>';
 }
-function countdown(t){var ms=+new Date(t)-Date.now();if(ms<=0)return"Live or final";var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),mi=Math.floor(ms%36e5/6e4);return"Kickoff in "+(d?d+"d "+h+"h":h?h+"h "+mi+"m":mi+"m")}
+function countdown(t){var ms=+new Date(t)-Date.now();if(ms<=0)return"Live or final";var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),mi=Math.floor(ms%36e5/6e4);return((SPORT==="nba"||SPORT==="cbb")?"Tip-off in ":"Kickoff in ")+(d?d+"d "+h+"h":h?h+"h "+mi+"m":mi+"m")}
 function splitName(n){var w=String(n).replace(/^#\d+\s+/,"").split(" ");return w}
 function fitHero(){document.querySelectorAll(".hero .tn").forEach(function(e){e.style.textOverflow="clip";var f=parseFloat(getComputedStyle(e).fontSize),n=0;while(e.scrollWidth>e.clientWidth+1&&f>24&&n++<40){f-=2;e.style.fontSize=f+"px"}})}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(window.fitHero)fitHero()});
