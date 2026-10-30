@@ -375,7 +375,7 @@ function teamNote(){
   var o=Engine.OPTS[SPORT]||{},r=ENG.teamSlips(o.featured),nm=o.featuredName;
   if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(SPORT==="cfb"?". Pairs "+nm+" lines with the best lines from other games; slips with two legs from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
   var nx=DATA&&DATA.next&&DATA.next[o.featured];
-  return nx?"The "+nm+" play next "+when(nx.t)+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
+  return nx?"The "+nm+" play next "+(nx.tbd?new Date(nx.day+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" (time TBD)":when(nx.t))+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
 }
 // Tag the three standouts: Safest (highest chance), Best value (estimate beats price most), Big payout (biggest odds that still has a real chance)
 function rankSlips(raw){

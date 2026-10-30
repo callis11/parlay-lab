@@ -16,7 +16,9 @@ function parse(j) {
     const t = x => ({ abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
       rank: x.curatedRank && x.curatedRank.current && x.curatedRank.current <= 25 ? x.curatedRank.current : null,
       rec: (x.records || []).find(r => r.type === "total" || r.name === "overall") ? (x.records.find(r => r.type === "total" || r.name === "overall").summary) : (x.records && x.records[0] && x.records[0].summary) || null });
-    return { id: ev.id, t: ev.date, d: etDate(ev.date), h: t(h), a: t(a), neutral: !!c.neutralSite, done: !!(ev.status && ev.status.type && ev.status.type.completed) };
+    // ESPN lists kickoff times not yet announced as midnight Eastern; flag those as TBD
+    const tbd = (c.timeValid === false) || /T0[45]:00Z$/.test(ev.date);
+    return { id: ev.id, t: ev.date, tbd, d: etDate(tbd ? new Date(+new Date(ev.date) + 6 * 36e5).toISOString() : ev.date), h: t(h), a: t(a), neutral: !!c.neutralSite, done: !!(ev.status && ev.status.type && ev.status.type.completed) };
   }).filter(Boolean);
 }
 
@@ -42,7 +44,7 @@ function parse(j) {
   const same = (oddsName, team) => { const o = norm(oddsName); return o === norm(team.name) || (norm(team.loc).length > 3 && o.startsWith(norm(team.loc)) && o.length - norm(team.loc).length < 18); };
   for (const ev of odds.lines || []) {
     const t = +new Date(ev.commence_time);
-    const cands = all.filter(g => Math.abs(+new Date(g.t) - t) < 12 * 36e5);
+    const cands = all.filter(g => Math.abs(+new Date(g.t) - t) < (g.tbd ? 30 : 12) * 36e5);
     let g = cands.find(g => same(ev.home_team, g.h) && same(ev.away_team, g.a));
     if (!g) g = cands.find(g => norm(ev.home_team) === norm(g.h.name) || norm(ev.away_team) === norm(g.a.name));
     if (!g) continue;
@@ -63,8 +65,8 @@ function parse(j) {
   // Each team's next game, for the pinned team's "plays next" note
   const next = {};
   all.filter(g => !g.done && +new Date(g.t) > Date.now() - 3 * 36e5).sort((a, b) => a.t.localeCompare(b.t)).forEach(g => {
-    if (!next[g.h.abbr]) next[g.h.abbr] = { t: g.t, opp: g.a.loc, home: true };
-    if (!next[g.a.abbr]) next[g.a.abbr] = { t: g.t, opp: g.h.loc, home: false };
+    if (!next[g.h.abbr]) next[g.h.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.a.loc, home: true };
+    if (!next[g.a.abbr]) next[g.a.abbr] = { t: g.t, tbd: g.tbd, day: g.d, opp: g.h.loc, home: false };
   });
   fs.writeFileSync("cfb/data.json", JSON.stringify({ sport: "cfb", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next }));
   console.log("Saved cfb/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
