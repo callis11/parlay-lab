@@ -63,11 +63,25 @@
   function dateName(iso) { return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }); }
   // Per-sport settings: how far ahead to show games, how to group them, and whether to show a "Best of the week" row
   // featured: the hometown team that gets its own section on the Parlays page
-  var OPTS = { nfl: { featured: "DET", featuredName: "Lions" }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" } };
+  var OPTS = { nfl: { featured: "DET", featuredName: "Lions" }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" },
+    cfb: { windowH: 192, slate: "cfb", full: true, featured: "MSU", featuredName: "Michigan State" } };
 
+  // College slates in US Eastern time: "Sat Noon", "Sat 3:30", "Sat Night", "Fri Night", "Tue Night", plus holidays
+  function cfbSlate(iso) {
+    var d = new Date(iso), o = {};
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", month: "numeric", day: "numeric", hour: "numeric", hourCycle: "h23" })
+      .formatToParts(d).forEach(function (x) { o[x.type] = x.value; });
+    var h = +o.hour % 24, w = o.weekday, m = +o.month, day = +o.day;
+    if (m === 11 && w === "Fri" && day >= 23 && day <= 29) w = "Black Friday";
+    else if (m === 11 && w === "Thu" && day >= 22 && day <= 28) w = "Thanksgiving";
+    if (w === "Sat") return h < 15 ? "Sat Noon" : h < 19 ? "Sat 3:30" : "Sat Night";
+    return w + (h >= 17 ? " Night" : " Day");
+  }
   function make(odds, data, book, now, opts) {
     opts = opts || {};
     var G = [], P = [];
+    // Team display name: college uses the school (and AP rank) from ESPN; pro leagues use the nickname
+    function tname(full) { return (data && data.names && data.names[full]) || (opts.full ? full : nick(full)); }
     var wk = now + (opts.windowH || 168) * 36e5;
     // ---------- games ----------
     ((odds && odds.lines) || []).filter(function (e) { var t = new Date(e.commence_time); return e.bookmakers && e.bookmakers.length && t < wk && t > now - 4 * 36e5; })
@@ -77,7 +91,7 @@
         function mk(k) { return (bk.markets || []).filter(function (m) { return m.key === k; })[0]; }
         function oc(m, n) { return m && m.outcomes.filter(function (o) { return o.name === n; })[0]; }
         var h = mk("h2h"), s = mk("spreads"), t = mk("totals"); if (!h || !s || !t) return;
-        var A = nick(e.away_team), H = nick(e.home_team), as = oc(s, e.away_team), hs = oc(s, e.home_team), ov = oc(t, "Over"), un = oc(t, "Under");
+        var A = tname(e.away_team), H = tname(e.home_team), as = oc(s, e.away_team), hs = oc(s, e.home_team), ov = oc(t, "Over"), un = oc(t, "Under");
         if (!as || !hs || !ov || !un || !oc(h, e.away_team) || !oc(h, e.home_team)) return;
         // Fair chance from this book's two-way prices (vig removed)
         function nv(x, y) { var px = 1 / dec(x), py = 1 / dec(y); return px / (px + py); }
@@ -146,7 +160,8 @@
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
     function gamePresets() {
-      var fav = G.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; }).sort(function (a, b) { return a.ml - b.ml; });
+      // Skip moneylines so lopsided they barely pay (common in college)
+      var fav = G.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; }).filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
       var low = G.slice().sort(function (a, b) { return a.total - b.total; }), out = [];
       function add(n, d, l, need) { if (l.length >= need) out.push({ n: n, d: d, l: l }); }
       add("The Safe 3", "Three biggest moneyline favorites", fav.slice(0, 3).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 3);
@@ -234,11 +249,19 @@
       else add(mkSlip(nm + " Safe", "Win or cover plus three high-floor " + nm + " props", [[[Q.side(g, abbr)], 1], [Q.floors, 3]], false));
       add(mkSlip(nm + " Shootout", "Game over plus three " + nm + " stat overs", [[Q.over, 1], [Q.mid, 3]], false));
       add(mkSlip(nm + " Long Shot", "Cover plus three plus-money " + nm + " props", [[[Q.teamSP(g, abbr)], 1], [Q.plus, 3]], false));
+      // No player props (college): pair the team with the best game lines from other games
+      if (!out.length) {
+        var A = poolFor(G.map(function (x) { return x.id; }));
+        var others = function (arr) { return arr.filter(function (x) { return x.ev !== g.id && x.a >= -600; }); };
+        add(mkSlip(nm + " + Favorites", nm + " plus the two safest favorites on the board", [[[Q.side(g, abbr)], 1], [others(A.favML), 2]], true));
+        add(mkSlip(nm + " Cover + Total", nm + " to cover and the game total, same game", [[[Q.teamSP(g, abbr)], 1], [Q.over, 1]], false));
+        add(mkSlip(nm + " Long Shot", nm + " to cover plus three other favorites to cover", [[[Q.teamSP(g, abbr)], 1], [others(A.favSP), 3]], true));
+      }
       return { g: g, l: out };
     }
     function slates() {
       var groups = [], idx = {};
-      G.forEach(function (g) { var k = opts.slate === "date" ? dateName(g.t) : slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
+      G.forEach(function (g) { var k = opts.slate === "date" ? dateName(g.t) : opts.slate === "cfb" ? cfbSlate(g.t) : slateName(g.t); if (!(k in idx)) { idx[k] = groups.length; groups.push({ k: k, g: [] }); } groups[idx[k]].g.push(g); });
       return groups;
     }
     // ---------- most likely to hit ----------

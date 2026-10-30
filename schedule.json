@@ -87,6 +87,38 @@
       "inputs": {
         "auto": "true"
       }
+    },
+    {
+      "workflow": "cfb.yml",
+      "days": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri"
+      ],
+      "times": [
+        "10:25",
+        "17:55"
+      ],
+      "inputs": {
+        "auto": "true"
+      }
+    },
+    {
+      "workflow": "cfb.yml",
+      "days": [
+        "Sat"
+      ],
+      "times": [
+        "09:25",
+        "11:25",
+        "15:05",
+        "18:55"
+      ],
+      "inputs": {
+        "auto": "true"
+      }
     }
   ]
 }

@@ -37,3 +37,8 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 - GitHub's own schedule is unreliable, so cloudflare/worker.js runs every 5 minutes on Cloudflare and starts the GitHub refreshes at the times in schedule.json (US Eastern, handles daylight saving).
 - Change times by editing schedule.json; the Worker reads it each time.
 - GitHub's schedule stays on as a backup. Automatic runs skip if odds were pulled in the last 45 minutes, so the two never double-spend credits.
+
+## College page (./?cfb)
+- cfb/fetch.js pulls spread, moneyline and total for every FBS game (about 3 credits a pull).
+- cfb/build.js matches games to ESPN's public scoreboard for school names, AP ranks, records and final scores.
+- Michigan State is the pinned team. Times are in schedule.json (cfb.yml).

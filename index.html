@@ -179,7 +179,7 @@ th{color:var(--muted);font-weight:600}
 </div></div>
 <div class="wrap">
 <header>
-  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a></nav>
+  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">College</a></nav>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
@@ -274,7 +274,7 @@ th{color:var(--muted);font-weight:600}
 <script>document.write('<script src="engine.js?v='+(((location.search.match(/[?&]r=(\d+)/)||[])[1])||Date.now().toString(36).slice(0,-4))+'"><\/script>')</script>
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
-var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
+var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
 var SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
@@ -296,6 +296,8 @@ function rungName(p,r){return ENG.rungName(p,r)}
 function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
   return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:L.n)+'</span><small>'+fmt(L.a)+'</small></button>'}
 function rec(r,t){if(!r)return"";
+  if(r.wl===null&&r.rank===undefined)return"";
+  if(r.rank!==undefined)return(r.rank?'<span class="chip">'+t+" #"+r.rank+" AP</span>":"")+(r.wl?'<span class="chip">'+t+" "+r.wl[0]+"-"+r.wl[1]+"</span>":"");
   if(r.wl)return '<span class="chip">'+t+" "+r.wl[0]+"-"+r.wl[1]+(r.games>=5?", last 10: "+r.l10[0]+"-"+r.l10[1]:"")+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"");
   return '<span class="chip">'+t+' ATS '+r.ats[0]+"-"+r.ats[1]+(r.ats[2]?"-"+r.ats[2]:"")+'</span><span class="chip">'+t+' O/U '+r.ou[0]+"-"+r.ou[1]+'</span>'+(r.ppg!==null?'<span class="chip">'+t+" "+r.ppg+" pts for, "+r.papg+" against</span>":"")}
 function matchup(g){
@@ -303,12 +305,12 @@ function matchup(g){
   var w=m.weather,wx="";
   if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
     else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
-  var rows=m.h2h.map(function(x){return"<tr><td>"+(x.date?new Date(x.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"}):x.season+" wk "+x.week)+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
+  var rows=(m.h2h||[]).map(function(x){return"<tr><td>"+(x.date?new Date(x.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"}):x.season+" wk "+x.week)+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
   var mv="";if(m.open&&m.now){var hm=m.home;
     if(m.open.spread!==null&&m.now.spread!==null&&m.open.spread!==m.now.spread)mv+='<span class="chip alert">'+hm+" spread opened "+(m.open.spread>0?"+":"")+m.open.spread+", now "+(m.now.spread>0?"+":"")+m.now.spread+'</span>';
     if(m.open.total!==null&&m.now.total!==null&&m.open.total!==m.now.total)mv+='<span class="chip alert">Total opened '+m.open.total+", now "+m.now.total+'</span>'}
-  return '<details><summary>Matchup'+(SPORT==="nfl"?" and weather":"")+'</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
-    (rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
+  return '<details><summary>Matchup'+(SPORT==="nfl"?" and weather":"")+'</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+(m.neutral?'<span class="chip">Neutral site</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
+    (!m.h2h?"":rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
 }
 function renderGames(){
   if(!GAMES.length){$("games").innerHTML='<p class="empty">No lines yet. The next odds refresh will fill this in.</p>';return}
@@ -371,7 +373,7 @@ function slateList(){
 }
 function teamNote(){
   var o=Engine.OPTS[SPORT]||{},r=ENG.teamSlips(o.featured),nm=o.featuredName;
-  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+". Same-game parlays, so your book's payout will be lower than shown.";
+  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(SPORT==="cfb"?". Pairs "+nm+" lines with the best lines from other games; slips with two legs from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
   var nx=DATA&&DATA.next&&DATA.next[o.featured];
   return nx?"The "+nm+" play next "+when(nx.t)+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
 }
@@ -610,7 +612,7 @@ function renderSlip(){
 function ago(ms){var m=Math.round(ms/60000);if(m<1)return"just now";if(m<60)return m+" min ago";var h=Math.round(m/60);return h<48?h+" hr ago":Math.round(h/24)+" days ago"}
 function nextSync(){
   if(!SCHED||!SCHED.jobs)return null;
-  var wf=SPORT==="nba"?"nba.yml":"refresh.yml",tz=SCHED.timezone||"America/New_York";
+  var wf=SPORT==="nba"?"nba.yml":SPORT==="cfb"?"cfb.yml":"refresh.yml",tz=SCHED.timezone||"America/New_York";
   var fmt=new Intl.DateTimeFormat("en-US",{timeZone:tz,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit"});
   // Days (Eastern) with games in the current lines; the refresh skips days without games unless forced
   var gameDay={},now=Date.now();
@@ -623,7 +625,8 @@ function nextSync(){
       if(j.days.indexOf(o.weekday)<0||j.times.indexOf(hm)<0)continue;
       var forced=j.inputs&&j.inputs.force==="true";
       // NFL: only game days (or forced). NBA: only if a game starts within 18 hours of the run
-      if(SPORT==="nba"){var ok=(ODDS&&ODDS.lines||[]).some(function(e){var g=+new Date(e.commence_time);return g>t-3*36e5&&g<t+18*36e5});if(!ok)continue}
+      if(SPORT==="cfb"){}
+      else if(SPORT==="nba"){var ok=(ODDS&&ODDS.lines||[]).some(function(e){var g=+new Date(e.commence_time);return g>t-3*36e5&&g<t+18*36e5});if(!ok)continue}
       else if(!forced&&!gameDay[key])continue;
       return t;
     }
@@ -705,6 +708,7 @@ document.addEventListener("visibilitychange",function(){
 });
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
+if(SPORT==="cfb"){document.title="ParlayLabs · College football parlays";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="nba"){document.title="ParlayLabs · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
