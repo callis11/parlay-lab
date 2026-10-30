@@ -233,6 +233,18 @@ html:not(.nba) header{position:relative;z-index:0}
 html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;width:100vw;transform:translateX(-50%);top:-60px;bottom:-8px;
   background:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0 3px,transparent 3px 26px),linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.12));
   border-bottom:6px solid rgba(255,255,255,.18)}
+.tb{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;margin-right:7px;vertical-align:-6px;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 70%,#fff) 0%,var(--c) 45%,color-mix(in srgb,var(--c) 60%,#000) 100%);
+  box-shadow:0 0 0 2px rgba(255,255,255,.85),0 0 0 4px var(--c),0 2px 6px rgba(0,0,0,.4);
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);font:800 10px/1 "Barlow Condensed","Arial Narrow",sans-serif;font-style:normal;letter-spacing:.02em}
+.tb.l4{font-size:8.5px}
+.tnr{display:flex;align-items:center;gap:10px;margin-top:10px}
+.tnr.h{margin-top:0}
+.tnr .tn{margin:0;min-width:0;flex:0 1 auto}
+.tnr.h{justify-content:flex-end}
+.tb.big{flex:none;width:46px;height:46px;margin:0;font-size:15px;vertical-align:0;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 0 6px var(--c),0 4px 10px rgba(0,0,0,.45)}
+.tb.big.l4{font-size:12px}
+.card h3 .tb{margin-left:2px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -407,7 +419,8 @@ function renderGames(){
   $("games").innerHTML=out;
 }
 function gameCard(g,open){
-  return '<div class="card" id="gc-'+esc(g.id)+'"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+(open?when(g.t):new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+'<div class="gcbar">'+winBar(g)+'</div>'+
+  var mm=DATA&&DATA.games[g.id]||{};
+  return '<div class="card" id="gc-'+esc(g.id)+'"><h3>'+badge(mm.away,"a")+g.away+' <span>at</span> '+badge(mm.home,"h")+g.home+' <span>· '+(open?when(g.t):new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+'<div class="gcbar">'+winBar(g)+'</div>'+
     '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+matchup(g).replace("<details>",open?"<details open>":"<details>")+'</div>';
 }
 
@@ -545,6 +558,8 @@ function slipCard(x,key){
 // ---------- spotlight game (hero) ----------
 var TC={nfl:{ARI:"#C8264A",ATL:"#D8263C",BAL:"#8467D7",BUF:"#4A86E8",CAR:"#2BA3DE",CHI:"#F0752E",CIN:"#FB5A1E",CLE:"#FF5A1F",DAL:"#6C9BD8",DEN:"#FB5A1E",DET:"#3D9BE0",GB:"#FFB612",HOU:"#E0344A",IND:"#4A86E8",JAX:"#16A9B8",KC:"#EE2B45",LV:"#B9C0C4",LAC:"#2D9BE6",LA:"#FFC72C",MIA:"#14B8C2",MIN:"#9572E0",NE:"#E2364E",NO:"#D3BC8D",NYG:"#4C7BE0",NYJ:"#22B573",PHI:"#3FBFA3",PIT:"#FFB612",SF:"#E8434B",SEA:"#79C842",TB:"#E8433B",TEN:"#5BA4E8",WAS:"#E3B23C"},
  nba:{ATL:"#E8434B",BOS:"#2EB35A",BKN:"#B8BEC4",CHA:"#25AFC9",CHI:"#E3264A",CLE:"#B8475E",DAL:"#3D8BE8",DEN:"#FEC524",DET:"#E0315A",GS:"#FFC72C",HOU:"#E3264A",IND:"#FDBB30",LAC:"#E3264A",LAL:"#FDB927",MEM:"#7FA2DD",MIA:"#E0405A",MIL:"#3FA266",MIN:"#58AEEA",NO:"#C4A86E",NY:"#F58426",OKC:"#F07A45",ORL:"#3D8BE8",PHI:"#4A86E8",PHX:"#F07030",POR:"#E8434B",SAC:"#9A72DA",SA:"#C4CED4",TOR:"#E3264A",UTAH:"#9A72DA",WSH:"#E8434B"}};
+// Team badge: a round patch in the team's color with its abbreviation (not an official logo)
+function badge(abbr,side,big){if(!abbr)return"";var c=teamColor(abbr,side),n=String(abbr).length;return'<span class="tb'+(big?" big":"")+(n>3?" l4":"")+'" style="--c:'+c+'">'+esc(abbr)+'</span>'}
 function teamColor(abbr,side){var m=TC[SPORT]||{};return m[abbr]||(side==="a"?"#5B9BFF":"#F7C600")}
 function winBar(g){
   var m=DATA&&DATA.games[g.id]||{},pa=(g.p0||g.p)["ml-a"],ph=(g.p0||g.p)["ml-h"];if(pa==null||ph==null)return"";
@@ -565,8 +580,8 @@ function heroCard(sp0){
   var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=!COL;
   var cityA=m.away||"",cityH=m.home||"";
   return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+
-    '<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div>'+(isPro?'<div class="city">'+esc(cityA)+'</div>':"")+
-    '<div class="at">AT</div><div class="tn h" style="color:'+ch+';'+tnSize(nmH)+'">'+esc(nmH)+'</div>'+(isPro?'<div class="city h">'+esc(cityH)+'</div>':"")+
+    '<div class="tnr">'+badge(m.away,"a",1)+'<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div></div>'+
+    '<div class="at">AT</div><div class="tnr h"><div class="tn h" style="color:'+ch+';'+tnSize(nmH)+'">'+esc(nmH)+'</div>'+badge(m.home,"h",1)+'</div>'+
     winBar(g)+'<div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+
     '<div class="go"><span class="sub" style="margin:0">'+(g.alt?esc(g.alt)+" line":esc((Engine.BOOK_NAMES[BOOK]||""))+" line")+'</span><button data-goto="'+esc(g.id)+'">Game page ›</button></div></div>';
 }
