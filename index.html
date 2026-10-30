@@ -323,7 +323,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 </section>
 
 <section id="v-props" role="tabpanel" aria-labelledby="t-props" hidden>
-  <h2>Prop ladders</h2>
+  <h2>Player props</h2>
   <div class="filters">
     <select id="fGame" aria-label="Game"><option value="">All games</option></select>
     <select id="fMkt" aria-label="Market"><option value="">All markets</option></select>
@@ -622,7 +622,7 @@ function renderBacktest(){
   var sl=Object.keys(R.slips).map(function(k){var x=R.slips[k];x.k=k;return x}).filter(function(x){return x.n>=10}).sort(function(a,b){return b.profit/b.n-a.profit/a.n});
   var pb=Object.keys(R.legs.byP).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=R.legs.byP[k];return'<tr><td>We said '+k*10+"–"+(k*10+10)+'%</td><td class="r">hit '+Math.round(100*x.w/x.n)+'% <small>('+x.n+" legs)</small></td></tr>"}).join("");
   el.innerHTML='<h2>Past seasons replay ('+(yrs.length>1?yrs[0]+"–"+yrs[yrs.length-1].slice(2):yrs[0])+')</h2><p class="sub">Every week rebuilt as it would have looked 1 hour before kickoff, with real FanDuel prices and only stats from games already played, then graded. '+Object.values(R.seasons).reduce(function(a,s){return a+s.games},0)+' games.</p>'+
-    '<div class="card"><h3>Report card sections</h3><table class="ht">'+sec("Pieces (safe overs)",c.pieces)+sec("Straights",c.straights)+sec("TDs",c.tds)+'</table></div>'+
+    '<div class="card"><h3>Report card sections</h3><table class="ht">'+sec("Safe legs",c.pieces)+sec("Straights",c.straights)+sec("TDs",c.tds)+'</table></div>'+
     '<div class="card"><h3>Parlay types, $10 each</h3><table class="ht">'+sl.map(function(x){return'<tr><td>'+esc(x.k)+'<br><small>'+x.n+' slips · we said '+Math.round(100*x.exp/x.n)+'%</small></td><td class="r">'+x.w+"–"+(x.n-x.w)+' <small class="'+(x.profit>=0?"up":"dn")+'">'+(x.profit>=0?"+":"-")+"$"+Math.abs(x.profit).toFixed(0)+'</small></td></tr>'}).join("")+'</table></div>'+
     '<div class="card"><h3>Are our percentages honest?</h3><table class="ht">'+pb+'</table></div>';
 }
@@ -843,7 +843,7 @@ function fdButton(legs){
 // ---------- game report cards ----------
 var CARDSHOW=8;
 function cardList(){return CARDS&&CARDS.cards?Object.keys(CARDS.cards).map(function(k){return CARDS.cards[k]}).filter(function(c){return +new Date(c.t)<=Date.now()}).sort(function(a,b){return new Date(b.t)-new Date(a.t)}):[]}
-function secLabel(k){return{pieces:"Ladder legs",straights:"Straights",tds:"Anytime TD"}[k]}
+function secLabel(k){return{pieces:"Safe legs",straights:"Straights",tds:"Anytime TD"}[k]}
 function renderCards(){
   var L=cardList();
   if(!L.length){$("resCards").innerHTML='<p class="empty">The first report cards lock when '+(SPORT==="nba"?"tonight's":"this week's")+' games tip off and get graded after the box scores post.</p>';return}

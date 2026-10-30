@@ -30,7 +30,7 @@ The workflow refreshes odds 3 times a day. Edit the cron line in refresh.yml to 
 - Runs twice a day (10:30 AM and 4:30 PM ET) from .github/workflows/nba.yml.
 
 ## Report cards and learning
-- picks.js also builds a report card for every game (ladder legs, straight over/under picks, anytime TDs) until kickoff, then grades it (cards.json).
+- picks.js also builds a report card for every game (safe legs, straight over/under picks, anytime TDs) until kickoff, then grades it (cards.json).
 - Every other rated prop and game line is graded too (gradebook.json -> graded-legs.json). calibration.json learns from all of them.
 
 ## Timer (Cloudflare Worker)
