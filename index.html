@@ -559,13 +559,13 @@ function playerPast(team,player,label){var T=BT&&BT.teams&&BT.teams[team],P=T&&T
 function renderTeamHist(v,opp){
   var el=$("teamHist");if(!el)return;var T=BT&&BT.teams&&BT.teams[v];
   if(!T){el.innerHTML="";return}
-  var ss=(BT.seasons||[]).slice().sort(),yrs=!ss.length?"":ss.length===1?ss[0]:ss[0]+"–"+String(ss[ss.length-1]).slice(2);
+  var ss=(BT.seasons||[]).slice().sort(),yrs=!ss.length?"":ss.length===1?ss[0]:ss[0]+"–"+String(ss[ss.length-1]).slice(2),pyrs="2023–25";
   var mk=Object.keys(T.props).sort(function(a,b){return(T.props[b][0]+T.props[b][1])-(T.props[a][0]+T.props[a][1])});
   var rows=function(src){return mk.filter(function(k){return src&&src[k]}).map(function(k){return'<tr><td>'+esc(k)+'</td><td class="r">'+pctRec(src[k])+histBar(src[k])+'</td></tr>'}).join("")};
   var vs=opp&&T.vs&&T.vs[opp];
   var pl=Object.keys(T.players).map(function(n){var P=T.players[n],w=0,l=0;for(var k in P){w+=P[k][0];l+=P[k][1]}return{n:n,P:P,t:w+l,w:w}}).sort(function(a,b){return b.t-a.t}).slice(0,10);
   var par=Object.keys(T.parlays||{}).map(function(k){var x=T.parlays[k];return'<tr><td>'+esc(k)+'</td><td class="r">'+x[1]+"–"+(x[0]-x[1])+' <small class="'+(x[2]>=0?"up":"dn")+'">'+(x[2]>=0?"+":"-")+"$"+Math.abs(x[2]).toFixed(0)+'</small></td></tr>'}).join("");
-  el.innerHTML='<h2>Past seasons '+yrs+'</h2><p class="sub">How '+esc(((ENG.teamSlips(v).g&&[ENG.teamSlips(v).g].map(function(g){var m=DATA.games[g.id]||{};return m.away===v?g.away:g.home})[0])||v))+' player props did on the books\' main lines (overs), replayed from real odds. '+(T.ats&&T.ats[0]+T.ats[1]?"Covered the spread in "+T.ats[0]+" of "+(T.ats[0]+T.ats[1])+" games.":"")+'</p>'+
+  el.innerHTML='<h2>Past seasons</h2><p class="sub">Props '+pyrs+', spread record '+yrs+'. How '+esc(((ENG.teamSlips(v).g&&[ENG.teamSlips(v).g].map(function(g){var m=DATA.games[g.id]||{};return m.away===v?g.away:g.home})[0])||v))+' player props did on the books\' main lines (overs), replayed from real odds. '+(T.ats&&T.ats[0]+T.ats[1]?"Covered the spread in "+T.ats[0]+" of "+(T.ats[0]+T.ats[1])+" games.":"")+'</p>'+
     '<div class="card"><h3>Props by market</h3><table class="ht">'+rows(T.props)+'</table></div>'+
     (vs?'<div class="card"><h3>Against '+esc(opp)+'</h3><table class="ht">'+rows(vs)+'</table></div>':"")+
     (par?'<div class="card"><h3>Their parlays, $10 each</h3><table class="ht">'+par+'</table></div>':"")+
