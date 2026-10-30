@@ -562,7 +562,7 @@ function heroCard(sp0){
   if(!sp0||!sp0.g)return"";var g=sp0.g;var m=DATA&&DATA.games[g.id]||{},ca=teamColor(m.away,"a"),ch=teamColor(m.home,"h");
   var sp=g.legs["sp-h"],fav=sp.pt<0?(m.home||g.home):(m.away||g.away),line=sp.pt<0?sp.pt:-sp.pt;
   var mv="";if(m.open&&m.now&&m.open.spread!=null&&m.now.spread!=null&&m.open.spread!==m.now.spread){var d=m.now.spread-m.open.spread,tw=d<0?(m.home||g.home):(m.away||g.away),os=m.open.spread,ot=os<0?(m.home||g.home):(m.away||g.away);mv='<span class="mv up">'+Math.abs(+d.toFixed(1))+" → "+esc(tw)+"</span> opened "+(os===0?"PK":esc(ot)+" "+(-Math.abs(os)))}
-  var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=!COL;
+  var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=SPORT==="nba";
   var ev=(ODDS&&ODDS.lines||[]).filter(function(e){return e.id===g.id})[0]||{},city=function(full,nick){full=String(full||"");var i=full.lastIndexOf(" "+nick);return i>0?full.slice(0,i):""};
   var cityA=city(ev.away_team,g.away),cityH=city(ev.home_team,g.home);
   return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+
