@@ -1005,7 +1005,9 @@ var DIVS={nfl:{"AFC East":["BUF","MIA","NE","NYJ"],"AFC North":["BAL","CIN","CLE
  nba:{"Atlantic":["BOS","BKN","NY","PHI","TOR"],"Central":["CHI","CLE","DET","IND","MIL"],"Southeast":["ATL","CHA","MIA","ORL","WSH"],"Northwest":["DEN","MIN","OKC","POR","UTAH"],"Pacific":["GS","LAC","LAL","PHX","SAC"],"Southwest":["DAL","HOU","MEM","NO","SA"]}};
 var FLIPTO=null,TEAMGAMES=[],TGAME=null;
 function teamName(abbr){var n="";GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m&&m.away===abbr)n=g.away;if(m&&m.home===abbr)n=g.home});return n||abbr}
-function flipCard(el){el.classList.add("turn");setTimeout(function(){el.classList.toggle("back");el.classList.remove("turn");if(!el.classList.contains("back"))fitHero()},170)}
+function flipCard(el){el.classList.add("turn");setTimeout(function(){el.classList.toggle("back");el.classList.remove("turn");if(!el.classList.contains("back"))fitHero();
+  // in a sideways row of cards, bring the flipped card fully into view
+  var row=el.parentNode;if(row&&row.classList&&row.classList.contains("presets"))row.scrollTo({left:el.offsetLeft-row.offsetLeft-(row.clientWidth-el.offsetWidth)/2,behavior:"smooth"})},170)}
 // Teams tab: one flip card per game (front = matchup, back = the game's lines and stats), filtered by division and team
 function renderTeam(){
   var sel=$("fTeam"),dv=$("fDiv"),now=Date.now(),o=Engine.OPTS[SPORT]||{},D=DIVS[SPORT];
