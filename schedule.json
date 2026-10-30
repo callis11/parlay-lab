@@ -87,19 +87,6 @@
       "inputs": {
         "auto": "true"
       }
-    },
-    {
-      "workflow": "nba.yml",
-      "days": [
-        "Thu"
-      ],
-      "times": [
-        "22:30"
-      ],
-      "inputs": {
-        "auto": "true"
-      },
-      "test": "one-time test, remove after"
     }
   ]
 }
