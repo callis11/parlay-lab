@@ -259,7 +259,6 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hero .trends b{color:var(--ink)}
 .l5{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px;vertical-align:middle}
 .dots{align-items:center}
-.dots i:last-child{width:11px;height:11px;box-shadow:0 0 0 2px rgba(255,255,255,.18)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -520,7 +519,7 @@ function propCard(p){
     var cur=SLIP["P|"+p.id];
     var rungs=p.rungs.map(function(r){var on=cur&&cur.line===r.line;
       var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+(r.since&&r.since[1]>r.n?" · "+r.since[0]+" of "+r.since[1]+" since 2023":"")+" · our estimate "+pct(r.p):"Not enough games to rate";
-      var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5">Last 5</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span>':"";
+      var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5">Last 5 games: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5"> newest</span>':"";
       return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
       (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"")+(function(){var x=SPORT==="nfl"&&playerPast(p.team,p.player,p.label);var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
