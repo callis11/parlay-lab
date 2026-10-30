@@ -294,6 +294,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gleg:first-of-type{margin-top:8px}
 .gleg b{font-size:14px}.gleg small{color:var(--muted)}
 .gp{font-weight:800}
+.gteam{font-size:12px;font-weight:700;color:var(--ink);opacity:.85;margin-top:1px}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
@@ -753,7 +754,8 @@ function renderGenOut(){
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
       '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
-      it.legs.map(function(x){var l=x.leg;return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span> <small>'+fmt(l.a)+'</small><div class="gw">'+esc(x.why)+'</div></div></div>'}).join("")+
+      it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{},who=(tm?teamName(tm)+" · ":"")+(m.away?m.away+" @ "+m.home:"");
+        return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span> <small>'+fmt(l.a)+'</small>'+(who?'<div class="gteam">'+esc(who)+'</div>':"")+'<div class="gw">'+esc(x.why)+'</div></div></div>'}).join("")+
       '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
