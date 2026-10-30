@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Parlay Lab · NFL parlay builder</title>
+<title>ParlayLabs · NFL parlay builder</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ParlayLabs">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14213D">
 <meta name="description" content="NFL game lines, matchup history, weather and player prop ladders with hit rates. Build parlays and see the payout.">
 <style>
 :root{
@@ -136,6 +144,11 @@ th{color:var(--muted);font-weight:600}
 .pc .bd ul{margin:8px 0;padding-left:18px;font-size:14px}
 .pc .bd .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
 .pgroup{margin:18px 0 6px;font-size:20px}
+.brand{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+.brand img{border-radius:10px;flex:0 0 auto}
+.brand h1{margin:0;flex:1;min-width:0;font-size:clamp(30px,9vw,44px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.refresh{flex:0 0 auto;font:inherit;font-weight:700;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:40px;white-space:nowrap}
+.refresh[disabled]{opacity:.6}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -159,7 +172,7 @@ th{color:var(--muted);font-weight:600}
 <body>
 <div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateH"><div class="box">
   <h2 id="gateH">Are you 21 or older?</h2>
-  <p>Parlay Lab is for adults 21+ and for entertainment only. Picks and payouts are estimates, not guarantees. We are not responsible for any losses, and you bet at your own risk.</p>
+  <p>ParlayLabs is for adults 21+ and for entertainment only. Picks and payouts are estimates, not guarantees. We are not responsible for any losses, and you bet at your own risk.</p>
   <p><a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a></p>
   <div class="row"><button class="btn flag" id="gateYes">I'm 21+ and I agree</button><button class="btn" id="gateNo">I'm under 21</button></div>
   <p id="gateMsg" hidden style="margin:12px 0 0">Sorry, you must be 21 or older to use this site.</p>
@@ -167,7 +180,7 @@ th{color:var(--muted);font-weight:600}
 <div class="wrap">
 <header>
   <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a></nav>
-  <h1>Parlay Lab</h1>
+  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
   <p class="sync" id="sync" aria-live="polite"></p>
@@ -254,7 +267,7 @@ th{color:var(--muted);font-weight:600}
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
 
-<script>document.write('<script src="engine.js?v='+Date.now().toString(36).slice(0,-4)+'"><\/script>')</script>
+<script>document.write('<script src="engine.js?v='+(((location.search.match(/[?&]r=(\d+)/)||[])[1])||Date.now().toString(36).slice(0,-4))+'"><\/script>')</script>
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
@@ -530,7 +543,7 @@ function shareCard(ev){
   var W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;var x=cv.getContext("2d");
   var ink="#14213D",bg="#EEF1F4",green="#1F7A4D",red="#C8372D",flag="#F7C600",muted="#5B6678",F='"Arial Narrow",Impact,sans-serif',S="system-ui,-apple-system,Segoe UI,sans-serif";
   x.fillStyle=ink;x.fillRect(0,0,W,H);x.fillStyle=flag;x.fillRect(0,0,W,14);
-  x.fillStyle="#fff";x.font="800 64px "+F;x.fillText("PARLAY LAB",56,104);
+  x.fillStyle="#fff";x.font="800 64px "+F;x.fillText("PARLAYLABS",56,104);
   x.fillStyle=flag;x.font="700 40px "+F;x.fillText(c.away+" at "+c.home+"  ·  "+new Date(c.t).toLocaleDateString("en-US",{month:"short",day:"numeric"}),56,160);
   x.fillStyle="#9AA5B8";x.font="26px "+S;x.fillText("Locked at kickoff, graded from the box score",56,200);
   var bw=(W-112-(secs.length-1)*20)/secs.length;
@@ -547,7 +560,7 @@ function shareCard(ev){
     x.fillText(l.nm.length>52?l.nm.slice(0,50)+"…":l.nm,56+rh,y-rh*0.12)});
   x.fillStyle="#9AA5B8";x.font="24px "+S;x.fillText(location.host+location.pathname+"  ·  21+  ·  For entertainment only",56,H-40);
   cv.toBlob(function(b){var file=new File([b],"parlay-lab-"+c.away+"-"+c.home+".png",{type:"image/png"});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"Parlay Lab report card"}).catch(function(){})}
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"ParlayLabs report card"}).catch(function(){})}
     else{var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=file.name;document.body.appendChild(a);a.click();a.remove()}});
 }
 
@@ -657,9 +670,23 @@ $("fLegs").addEventListener("change",function(){PST.legs=$("fLegs").value;savePS
 $("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePST();renderParlays()});
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
+// Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
+// Works inside the home-screen app, where pull-to-refresh isn't available.
+$("refreshBtn").addEventListener("click",function(){
+  var b=$("refreshBtn");b.disabled=true;b.textContent="Refreshing…";
+  var files=[location.pathname,"engine.js","schedule.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json"];
+  Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
+    var u=location.pathname+location.search.replace(/[?&]r=\d+/,"");u+=(u.indexOf("?")<0?"?":"&")+"r="+Date.now();location.replace(u+location.hash)});
+});
+// When the home-screen app is reopened after a while, quietly pull fresh data
+var lastLoad=Date.now();
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState!=="visible"||Date.now()-lastLoad<5*60e3)return;lastLoad=Date.now();
+  Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;PICKS=r[2]||PICKS;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;renderAll();renderSync()}});
+});
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
-if(SPORT==="nba"){document.title="Parlay Lab · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
+if(SPORT==="nba"){document.title="ParlayLabs · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
   if(ok)return;$("gate").hidden=false;$("gateYes").focus();

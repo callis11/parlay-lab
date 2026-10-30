@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2D52"/><stop offset="1" stop-color="#0E1730"/></linearGradient>
+    <clipPath id="flask"><path d="M432 330 V420 L250 770 Q232 812 276 812 H748 Q792 812 774 770 L592 420 V330 Z"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(512 528) scale(1.24) translate(-512 -481)">
+  <!-- liquid -->
+  <g clip-path="url(#flask)">
+    <path d="M200 610 Q330 560 460 610 T720 610 T980 610 V900 H200 Z" fill="#2DBE7A"/>
+    <path d="M200 610 Q330 560 460 610 T720 610 T980 610" fill="none" stroke="#7FE3B0" stroke-width="14" opacity=".7"/>
+  </g>
+  <!-- check mark: the leg hit -->
+  <path d="M410 700 L485 770 L625 640" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- flask outline -->
+  <path d="M432 330 V420 L250 770 Q232 812 276 812 H748 Q792 812 774 770 L592 420 V330" fill="none" stroke="#F7C600" stroke-width="52" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="384" y1="318" x2="640" y2="318" stroke="#F7C600" stroke-width="52" stroke-linecap="round"/>
+  <!-- bubbles -->
+  <circle cx="530" cy="520" r="22" fill="#F7C600"/>
+  <circle cx="480" cy="460" r="14" fill="#F7C600" opacity=".85"/>
+  <circle cx="548" cy="225" r="26" fill="none" stroke="#F7C600" stroke-width="12"/>
+  <circle cx="606" cy="160" r="16" fill="none" stroke="#F7C600" stroke-width="10" opacity=".8"/>
+  </g>
+</svg>
