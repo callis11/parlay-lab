@@ -242,6 +242,15 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hdots i.on{background:var(--flag);width:18px;border-radius:4px}
 .hcount{font-size:12px;color:var(--muted);font-weight:600}
 .hhint{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 0}
+.ht{width:100%;border-collapse:collapse;font-size:14px}
+.ht td{padding:7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.ht tr:last-child td{border-bottom:0}
+.ht td.r{text-align:right;white-space:nowrap;padding-left:10px;font-weight:700}
+.ht small{color:var(--muted);font-weight:500}
+.ht small.up{color:var(--green)}.ht small.dn{color:var(--red)}
+.hbar{height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px;width:90px;margin-left:auto}
+.hbar i{display:block;height:100%}
+.rec.past{border-top:0;padding-top:0;margin-top:2px;opacity:.85}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -331,6 +340,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
   <h2>What's working</h2>
   <p class="sub">Which slip types make money, and how each kind of bet actually hits compared with our estimate. Once a kind of bet has 15+ results, future estimates and slips are adjusted toward what really happened.</p>
   <div id="resLearn"></div>
+  <div id="resBack"></div>
   <h2>Recent slips</h2>
   <div class="filters"><select id="fRes" aria-label="Show"><option value="">All graded and live</option><option value="won">Winners</option><option value="lost">Losers</option><option value="pending">Waiting on results</option></select></div>
   <div id="resList"></div>
@@ -346,6 +356,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
   <div id="teamGame"></div>
   <h2>Player props</h2>
   <div id="teamProps"></div>
+  <div id="teamHist"></div>
 </section>
 
 <p class="sync" id="sync" aria-live="polite"></p>
@@ -370,7 +381,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 if(/[?&](nba|cbb|sport=nba|sport=cbb)\b/.test(location.search))document.documentElement.classList.add("nba");
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":/[?&](cbb|sport=cbb)\b/.test(location.search)?"cbb":"nfl",COL=SPORT==="cfb"||SPORT==="cbb",DIR=SPORT==="nfl"?"":SPORT+"/";
-var SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
+var BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -485,7 +496,7 @@ function propCard(p){
       var dots=!p.td&&p.recent&&p.recent.length?'<span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span>':"";
       return '<button class="rung'+(isValue(r)?" value":"")+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+(isValue(r)?'<span class="tag">Value</span>':"")+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     var tags=(p.injury?'<span class="chip alert">'+esc(p.injury)+'</span>':"")+(p.missedLast?'<span class="chip alert">Missed last game</span>':"")+
-      (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"");
+      (p.opp&&p.oppF&&p.oppF!==1&&!p.td?'<span class="chip">vs '+p.opp+(p.oppF>=1.04?" (soft defense here)":p.oppF<=0.96?" (tough defense here)":"")+'</span>':"")+(p.windF&&p.windF<1?'<span class="chip">Windy: estimate lowered</span>':"")+(function(){var x=SPORT==="nfl"&&playerPast(p.team,p.player,p.label);return x&&x[0]+x[1]>=4?'<span class="chip">Past seasons: main line hit '+x[0]+" of "+(x[0]+x[1])+'</span>':""})();
     var pc=p.team?teamColor(p.team,"a"):"#5B9BFF";
     return '<div class="card pl" style="--c:'+pc+'"><h3><div class="phead">'+icon(icoKey({kind:"p",label:p.label,td:p.td}),pc)+'<div>'+esc(p.player)+' <span>'+(p.team||"")+'</span></div></div><span style="font-size:14px;color:var(--muted);font-weight:500">'+p.label+'</span></h3>'+
       '<div class="meta">'+p.g.away+" at "+p.g.home+(p.avg!==null&&!p.td?" · avg "+p.avg+" · last 5: "+p.recent.join(", "):"")+(p.td&&p.recent.length?" · TDs last 5: "+p.recent.join(", "):"")+'</div>'+(tags?'<div class="chips">'+tags+'</div>':"")+rungs+'</div>';
@@ -536,9 +547,40 @@ function rankSlips(raw){
 var TAGS={safe:"Safest",value:"Best value",big:"Big payout"};
 // Track record for a slip type (by name), from graded results at $10 a slip
 function recLine(name){
-  var r=CALIB&&CALIB.byStrategy&&CALIB.byStrategy[name];
-  if(!r||!r.n)return'<div class="rec new">No results yet</div>';
-  return'<div class="rec '+(r.profit>=0?"up":"dn")+'">Record '+r.w+"–"+(r.n-r.w)+" · "+(r.profit>=0?"+":"-")+"$"+Math.abs(r.profit).toFixed(0)+'</div>';
+  var r=CALIB&&CALIB.byStrategy&&CALIB.byStrategy[name],b=BTR&&BTR.slips&&BTR.slips[name];
+  var past=b&&b.n>=10?'<div class="rec past '+(b.profit>=0?"up":"dn")+'">Past seasons '+b.w+"–"+(b.n-b.w)+" · "+(b.profit>=0?"+":"-")+"$"+Math.abs(b.profit).toFixed(0)+'</div>':"";
+  if(!r||!r.n)return'<div class="rec new">This season: no results yet</div>'+past;
+  return'<div class="rec '+(r.profit>=0?"up":"dn")+'">This season '+r.w+"–"+(r.n-r.w)+" · "+(r.profit>=0?"+":"-")+"$"+Math.abs(r.profit).toFixed(0)+'</div>'+past;
+}
+// ---------- past seasons (backtest) ----------
+function pctRec(x){return x&&x[0]+x[1]?Math.round(100*x[0]/(x[0]+x[1]))+"% <small>("+x[0]+"–"+x[1]+")</small>":"—"}
+function histBar(x){if(!x||!(x[0]+x[1]))return"";var p=x[0]/(x[0]+x[1]);return'<div class="hbar"><i style="width:'+(p*100).toFixed(0)+'%;background:'+(p>=.55?"var(--green)":p<=.45?"var(--red)":"var(--flag)")+'"></i></div>'}
+function playerPast(team,player,label){var T=BT&&BT.teams&&BT.teams[team],P=T&&T.players&&T.players[player];return P&&P[label]?P[label]:null}
+function renderTeamHist(v,opp){
+  var el=$("teamHist");if(!el)return;var T=BT&&BT.teams&&BT.teams[v];
+  if(!T){el.innerHTML="";return}
+  var ss=(BT.seasons||[]).slice().sort(),yrs=!ss.length?"":ss.length===1?ss[0]:ss[0]+"–"+String(ss[ss.length-1]).slice(2);
+  var mk=Object.keys(T.props).sort(function(a,b){return(T.props[b][0]+T.props[b][1])-(T.props[a][0]+T.props[a][1])});
+  var rows=function(src){return mk.filter(function(k){return src&&src[k]}).map(function(k){return'<tr><td>'+esc(k)+'</td><td class="r">'+pctRec(src[k])+histBar(src[k])+'</td></tr>'}).join("")};
+  var vs=opp&&T.vs&&T.vs[opp];
+  var pl=Object.keys(T.players).map(function(n){var P=T.players[n],w=0,l=0;for(var k in P){w+=P[k][0];l+=P[k][1]}return{n:n,P:P,t:w+l,w:w}}).sort(function(a,b){return b.t-a.t}).slice(0,10);
+  var par=Object.keys(T.parlays||{}).map(function(k){var x=T.parlays[k];return'<tr><td>'+esc(k)+'</td><td class="r">'+x[1]+"–"+(x[0]-x[1])+' <small class="'+(x[2]>=0?"up":"dn")+'">'+(x[2]>=0?"+":"-")+"$"+Math.abs(x[2]).toFixed(0)+'</small></td></tr>'}).join("");
+  el.innerHTML='<h2>Past seasons '+yrs+'</h2><p class="sub">How '+esc(((ENG.teamSlips(v).g&&[ENG.teamSlips(v).g].map(function(g){var m=DATA.games[g.id]||{};return m.away===v?g.away:g.home})[0])||v))+' player props did on the books\' main lines (overs), replayed from real odds. '+(T.ats&&T.ats[0]+T.ats[1]?"Covered the spread in "+T.ats[0]+" of "+(T.ats[0]+T.ats[1])+" games.":"")+'</p>'+
+    '<div class="card"><h3>Props by market</h3><table class="ht">'+rows(T.props)+'</table></div>'+
+    (vs?'<div class="card"><h3>Against '+esc(opp)+'</h3><table class="ht">'+rows(vs)+'</table></div>':"")+
+    (par?'<div class="card"><h3>Their parlays, $10 each</h3><table class="ht">'+par+'</table></div>':"")+
+    (pl.length?'<div class="card"><h3>Players (overs on main lines)</h3><table class="ht">'+pl.map(function(x){return'<tr><td><b>'+esc(x.n)+'</b><br><small>'+Object.keys(x.P).map(function(k){return esc(k)+" "+x.P[k][0]+"–"+x.P[k][1]}).join(" · ")+'</small></td><td class="r">'+pctRec([x.w,x.t-x.w])+'</td></tr>'}).join("")+'</table></div>':"");
+}
+function renderBacktest(){
+  var el=$("resBack");if(!el)return;var R=BTR;if(!R||!R.cards||!R.cards.pieces.n){el.innerHTML="";return}
+  var yrs=Object.keys(R.seasons),c=R.cards,pc=function(x){return x.n?Math.round(100*x.w/x.n)+"%":"—"};
+  var sec=function(nm,x){return'<tr><td>'+nm+'</td><td class="r">'+x.w+" of "+x.n+" ("+pc(x)+')<br><small>books expected '+Math.round(100*x.book/x.n)+"% · we said "+Math.round(100*x.ours/x.n)+'%</small></td></tr>'};
+  var sl=Object.keys(R.slips).map(function(k){var x=R.slips[k];x.k=k;return x}).filter(function(x){return x.n>=10}).sort(function(a,b){return b.profit/b.n-a.profit/a.n});
+  var pb=Object.keys(R.legs.byP).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=R.legs.byP[k];return'<tr><td>We said '+k*10+"–"+(k*10+10)+'%</td><td class="r">hit '+Math.round(100*x.w/x.n)+'% <small>('+x.n+" legs)</small></td></tr>"}).join("");
+  el.innerHTML='<h2>Past seasons replay ('+(yrs.length>1?yrs[0]+"–"+yrs[yrs.length-1].slice(2):yrs[0])+')</h2><p class="sub">Every week rebuilt as it would have looked 1 hour before kickoff, with real FanDuel prices and only stats from games already played, then graded. '+Object.values(R.seasons).reduce(function(a,s){return a+s.games},0)+' games.</p>'+
+    '<div class="card"><h3>Report card sections</h3><table class="ht">'+sec("Pieces (safe overs)",c.pieces)+sec("Straights",c.straights)+sec("TDs",c.tds)+'</table></div>'+
+    '<div class="card"><h3>Parlay types, $10 each</h3><table class="ht">'+sl.map(function(x){return'<tr><td>'+esc(x.k)+'<br><small>'+x.n+' slips · we said '+Math.round(100*x.exp/x.n)+'%</small></td><td class="r">'+x.w+"–"+(x.n-x.w)+' <small class="'+(x.profit>=0?"up":"dn")+'">'+(x.profit>=0?"+":"-")+"$"+Math.abs(x.profit).toFixed(0)+'</small></td></tr>'}).join("")+'</table></div>'+
+    '<div class="card"><h3>Are our percentages honest?</h3><table class="ht">'+pb+'</table></div>';
 }
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
@@ -648,6 +690,7 @@ function renderTeam(){
   $("teamGame").innerHTML=r.g?gameCard(r.g,true):"";
   var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
   $("teamProps").innerHTML=tp.length?tp.map(propCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
+  var mm=r.g&&DATA&&DATA.games[r.g.id]||{};renderTeamHist(v,mm.away===v?mm.home:mm.away);
 }
 
 // ---------- results ----------
@@ -701,7 +744,7 @@ function renderMyBets(){
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="more" data-mydel="'+b.id+'">Delete</button></p></div>'}).join("");
 }
 function renderResults(){
-  renderMyBets();
+  renderMyBets();renderBacktest();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});
   if(!done.length){$("resSummary").innerHTML='<p class="empty">Nothing graded yet. This week\'s slips are saved and will be graded after the games, once box scores are posted.</p>'}
@@ -937,7 +980,7 @@ $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.re
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];renderAll();renderSync();setInterval(renderSync,60000)});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 </body>
 </html>

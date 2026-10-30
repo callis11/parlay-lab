@@ -221,6 +221,9 @@ function gradeLeg(l, games, stats) {
   // Learn from every graded leg in the gradebook; if there are none yet, use the slip legs
   const useBook = graded.legs.length > 0;
   if (useBook) for (const x of graded.legs) { const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n++; c.exp += x[1]; c.hits += x[2]; }
+  // NFL: past seasons from the backtest count too, at half weight so this season's results can still move things
+  const past = SPORT === "nfl" ? readJSON("backtest/graded-legs.json", { legs: [] }).legs : [];
+  for (const x of past) { const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n += 0.5; c.exp += 0.5 * x[1]; c.hits += 0.5 * x[2]; }
   for (const s of all) {
     if (!["won", "lost", "push"].includes(s.status)) continue;
     if (!useBook) for (const l of s.legs) {
@@ -236,7 +239,7 @@ function gradeLeg(l, games, stats) {
   }
   for (const k in byCat) {
     const c = byCat[k], m = c.exp / c.n;
-    c.rate = +(c.hits / c.n).toFixed(3); c.est = +m.toFixed(3);
+    c.rate = +(c.hits / c.n).toFixed(3); c.est = +m.toFixed(3); c.n = Math.round(c.n);
     if (c.n >= MIN_LEGS) c.factor = +Math.min(1.25, Math.max(0.75, ((c.hits + K * m) / (c.n + K)) / m)).toFixed(3);
   }
   for (const k in byStrategy) { const st = byStrategy[k]; st.profit = +st.profit.toFixed(2); st.roi = +(st.profit / (10 * st.n)).toFixed(3); }
