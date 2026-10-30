@@ -233,6 +233,15 @@ html:not(.nba) header{position:relative;z-index:0}
 html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;width:100vw;transform:translateX(-50%);top:-60px;bottom:-8px;
   background:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0 3px,transparent 3px 26px),linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.12));
   border-bottom:6px solid rgba(255,255,255,.18)}
+.hcar{margin:6px 0 16px}
+.htrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.htrack::-webkit-scrollbar{display:none}
+.htrack .hero{flex:0 0 100%;scroll-snap-align:center;margin:0}
+.hdots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.hdots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.hdots i.on{background:var(--flag);width:18px;border-radius:4px}
+.hcount{font-size:12px;color:var(--muted);font-weight:600}
+.hhint{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 0}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -330,6 +339,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 <section id="v-team" role="tabpanel" aria-labelledby="t-team" hidden>
   <h2>Team parlays</h2>
   <div class="filters"><select id="fTeam" aria-label="Team"></select></div>
+  <div id="teamHero"></div>
   <p class="sub" id="teamNote"></p>
   <div class="presets" id="pr-team"></div>
   <h2 id="teamGameH">This week's game</h2>
@@ -572,16 +582,35 @@ function heroCard(sp0){
     '<div class="go"><span class="sub" style="margin:0">'+(g.alt?esc(g.alt)+" line":esc((Engine.BOOK_NAMES[BOOK]||""))+" line")+'</span><button data-goto="'+esc(g.id)+'">Game page ›</button></div></div>';
 }
 // Spotlight: always the hometown team's game (Lions / Pistons / Michigan State); if they're off, the game of the week
-function spotlight(){
-  var now=Date.now(),o=Engine.OPTS[SPORT]||{},up=GAMES.filter(function(g){return+new Date(g.t)>now-3.5*36e5}).sort(function(a,b){return new Date(a.t)-new Date(b.t)});
-  if(!up.length)return null;
-  var mine=up.filter(function(g){var m=DATA&&DATA.games[g.id]||{};return m.away===o.featured||m.home===o.featured})[0];
-  if(mine)return{g:mine,lab:o.featuredName+" game"};
-  // Game of the week: tight spread + high total, from games in the next 7 days (NBA: tonight)
-  var lim=now+(SPORT==="nba"?24:7*24)*36e5,pool=up.filter(function(g){return+new Date(g.t)<lim});if(!pool.length)pool=up;
-  var best=null,bs=-1e9;pool.forEach(function(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});if(sc>bs){bs=sc;best=g}});
-  return{g:best,lab:SPORT==="nba"?"Game of the night":"Game of the week"};
+function gameScore(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});return sc}
+function isMine(g){var o=Engine.OPTS[SPORT]||{},m=DATA&&DATA.games[g.id]||{};return!!o.featured&&(m.away===o.featured||m.home===o.featured)}
+function topGame(list){var b=null,bs=-1e9;list.forEach(function(g){var sc=gameScore(g);if(sc>bs){bs=sc;b=g}});return b}
+// Spotlight carousel, following the slate chips:
+//  Everything: Lions (or game of the week) first, then every game in kickoff order
+//  Best of week: game of the week first, then the rest best-first
+//  A slate (Sun 1 PM): just those games, Lions first if they're in it, else that slate's top game
+//  The team chip: just the Lions game
+function heroList(S){
+  var now=Date.now(),o=Engine.OPTS[SPORT]||{},GOWL=SPORT==="nba"?"Game of the night":"Game of the week";
+  var up=GAMES.filter(function(g){return+new Date(g.t)>now-3.5*36e5}).sort(function(a,b){return new Date(a.t)-new Date(b.t)});
+  if(!up.length)return[];
+  var slateOf={};ENG.slates().forEach(function(sl){sl.g.forEach(function(g){slateOf[g.id]=sl.k})});
+  var lim=now+(SPORT==="nba"?24:7*24)*36e5,pool=up.filter(function(g){return+new Date(g.t)<lim}),gow=topGame(pool.length?pool:up),mine=up.filter(isMine)[0];
+  var out=[],seen={};function add(g,lab){if(g&&!seen[g.id]){seen[g.id]=1;out.push({g:g,lab:lab})}}
+  var lab=function(g){return isMine(g)?o.featuredName+" game":g===gow?GOWL:(slateOf[g.id]||"")};
+  var sel=S.filter(function(x){return x.id===PST.slate})[0];
+  if(sel&&sel.team){add(mine,lab(mine))}
+  else if(sel&&sel.games){var gs=sel.games.filter(function(g){return+new Date(g.t)>now-3.5*36e5});if(!gs.length)gs=sel.games;var f=gs.filter(isMine)[0]||topGame(gs);add(f,isMine(f)?lab(f):f===gow?GOWL:"Top game · "+(slateOf[f.id]||""));gs.forEach(function(g){add(g,lab(g))})}
+  else if(PST.slate==="best"){add(gow,GOWL);add(mine,lab(mine));up.slice().sort(function(a,b){return gameScore(b)-gameScore(a)}).forEach(function(g){add(g,lab(g))})}
+  else{add(mine||gow,mine?lab(mine):GOWL);if(mine)add(gow,GOWL);up.forEach(function(g){add(g,lab(g))})}
+  return out.slice(0,40);
 }
+function heroCarousel(list){
+  if(!list.length)return"";if(list.length===1)return heroCard(list[0]);
+  var n=list.length,dots=n<=14?'<div class="hdots">'+list.map(function(_,i){return'<i'+(i?"":' class="on"')+'></i>'}).join("")+'</div>':'<div class="hdots"><span class="hcount">1 of '+n+'</span></div>';
+  return'<div class="hcar"><div class="htrack">'+list.map(heroCard).join("")+'</div>'+dots+'<p class="hhint">Swipe for '+(n-1)+' more game'+(n>2?"s":"")+' ›</p></div>';
+}
+function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=Math.round(tr.scrollLeft/tr.clientWidth),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
 function renderParlays(){
   var S=slateList(),now=Date.now();
   // default: next slate that hasn't started, else Best
@@ -601,7 +630,7 @@ function renderParlays(){
   if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
   if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
-  $("pList").innerHTML=heroCard(spotlight())+html;
+  $("pList").innerHTML=heroCarousel(heroList(S))+html;wireCarousel();
   fitHero();
   var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
 }
@@ -615,6 +644,7 @@ function renderTeam(){
   var r=ENG.teamSlips(v);
   $("teamNote").textContent=r.g?"Same-game parlays from "+r.g.away+" at "+r.g.home+", so your book's payout will be lower than shown.":"No game this week.";
   renderPresetRow("pr-team",r.l,"t");
+  $("teamHero").innerHTML=r.g?heroCard({g:r.g,lab:(teams.filter(function(t){return t[0]===v})[0]||[,""])[1]+" game"}):"";if(r.g)fitHero();
   $("teamGame").innerHTML=r.g?gameCard(r.g,true):"";
   var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
   $("teamProps").innerHTML=tp.length?tp.map(propCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
