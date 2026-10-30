@@ -201,6 +201,19 @@ th{color:var(--muted);font-weight:600}
 .dots i.h{background:var(--green)}
 .rung .hit{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-right:8px}
 .rung[aria-pressed="true"] .hit{color:inherit}
+/* NBA: dark hardwood court */
+html.nba{--bg:#1A0F07;--surface:#2A190C;--surface2:#331F0F;--line:#4B311A;--muted:#C4AA8E}
+html.nba body{background:
+  radial-gradient(circle at 50% 760px,transparent 0 170px,rgba(255,255,255,.09) 170px 173px,transparent 174px),
+  linear-gradient(90deg,transparent calc(50% - 1.5px),rgba(255,255,255,.07) calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px)),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 44px,rgba(0,0,0,.18) 44px 46px),
+  repeating-linear-gradient(180deg,rgba(255,220,170,.025) 0 7px,transparent 7px 19px),
+  radial-gradient(1100px 520px at 50% -140px,#7A4319 0%,rgba(26,15,7,0) 72%),var(--bg);background-color:var(--bg)}
+html.nba .hero{background:
+  repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 38px,rgba(0,0,0,.16) 38px 40px),
+  radial-gradient(circle at 50% 118%,transparent 0 120px,rgba(255,255,255,.12) 120px 123px,transparent 124px),
+  linear-gradient(160deg,#5A3216 0%,#3A200D 55%,#2A170A 100%)}
+html.nba .hero:before{display:none}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -231,7 +244,7 @@ th{color:var(--muted);font-weight:600}
 </div></div>
 <div class="wrap">
 <header>
-  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">College</a></nav>
+  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a></nav>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs</h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
@@ -326,6 +339,7 @@ th{color:var(--muted);font-weight:600}
 <script>document.write('<script src="engine.js?v='+(((location.search.match(/[?&]r=(\d+)/)||[])[1])||Date.now().toString(36).slice(0,-4))+'"><\/script>')</script>
 <script>
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
+if(/[?&](nba|sport=nba)\b/.test(location.search))document.documentElement.classList.add("nba");
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":"nfl",DIR=SPORT==="nfl"?"":SPORT+"/";
 var SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
@@ -851,7 +865,7 @@ document.addEventListener("visibilitychange",function(){
 });
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
-if(SPORT==="cfb"){document.title="ParlayLabs · College football parlays";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
+if(SPORT==="cfb"){document.title="ParlayLabs · NCAAF parlays";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="nba"){document.title="ParlayLabs · NBA parlay builder";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
