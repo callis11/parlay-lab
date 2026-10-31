@@ -1378,8 +1378,18 @@ function renderTeam(){
     var srt={};Object.keys(D).sort().forEach(function(k){srt[k]=D[k]});D=Object.keys(srt).length?srt:null}
   if(D){var dsv=dv.value;dv.hidden=false;dv.innerHTML='<option value="">'+(COL?"All conferences":"All divisions")+'</option>'+Object.keys(D).map(function(k){return'<option>'+k+'</option>'}).join("");dv.value=dsv}else dv.hidden=true;
   var inDiv=function(m){return!D||!dv.value||D[dv.value].indexOf(m.away)>=0||D[dv.value].indexOf(m.home)>=0};
-  var list=GAMES.filter(function(g){var m=DATA&&DATA.games[g.id];return m&&+new Date(g.t)>now-3.5*36e5&&inDiv(m)}).sort(byRankTime);
-  var mineG=list.filter(isMine)[0];if(mineG)list=[mineG].concat(list.filter(function(g){return g!==mineG}));
+  // Card order: your team (if it plays in the next 5 days), else the game of the week; then the rest by kickoff time;
+  // games already under way after those; games more than 5 days out go last (your team first, then by interest)
+  var all=GAMES.filter(function(g){var m=DATA&&DATA.games[g.id];return m&&+new Date(g.t)>now-3.5*36e5&&inDiv(m)});
+  // kickoff order; games in the same kickoff window (within 30 minutes) go by interest
+  var slot=function(g){return Math.floor(+new Date(g.t)/18e5)};
+  var byInt=function(a,b){return slot(a)-slot(b)||gameScore(b)-gameScore(a)};
+  var up=function(g){return+new Date(g.t)>now},soon=function(g){return+new Date(g.t)-now<=5*864e5};
+  var near=all.filter(function(g){return soon(g)&&up(g)}).sort(byInt),started=all.filter(function(g){return!up(g)}).sort(byInt);
+  var far=all.filter(function(g){return!soon(g)}).sort(byInt),farMine=far.filter(isMine);
+  far=farMine.concat(far.filter(function(g){return!isMine(g)})); // your team leads the later games too
+  var lead=near.filter(isMine)[0]||(near.length?topGame(near):null);
+  var list=(lead?[lead]:[]).concat(near.filter(function(g){return g!==lead}),started,far);
   TEAMGAMES=list;
   var teams=[];list.forEach(function(g){var m=DATA.games[g.id];[[m.away,g.away],[m.home,g.home]].forEach(function(t){if(!D||!dv.value||D[dv.value].indexOf(t[0])>=0)teams.push(t)})});
   var seenT={};teams=teams.filter(function(t){if(seenT[t[0]])return false;seenT[t[0]]=1;return true});
