@@ -8,6 +8,9 @@ Read this first, then `README.md`. Everything lives in this repo (github.com/cal
 - Favorite teams (defaults): Lions (NFL), Pistons (NBA), Michigan State (NCAAF + NCAAB). Buddy's site is ladderup.io: never copy its name, wording ("ladder", "pieces") or branding; keep LadderUp's picks private.
 - Never paste API keys or tokens in chat. The Odds API key is the GitHub secret `ODDS_API_KEY`; the Cloudflare Worker uses the secret `GH_TOKEN`.
 
+## Growth plan
+Roadmap (college build-out, European soccer, budget by month, session sizing): https://claude.ai/artifact/R373PchkDZnEbX4weBQV4a — one feature per session, timed to the sports calendar; $59 late Aug to the Super Bowl, $30 otherwise.
+
 ## Where things are
 - `index.html`: the whole site (one file). Tabs: Parlays · Build · Players · Games · Results. Header: sport tabs; logo row with ↻ refresh, ★ My teams (per-sport favorite, saved per phone), ? tour.
 - `engine.js`: shared parlay engine (browser + Node). `build-data.js`: NFL data (exports `buildData` for point-in-time builds). `fetch-odds.js`: NFL odds pull. `picks.js`: records/grades slips, report cards, calibration (includes backtest legs at half weight for NFL).
