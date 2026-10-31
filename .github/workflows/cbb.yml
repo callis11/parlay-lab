@@ -1,4 +1,4 @@
-name: Refresh College Basketball
+name: Refresh College Basketball 
 on:
   # Main timer is Cloudflare (schedule.json). This daily run is a backup. Each odds pull costs about 3 credits (game lines only).
   schedule:
