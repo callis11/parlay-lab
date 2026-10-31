@@ -6,7 +6,7 @@ const fs = require("fs");
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
 const SEASON_START = "2026-10-01";   // current season (2026-27)
 const BACKFILL_FROM = "2025-10-20";  // all of last season: player history at each line, vs-opponent records, team records against the spread
-const LAST_N = 10, MIN_GAMES = 4, MAX_NEW_BOX = 400, MAX_NEW_LINES = 300;
+const LAST_N = 10, MIN_GAMES = 4, MAX_NEW_BOX = 700, MAX_NEW_LINES = 800;
 const TH = require("../teamhist.js");
 
 const MARKETS = {

@@ -114,7 +114,7 @@ function parse(j) {
   const todayET = etDate(Date.now()), dates = [];
   for (const k of ["cur", "prev"]) for (let d = new Date(SEASONS[k][0] + "T12:00:00Z"); etDate(d) <= SEASONS[k][1] && etDate(d) < todayET; d.setUTCDate(d.getUTCDate() + 1)) {
     const ds = etDate(d); if (!LH.scanned[ds]) dates.push([ds, k]); }
-  const scanNow = dates.slice(0, +(process.env.SCAN_MAX || 60));
+  const scanNow = dates.slice(0, +(process.env.SCAN_MAX || 120));
   for (const [ds, k] of scanNow) {
     try { parse(await getJSON(`${ESPN}/scoreboard?dates=${ds.replace(/-/g, "")}&groups=${GROUPS}&limit=500`)).forEach(g => { if (g.done) LH.g[g.id] = [g.d, k === "cur" ? 1 : 0, g.h.abbr, g.a.abbr, g.h.score, g.a.score]; });
       if (Date.now() - new Date(ds + "T12:00:00Z") > 3 * 864e5) LH.scanned[ds] = 1; } catch (e) { console.warn("season scan", ds, e.message); }
@@ -123,7 +123,7 @@ function parse(j) {
   all.filter(g => g.done).forEach(g => { if (!LH.g[g.id]) LH.g[g.id] = [g.d, g.d >= SEASONS.cur[0] ? 1 : 0, g.h.abbr, g.a.abbr, g.h.score, g.a.score]; });
   const soon = new Set(Object.values(games).flatMap(g => [g.away, g.home]));
   const needL = Object.keys(LH.g).filter(id => !LH.l[id]).sort((x, y) => { const X = LH.g[x], Y = LH.g[y], px = (X[1] ? 2 : 0) + (soon.has(X[2]) || soon.has(X[3]) ? 1 : 0), py = (Y[1] ? 2 : 0) + (soon.has(Y[2]) || soon.has(Y[3]) ? 1 : 0); return py - px || (Y[0] > X[0] ? 1 : -1); })
-    .slice(0, +(process.env.LINES_MAX || 350));
+    .slice(0, +(process.env.LINES_MAX || 900));
   let gotL = 0; const q = needL.slice();
   await Promise.all(Array.from({ length: 6 }, async () => { while (q.length) { const id = q.shift();
     try { const L = TH.espnLine(await getJSON(`${ESPN}/summary?event=${id}`)); LH.l[id] = [L.sp, L.tot]; gotL++; } catch (e) { /* try again next run */ } } }));
