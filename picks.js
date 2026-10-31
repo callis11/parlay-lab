@@ -198,7 +198,8 @@ function gradeLeg(l, games, stats) {
   const store = readJSON(DIR + "picks.json", { slips: {} });
   const cards = readJSON(DIR + "cards.json", { cards: {} });
   cards.book = readJSON(DIR + "gradebook.json", {});
-  const graded = readJSON(DIR + "graded-legs.json", { legs: [] }); // compact history of every graded leg: [category, estimate, won 1/0, time]
+  const graded = readJSON(DIR + "graded-legs.json", { legs: [] });
+  const finals = readJSON(DIR + "finals.json", { games: {} }); // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, estimate, won 1/0, time]
   if (process.env.RECORD === "true") { record(store); console.log("Report cards built:", buildCards(cards)); }
 
   const open = Object.values(store.slips).filter(s => !["won", "lost", "push"].includes(s.status) && s.lock <= now);
@@ -245,8 +246,16 @@ function gradeLeg(l, games, stats) {
     // Every rated leg: grade, keep only the compact result for learning
     for (const id of openBook) {
       const b = cards.book[id]; let pending = false; const out = [];
+      const gm = games[b.gid];
+      if (gm && gm.result !== "") { // final: keep the score (and each graded player's stat) so the site can grade anyone's bets on this game
+        const f = finals.games[id] = finals.games[id] || { t: b.t, props: {} };
+        f.hs = +gm.home_score; f.as = +gm.away_score;
+        if (gm.h1_home != null && gm.h1_away != null) { f.h1h = +gm.h1_home; f.h1a = +gm.h1_away; }
+      }
       for (const l of b.legs) {
         l.gid = b.gid; const r = gradeLeg(l, games, stats);
+        if (l.kind === "p" && finals.games[id] && (r === "won" || r === "lost" || r === "push")) finals.games[id].props[l.player + "|" + l.label] = l.actual;
+        if (l.kind === "p" && finals.games[id] && r === "void") finals.games[id].props[l.player + "|" + l.label] = null; // didn't play
         if (r === "pending") { pending = true; break; }
         if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t)]);
       }
@@ -297,6 +306,9 @@ function gradeLeg(l, games, stats) {
   fs.writeFileSync(DIR + "cards.json", JSON.stringify(cards));
   fs.writeFileSync(DIR + "gradebook.json", JSON.stringify(book));
   fs.writeFileSync(DIR + "graded-legs.json", JSON.stringify(graded));
+  for (const id in finals.games) if (+new Date(finals.games[id].t) < now - 45 * 864e5) delete finals.games[id];
+  finals.updated = new Date(now).toISOString();
+  fs.writeFileSync(DIR + "finals.json", JSON.stringify(finals));
   const counts = all.reduce((c, s) => (c[s.status] = (c[s.status] || 0) + 1, c), {});
   store.updated = new Date(now).toISOString();
   fs.writeFileSync(DIR + "picks.json", JSON.stringify(store));
