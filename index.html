@@ -413,7 +413,8 @@ select,input,textarea{font-size:max(16px,1em)}
 .b2r .bm b{font-size:15px}
 .tag2{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px;vertical-align:2px;color:var(--muted)}
 .bpc{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:700;line-height:1}
-.b2r .bx{width:30px;height:30px;font:inherit;font-weight:800;cursor:pointer}
+.b2r .bx{width:30px;height:30px;font:inherit;font-weight:800;cursor:pointer}.b2r .binfo{font-size:19px;color:var(--muted);background:transparent}.b2.open .binfo{background:var(--flag);color:var(--flag-ink);border-color:var(--flag)}
+.b2.on .b2r{background:rgba(255,255,255,.06)}.b2.on .bi{color:var(--flag);font-weight:800}
 .bwhy{padding:2px 12px 12px 42px;font-size:13px}
 .bhow{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
 .bfoot{font-size:12px;color:var(--muted);text-align:center;margin:8px 0}
@@ -1392,13 +1393,13 @@ function renderBuild(){
     var how=x.p?"We blend his recent games and his record at this line with the book's price (less history means more weight on the book), adjust for the defense, then check it against three past seasons.":"We take the book's price, remove its cut, and adjust it by how these bets did in past seasons.";
     return'<div class="bwhy">'+factGrid(keys,facts)+'<p class="bhow">'+how+'</p></div>'};
   $("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
-    var attrs=L.kind==="g"?'data-g="'+esc(x.g.id)+'" data-t="'+x.t+'"':'data-p="'+esc(x.p.id)+'" data-l="'+x.r.line+'"';
+    var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
     var nm=x.p?x.p.player:L.n,line=x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:"");
-    return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" data-bopen="'+esc(k)+'"><span class="bi">'+(i+1)+'</span>'+
+    return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
       '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small></span>'+
       '<span class="bpc" style="color:'+hitColor(L.p)+'">'+Math.round((L.p||0)*100)+'%</span>'+
-      '<button class="bx" '+attrs+' aria-pressed="'+on+'" aria-label="'+(on?"Remove from":"Add to")+' parlay">'+(on?"✓":"+")+'</button></div>'+
-      (open?why(x):"")+'</div>'}).join("")+'</div><p class="bfoot">Tap a row to see why it got its % · tap + to add it</p>'+
+      '<button class="bx binfo" data-bopen="'+esc(k)+'" aria-expanded="'+open+'" aria-label="Data and history">ⓘ</button></div>'+
+      (open?why(x):"")+'</div>'}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
     (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>';
   // live slip summary
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});
@@ -1818,7 +1819,7 @@ var TOUR=[
  ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks. <b>All green</b>, <b>Spread out</b> and <b>⚑ Red flag</b> tags tell you what's inside at a glance.","Estimates, not guarantees. They hold up over many bets, not one."],
  ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. The ParlayLabs Generator is here too, players only.","Tap any line to add it to your slip."],
  ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: the ParlayLabs Generator for that game, and parlays for either team or <b>Both</b>.","Tap ★ at the top to set your team for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
- ["🛠️","Build tab","Make your own parlay: every leg on the board ranked by our chance to hit, with its team, game and record since 2023. Filter by game or type (players, TDs, game lines) and tap + to add.<br><br>Your parlay sits at the top and updates live: honest %, payout, warnings for same-game legs, and <b>How we got this %</b>.","Open slip to bet sends it to FanDuel or DraftKings."],
+ ["🛠️","Build tab","Make your own parlay: every leg on the board ranked by our chance to hit, with its team, game and record since 2023. Filter by game or type (players, TDs, game lines) and tap a row to add it, or ⓘ for its data and history.<br><br>Your parlay sits at the top and updates live: honest %, payout, warnings for same-game legs, and <b>How we got this %</b>.","Open slip to bet sends it to FanDuel or DraftKings."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> starts with the weekly report card (new every Monday), then how our picks did, whether we beat the closing line, and your saved bets by app.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
@@ -1846,7 +1847,11 @@ window.addEventListener("hashchange",function(){$("panel").classList.remove("ope
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";renderTeam();renderSlip()});
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
-$("bList").addEventListener("click",function(e){if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;BLD.open=BLD.open===r.dataset.bopen?null:r.dataset.bopen;renderBuild()});
+$("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
+  if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
+  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L}
+  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=propLeg(p,q);if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else SLIP[L.k]=L}
+  renderSlip();renderBuild()});
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
 $("favBtn").onclick=favOpen;$("favCancel").onclick=function(){$("favs").hidden=true};$("favSave").onclick=favSave;
