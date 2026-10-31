@@ -820,6 +820,7 @@ function genBox(cx){
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
+      :cx==="ply"?'<div class="gen-row"><label>Games</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti" id="gMulti_ply"></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
       :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx!=="tm"?'<div class="gmulti" id="gMulti_'+cx+'" hidden></div>':""))+
     '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
     '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
@@ -828,6 +829,7 @@ function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+
 function genUI(cx){
   cx=cx||"par";genMount();var G=GENS[cx],x=function(id){return id+"_"+cx};
   [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"],["gSide","gt","side"]].forEach(function(a){document.querySelectorAll("#"+x(a[0])+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(G[a[2]]))})});
+  if(cx==="ply")plyGames(G);
   var sel=$(x("gGames"));
   if(sel){
     // older saves picked a team; switch them to that team's game
@@ -849,6 +851,22 @@ function genUI(cx){
     if(["a","h","both"].indexOf(G.side)<0)G.side="both";
     $("gSide_tm").innerHTML=rg?[["a",rg.away],["h",rg.home],["both","Both"]].map(function(b){return'<button data-cx="tm" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join(""):""}
   renderGenOut(cx);
+}
+// Players generator: game tiles. None picked = all games; one = that game (then pick a team); several = just those
+function plyGames(G){
+  var now=Date.now(),has={};PROPS.forEach(function(p){if(p.healthy)has[p.ev]=1});
+  var list=GAMES.filter(function(g){return+new Date(g.t)>now&&has[g.id]}).slice().sort(byRankTime);
+  if(G.games.slice(0,2)==="g:"&&!(G.multi||[]).length)G.multi=[G.games.slice(2)];
+  G.multi=(G.multi||[]).filter(function(id){return list.some(function(g){return g.id===id})});
+  G.games=!G.multi.length?"all":G.multi.length===1?"g:"+G.multi[0]:"multi";
+  var mb=$("gMulti_ply");if(!mb)return;
+  var tm=function(g){return new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})};
+  mb.innerHTML='<button data-gmall="ply" aria-pressed="'+!G.multi.length+'">All games<small>'+list.length+' with player lines</small></button>'+
+    list.map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="ply" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+tm(g)+'</small></button>'}).join("")+
+    '<p class="gm-h" style="flex-basis:100%;margin:2px 0 0">'+(G.multi.length?G.multi.length+" game"+(G.multi.length>1?"s":"")+" picked":"Using every game")+'</p>';
+  var row=$("gSideRow_ply"),one=G.multi.length===1&&list.filter(function(g){return g.id===G.multi[0]})[0];
+  if(row){row.hidden=!one;if(one){if(["a","h","both"].indexOf(G.side)<0)G.side="both";
+    $("gSide_ply").innerHTML=[["a",one.away],["h",one.home],["both","Both"]].map(function(b){return'<button data-cx="ply" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join("")}else G.side="both"}
 }
 // Each style targets a payout range and only uses legs with a real chance
 var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Safe"},bal:{lo:0.45,amin:-500,amax:200,dmin:2.0,dmax:4.2,name:"Balanced"},long:{lo:0.25,amin:-400,amax:450,dmin:5,dmax:12,name:"Long shot"}};
@@ -1739,6 +1757,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
+  else if(t.dataset.gmall){var G5=GENS[t.dataset.gmall];G5.multi=[];G5.games="all";G5.side="both";genSave(t.dataset.gmall,genSaved(t.dataset.gmall));genUI(t.dataset.gmall)}
   else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
   else if(t.dataset.bk!==undefined&&t.closest("#bKind")){BLD.kind=t.dataset.bk;BLD.n=50;renderBuild()}
   else if(t.id==="bMore"){BLD.n+=50;renderBuild()}
