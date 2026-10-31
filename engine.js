@@ -414,6 +414,6 @@
     return { f: f, pairs: out };
   }
 
-  var Engine = { make: make, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

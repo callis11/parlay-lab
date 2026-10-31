@@ -1378,12 +1378,17 @@ function renderTeam(){
     var srt={};Object.keys(D).sort().forEach(function(k){srt[k]=D[k]});D=Object.keys(srt).length?srt:null}
   if(D){var dsv=dv.value;dv.hidden=false;dv.innerHTML='<option value="">'+(COL?"All conferences":"All divisions")+'</option>'+Object.keys(D).map(function(k){return'<option>'+k+'</option>'}).join("");dv.value=dsv}else dv.hidden=true;
   var inDiv=function(m){return!D||!dv.value||D[dv.value].indexOf(m.away)>=0||D[dv.value].indexOf(m.home)>=0};
-  // Card order: your team (if it plays in the next 5 days), else the game of the week; then the rest by kickoff time;
+  // Card order: your team (if it plays in the next 5 days), else the game of the week; then the rest by kickoff window;
   // games already under way after those; games more than 5 days out go last (your team first, then by interest)
   var all=GAMES.filter(function(g){var m=DATA&&DATA.games[g.id];return m&&+new Date(g.t)>now-3.5*36e5&&inDiv(m)});
-  // kickoff order; games in the same kickoff window (within 30 minutes) go by interest
-  var slot=function(g){return Math.floor(+new Date(g.t)/18e5)};
-  var byInt=function(a,b){return slot(a)-slot(b)||gameScore(b)-gameScore(a)};
+  // Kickoff windows in time order (NFL: 1 PM, 4 PM, night; college: Noon, 3:30, night; basketball: each half hour).
+  // Inside a window: college by the highest AP ranking, NFL and NBA by the best matchup.
+  var win=function(g){return SPORT==="nfl"?Engine.slateName(g.t):SPORT==="cfb"?Engine.cfbSlate(g.t)+" "+new Date(g.t).toLocaleDateString("en-US",{timeZone:"America/New_York"}):String(Math.floor(+new Date(g.t)/18e5))};
+  var wStart={};all.forEach(function(g){var k=win(g),t=+new Date(g.t);if(!(k in wStart)||t<wStart[k])wStart[k]=t});
+  var ranks=function(g){var r=[g.away,g.home].map(function(n){var m=/^#(\d+)/.exec(n||"");return m?+m[1]:99}).sort(function(x,y){return x-y});return r};
+  var byInt=function(a,b){var d=wStart[win(a)]-wStart[win(b)];if(d)return d;
+    if(COL){var ra=ranks(a),rb=ranks(b);if(ra[0]!==rb[0])return ra[0]-rb[0];if(ra[1]!==rb[1])return ra[1]-rb[1]}
+    return gameScore(b)-gameScore(a)};
   var up=function(g){return+new Date(g.t)>now},soon=function(g){return+new Date(g.t)-now<=5*864e5};
   var near=all.filter(function(g){return soon(g)&&up(g)}).sort(byInt),started=all.filter(function(g){return!up(g)}).sort(byInt);
   var far=all.filter(function(g){return!soon(g)}).sort(byInt),farMine=far.filter(isMine);
