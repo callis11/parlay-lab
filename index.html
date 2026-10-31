@@ -360,6 +360,9 @@ header{position:relative}
 .ttip{font-size:13px!important;color:var(--muted)!important;border-left:3px solid var(--flag);padding-left:10px}
 .tnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
 .tnav .hdots{margin:0}
+/* iPhone: no zoom on quick repeated taps, and form fields at 16px so focusing them never zooms */
+html,body,button,a,select,summary,.flip,.rung,.pick{touch-action:manipulation}
+select,input,textarea{font-size:max(16px,1em)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
