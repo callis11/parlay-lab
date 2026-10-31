@@ -851,7 +851,7 @@ var GENCX={par:{key:"gen_",title:"⚡ ParlayLabs Generator",sub:"Pick a few thin
   tm:{key:"gent_",title:"⚡ ParlayLabs Generator",sub:"Builds one from the game on the card above"}};
 var GENS={};
 ["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
-  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi"&&GENS[cx].games.slice(0,2)!=="g:")GENS[cx].games="all"}}catch(e){}});
+  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi"&&GENS[cx].games.slice(0,2)!=="g:")GENS[cx].games="all"}}catch(e){};if(COL)GENS[cx].kind="g"});
 var GEN=GENS.par;
 function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}").last||[]}catch(e){return[]}}
 function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
@@ -860,7 +860,7 @@ function genBox(cx){
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
     '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'</div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
-    (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
+    (cx==="ply"||COL?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
       :cx==="ply"?'<div class="gen-row"><label>Markets</label><button class="mksel" id="gMktBtn_ply" data-gmkopen="1" aria-expanded="false"><span id="gMktTxt_ply">All markets</span><svg viewBox="0 0 12 18" width="11" height="17" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="mkpanel" id="gMkt_ply" hidden></div>'+
       '<div class="gen-row"><label>Side</label><div class="seg" id="gOU_ply"><button data-cx="ply" data-gou="both">Both</button><button data-cx="ply" data-gou="over">Overs</button><button data-cx="ply" data-gou="under">Unders</button></div></div>'+
@@ -1107,7 +1107,7 @@ function teamNote(){
 }
 // Tag the three standouts: Safest (highest chance), Best value (estimate beats price most), Big payout (biggest odds that still has a real chance)
 function rankSlips(raw){
-  var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||x.kind===PST.kind)});
+  var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||COL||x.kind===PST.kind)});
   var used={},top=[];
   function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||x.weak||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
   pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null&&!x.F.red.length});
@@ -1464,6 +1464,9 @@ function renderTeamLower(){
 }
 
 // ---------- Build tab: pick your own legs from a ranked list ----------
+// College is game lines only (no type filters); NBA has no TDs
+if(COL){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
+else if(SPORT==="nba"){var _td=document.querySelector('#bKind [data-bk="td"]');if(_td)_td.hidden=true}
 var BLD={kind:"",game:"",sort:"p",n:50,multi:[]};
 function bGameOk(id){return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BLD.multi.indexOf(id)>=0):id===BLD.game)}
 function buildRows(){
