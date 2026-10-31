@@ -395,7 +395,8 @@ header{position:relative}
   <button class="helpq" id="helpBtn" aria-label="How to use ParlayLabs">?</button><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
-  <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
+  <p style="margin-top:10px" class="hpick"><label for="myTeam">★ My team </label><select id="myTeam"></select></p>
+  <p style="margin-top:6px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
 
 <div class="tabs" role="tablist">
@@ -510,6 +511,22 @@ function when(iso){return new Date(iso).toLocaleString("en-US",{weekday:"short",
 
 // ---------- games (logic lives in engine.js, shared with the grader) ----------
 var ENG=null;
+// My team: each person's favorite per sport, saved on their device (default Lions / Pistons / Michigan State)
+var DEFAULT_FAV={team:(Engine.OPTS[SPORT]||{}).featured,name:(Engine.OPTS[SPORT]||{}).featuredName};
+(function(){try{var f=JSON.parse(localStorage.getItem("fav_"+SPORT)||"null");if(f&&f.team&&Engine.OPTS[SPORT]){Engine.OPTS[SPORT].featured=f.team;Engine.OPTS[SPORT].featuredName=f.name}}catch(e){}})();
+function renderMyTeam(){
+  var sel=$("myTeam"),o=Engine.OPTS[SPORT]||{},seen={},list=[];if(!sel)return;
+  var bare=function(n){return String(n).replace(/^#\d+\s+/,"")};
+  GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(!m)return;[[m.away,g.away],[m.home,g.home]].forEach(function(t){if(!seen[t[0]]){seen[t[0]]=1;list.push([t[0],bare(t[1])])}})});
+  if(o.featured&&!seen[o.featured])list.push([o.featured,o.featuredName]);
+  list.sort(function(a,b){return a[1].localeCompare(b[1])});
+  sel.innerHTML=list.map(function(t){return'<option value="'+esc(t[0])+'">'+esc(t[1])+(t[0]===DEFAULT_FAV.team?" (default)":"")+'</option>'}).join("");sel.value=o.featured||"";
+}
+function setMyTeam(abbr){
+  var o=Engine.OPTS[SPORT];if(!o)return;var nm=($("myTeam").selectedOptions[0]||{}).textContent||abbr;nm=nm.replace(/ \(default\)$/,"");
+  o.featured=abbr;o.featuredName=nm;try{localStorage.setItem("fav_"+SPORT,JSON.stringify({team:abbr,name:nm}))}catch(e){}
+  TEAM=abbr;TGAME=null;renderAll();toast("★ "+nm+" is your team for "+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT]+".")
+}
 function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now(),Object.assign({},Engine.OPTS[SPORT],{calib:CALIB}));GAMES=ENG.G;PROPS=ENG.P}
 function gkey(g,t){return ENG.gkey(g,t)}
 function gameLeg(g,t){return ENG.gameLeg(g,t)}
@@ -1378,7 +1395,7 @@ function renderSync(){
 }
 
 function renderAll(){
-  build();renderGames();renderProps();
+  build();renderMyTeam();renderGames();renderProps();
   renderParlays();renderTeam();renderResults();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
@@ -1465,7 +1482,7 @@ var TOUR=[
  ["⚡","Parlays tab","<b>Parlay generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
  ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks.","Estimates, not guarantees. They hold up over many bets, not one."],
  ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. There's a player-only generator here too.","Tap any line to add it to your slip."],
- ["🔄","Teams tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Your team (Lions, Pistons, Michigan State) comes first. When they're off, it's the game of the week."],
+ ["🔄","Teams tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Pick ★ My team at the top for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> shows how our picks did, your saved bets by app, and the past-seasons report card.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
@@ -1493,6 +1510,7 @@ window.addEventListener("hashchange",function(){$("panel").classList.remove("ope
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";renderTeam();renderSlip()});
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
+$("myTeam").addEventListener("change",function(){setMyTeam($("myTeam").value)});
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
