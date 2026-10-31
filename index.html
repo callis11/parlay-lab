@@ -547,9 +547,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <div id="mySec"><h2>My bets</h2>
   <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
   <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
-    <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the legs, odds and wager show, then pick the screenshot here. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
-    <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <span class="sub" id="shotStat"></span>
-    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Or paste the text</summary><p class="sub">In Photos, press and hold the screenshot, tap Copy All, and paste it here.</p>
+    <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the legs, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
+    <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <button class="btn" id="shotPaste">📋 Paste screenshot</button> <span class="sub" id="shotStat"></span>
+    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Or paste the text</summary><p class="sub">Paste a copied screenshot here, or the text from it (in Photos, press and hold the screenshot, tap Copy All).</p>
     <textarea id="shotTxt" rows="3" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea><button class="btn" id="shotGo" style="margin-top:6px">Read it</button></details>
     <div id="shotOut"></div></div>
   <div id="myBets"></div>
@@ -1847,6 +1847,17 @@ async function shotFiles(files){
     st.textContent=""}
   catch(e){st.textContent="";toast("Couldn't read that screenshot. Check your connection and try again, or use Paste text.",true);if(window.console)console.error(e)}
   var inp=$("shotIn");if(inp)inp.value=""}
+// Paste a copied screenshot: the button reads the clipboard (the phone shows a small Paste bubble to allow it); pasting into the box works too
+async function shotPasteBtn(){
+  try{if(!navigator.clipboard||!navigator.clipboard.read)throw 0;var items=await navigator.clipboard.read(),imgs=[];
+    for(var i=0;i<items.length;i++){var ty=items[i].types.filter(function(t){return/^image\//.test(t)})[0];if(ty)imgs.push(await items[i].getType(ty))}
+    if(imgs.length){shotFiles(imgs);return}
+    var tx=items.some(function(x){return x.types.indexOf("text/plain")>=0})?await navigator.clipboard.readText():"";
+    if(tx.trim()){shotRead(tx);return}
+    toast("No screenshot on the clipboard. Copy one first (tap the screenshot, Share, Copy).",true)}
+  catch(e){toast("Couldn't read the clipboard here. Open \"Or paste\" below and paste into the box, or use Pick screenshots.",true)}}
+document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
+  var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
 document.addEventListener("change",function(e){if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files)});
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();
@@ -2043,6 +2054,7 @@ document.addEventListener("click",function(e){
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="shotPaste"){shotPasteBtn()}
   else if(t.id==="shotGo"){shotRead($("shotTxt").value);$("shotTxt").value=""}
   else if(t.dataset.shotsave!==undefined){shotSave(+t.dataset.shotsave)}
   else if(t.dataset.shotskip!==undefined){SHOT.bets.splice(+t.dataset.shotskip,1);renderShot()}
