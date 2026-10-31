@@ -1898,10 +1898,13 @@ $("stake").addEventListener("input",renderSlip);
 // Works inside the home-screen app, where pull-to-refresh isn't available.
 $("refreshBtn").addEventListener("click",function(){
   var b=$("refreshBtn");b.disabled=true;b.classList.add("spin");toast("Refreshing…");
-  var files=[location.pathname,"engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json"];
+  var files=[location.pathname,location.pathname+"?nba",location.pathname+"?cfb",location.pathname+"?cbb","engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json"];
   Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
     var u=location.pathname+location.search.replace(/[?&]r=\d+/,"");u+=(u.indexOf("?")<0?"?":"&")+"r="+Date.now();location.replace(u+location.hash)});
 });
+// Sport tabs always open the newest version of the page (each sport is its own address, so the phone could show an older saved copy)
+document.querySelectorAll(".sport a").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();
+  var q=a.getAttribute("href").replace("./","");location.href=location.pathname+(q?q+"&":"?")+"r="+Date.now()})});
 // When the home-screen app is reopened after a while, quietly pull fresh data
 var lastLoad=Date.now();
 document.addEventListener("visibilitychange",function(){
