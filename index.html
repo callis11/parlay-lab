@@ -719,10 +719,14 @@ var HOOPS=SPORT==="nba"||SPORT==="cbb";
 function icoKey(l){
   if(l.kind==="g"){var t0=l.t.replace(/^1/,""),t=t0.slice(0,2);return t==="ml"?"mltxt":t==="sp"?"stxt":t0==="ov"?"otxt":"utxt"}
   var b=(l.label||"").toLowerCase();
+  if(SPORT!=="nba"&&/sack|tackle|assist|def int|field goal|kicking/.test(b))return"fb";if(/completion|interceptions thrown/.test(b))return"pass";
   if(l.td||/touchdown|td/.test(b))return"td";if(/pass/.test(b))return"pass";if(/rush/.test(b)&&!/rec/.test(b))return"rush";if(/rec/.test(b))return"rec";
   if(/three|3/.test(b))return"three";if(/rebound/.test(b))return"reb";if(/assist/.test(b))return"ast";return SPORT==="nba"?"bb":"fb";
 }
-var PMAP=null;function pmap(){if(!PMAP||PMAP._n!==PROPS){PMAP={_n:PROPS};PROPS.forEach(function(p){PMAP["P|"+p.id]=p})}return PMAP}
+var PMAP=null;function pmap(){if(!PMAP||PMAP._n!==PROPS){PMAP={_n:PROPS};PROPS.forEach(function(p){PMAP["P|"+p.id]=p;PMAP["P|"+p.id+"|u"]=p})}return PMAP}
+// A rung's record from the leg's side: unders flip the counts (no pushes on .5 lines)
+function sideRec(l,r){var u=l.side==="under";return{hits:u?r.n-r.hits:r.hits,n:r.n,since:r.since?(u?[r.since[1]-r.since[0],r.since[1]]:r.since):null,word:u?"Stayed under in ":(l.td?"Scored in ":"Hit it in ")}}
+function vsRec(l,v){return l.side==="under"?[v[1],v[0]]:v}
 function legTeam(l){
   if(l.kind==="p"){var p=pmap()[l.k];return p&&p.team||""}
   var m=DATA&&DATA.games[l.ev]||{};return /-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"";
@@ -735,8 +739,8 @@ function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,"")}
 // Past-season record for one leg: the player's main-line record for that stat, or the team's spread / over-under record
 function legHist(l){
   if(SPORT!=="nfl"||!BT||!BT.teams)return"";
-  if(l.kind==="p"){var pp=pmap()[l.k],rg=pp&&pp.rungs.filter(function(r){return r.line===l.line})[0],sc=(rg&&rg.since)||l.since;
-    return sc&&sc[1]>=4?(l.td?"Scored in ":"Hit "+(l.line+0.5)+"+ in ")+sc[0]+" of "+sc[1]+" games since 2023":""}
+  if(l.kind==="p"){var pp=pmap()[l.k],rg=pp&&pp.rungs.filter(function(r){return r.line===l.line})[0],sc=rg?sideRec(l,rg).since:l.since;
+    return sc&&sc[1]>=4?(l.td?"Scored in ":l.side==="under"?"Under "+l.line+" in ":"Hit "+(l.line+0.5)+"+ in ")+sc[0]+" of "+sc[1]+" games since 2023":""}
   var tm=legTeam(l),T=tm&&BT.teams[tm],m=DATA&&DATA.games[l.ev]||{};
   if(/^sp|^ml/.test(l.t)&&T&&T.ats[0]+T.ats[1])return tm+" "+T.ats[0]+"–"+T.ats[1]+" against the spread since 2021";
   if((l.t==="ov"||l.t==="un")&&BT.teams[m.away]&&BT.teams[m.home]){var a=BT.teams[m.away].ou,h=BT.teams[m.home].ou;return"Overs: "+m.away+" "+a[0]+"–"+a[1]+", "+m.home+" "+h[0]+"–"+h[1]+" since 2021"}
@@ -820,7 +824,9 @@ function genBox(cx){
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
-      :cx==="ply"?'<div class="gen-row"><label>Games</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti" id="gMulti_ply"></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
+      :cx==="ply"?'<div class="gen-row"><label>Markets</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti mkchips" id="gMkt_ply"></div>'+
+      '<div class="gen-row"><label>Side</label><div class="seg" id="gOU_ply"><button data-cx="ply" data-gou="both">Both</button><button data-cx="ply" data-gou="over">Overs</button><button data-cx="ply" data-gou="under">Unders</button></div></div>'+
+      '<div class="gen-row"><label>Games</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti" id="gMulti_ply"></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
       :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx!=="tm"?'<div class="gmulti" id="gMulti_'+cx+'" hidden></div>':""))+
     '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
     '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
@@ -829,7 +835,7 @@ function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+
 function genUI(cx){
   cx=cx||"par";genMount();var G=GENS[cx],x=function(id){return id+"_"+cx};
   [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"],["gSide","gt","side"]].forEach(function(a){document.querySelectorAll("#"+x(a[0])+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(G[a[2]]))})});
-  if(cx==="ply")plyGames(G);
+  if(cx==="ply"){plyMarkets(G);plyGames(G)}
   var sel=$(x("gGames"));
   if(sel){
     // older saves picked a team; switch them to that team's game
@@ -853,6 +859,16 @@ function genUI(cx){
   renderGenOut(cx);
 }
 // Players generator: game tiles. None picked = all games; one = that game (then pick a team); several = just those
+// Players generator: market chips (none picked = every market) and overs / unders
+function plyMarkets(G){
+  var now=Date.now(),cnt={},order=[];G.mk=G.mk||[];if(["both","over","under"].indexOf(G.ou)<0)G.ou="both";
+  PROPS.forEach(function(p){if(!p.healthy||+new Date(p.g.t)<=now)return;var k=Engine.marketGroup(SPORT,p.label,p.td);if(!(k in cnt)){cnt[k]=0;order.push(k)}cnt[k]++});
+  var ref=[];(Engine.MARKET_GROUPS[SPORT]||[]).forEach(function(x){if(x[0] in cnt)ref.push(x[0])});order.forEach(function(k){if(ref.indexOf(k)<0)ref.push(k)});
+  G.mk=G.mk.filter(function(k){return k in cnt});
+  var mb=$("gMkt_ply");if(mb)mb.innerHTML='<button data-gmkall="1" aria-pressed="'+!G.mk.length+'">All markets<small>'+ref.length+' types</small></button>'+
+    ref.map(function(k){return'<button data-gmk="'+esc(k)+'" aria-pressed="'+(G.mk.indexOf(k)>=0)+'">'+esc(k)+'<small>'+cnt[k]+' player'+(cnt[k]>1?"s":"")+'</small></button>'}).join("");
+  document.querySelectorAll("#gOU_ply button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.gou===G.ou))});
+}
 function plyGames(G){
   var now=Date.now(),has={};PROPS.forEach(function(p){if(p.healthy)has[p.ev]=1});
   var list=GAMES.filter(function(g){return+new Date(g.t)>now&&has[g.id]}).slice().sort(byRankTime);
@@ -884,7 +900,11 @@ function genPool(cx){
   var only=cx==="tm"?(gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null):(G.games.slice(0,2)==="g:"&&gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null);
   var st=STYLE[G.style],out=[];
   if(G.kind!=="p")gl.forEach(function(g){GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
-  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;p.rungs.forEach(function(r){
+  var mk=cx==="ply"&&G.mk&&G.mk.length?G.mk:null,ou=cx==="ply"?G.ou||"both":"over";
+  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(Engine.marketGroup(SPORT,p.label,p.td))<0)return;p.rungs.forEach(function(r){
+    if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
+      out.push({leg:UL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pu),info:Engine.legInfo(UL,gmeta(p.ev))})}}
+    if(ou==="under")return;
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
     // Trust a leg less when its record at this exact line since 2023 is worse than our estimate
     var pe=r.p;if(r.since&&r.since[1]>=8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
@@ -941,10 +961,10 @@ function genFactor(n){var w=0,e=0;if(BTR&&BTR.slips)for(var k in BTR.slips){var 
 function legWhy(x){
   var L=x.leg,p=x.p,r=x.r,bits=[];
   if(L.kind==="p"){
-    bits.push("Hit "+r.hits+" of last "+r.n);
-    if(r.since&&r.since[1]>r.n)bits.push(r.since[0]+" of "+r.since[1]+" since 2023");
+    var sr=sideRec(L,r);bits.push((L.side==="under"?"Under in ":"Hit ")+sr.hits+" of last "+sr.n);
+    if(sr.since&&sr.since[1]>sr.n)bits.push(sr.since[0]+" of "+sr.since[1]+" since 2023");
     var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
-    if(v&&v[0]+v[1]>=2)bits.push("vs "+p.opp+" "+v[0]+" of "+(v[0]+v[1])+" overs");
+    if(v&&v[0]+v[1]>=2){var vv=vsRec(L,v);bits.push("vs "+p.opp+" "+vv[0]+" of "+(vv[0]+vv[1])+(L.side==="under"?" unders":" overs"))}
     if(p.oppF>=1.04)bits.push("soft "+p.opp+" defense");else if(p.oppF&&p.oppF<=0.96)bits.push("tough "+p.opp+" defense");
     if(p.avg!==null&&!p.td)bits.push("averages "+p.avg);
   }else{
@@ -1024,9 +1044,9 @@ function slipFlags(legs){
     if(l.kind==="p"){var pp=pmap()[l.k];
       if(pp){if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
-        if(r&&r.since&&r.since[1]>=8&&l.p!=null&&r.since[0]/r.since[1]<l.p-0.15)red.push(pp.player+" cleared this line only "+r.since[0]+" of "+r.since[1]+" games since 2023");
+        var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&rs[0]/rs[1]<l.p-0.15)red.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games since 2023");
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
-        if(!l.td&&v&&v[0]+v[1]>=4&&v[0]/(v[0]+v[1])<0.3)red.push(pp.player+" went over only "+v[0]+" of "+(v[0]+v[1])+" times vs "+pp.opp)}
+        if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)red.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
       if(l.player){if(who[l.player])red.push("two legs on "+l.player+" move together");who[l.player]=1}}
     else{var mv=lineMove(l,gmeta(l.ev));if(mv<=-1.5)red.push(l.n+": the line has moved "+Math.abs(mv)+" points against this side since it opened")}
   });
@@ -1129,11 +1149,11 @@ function legBreakdown(l){
   var pct=function(x){return Math.round(x*100)+"%"},imp=1/dec(l.a),lines=[],src=[];
   if(l.kind==="p"){
     var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0];
-    if(r){src.push((l.td?"Scored in ":"Hit it in ")+r.hits+" of his last "+r.n+" games");
-      if(r.since&&r.since[1]>r.n)src.push(r.since[0]+" of "+r.since[1]+" games since 2023");
-      if(pp.oppF>=1.04)src.push(pp.opp+" give up more than average here, so we nudged it up");else if(pp.oppF&&pp.oppF<=0.96)src.push(pp.opp+" are tough here, so we nudged it down");
+    if(r){var sr=sideRec(l,r);src.push(sr.word+sr.hits+" of his last "+sr.n+" games");
+      if(sr.since&&sr.since[1]>sr.n)src.push(sr.since[0]+" of "+sr.since[1]+" games since 2023");
+      var U=l.side==="under";if(pp.oppF>=1.04)src.push(pp.opp+" give up more than average here, so we nudged it "+(U?"down":"up"));else if(pp.oppF&&pp.oppF<=0.96)src.push(pp.opp+" are tough here, so we nudged it "+(U?"up":"down"));
       if(pp.windF&&pp.windF<1)src.push("wind expected, so lowered");
-      var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];if(v&&v[0]+v[1]>=2)src.push("vs "+pp.opp+" in past seasons: "+v[0]+" of "+(v[0]+v[1])+" overs")}
+      var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];if(v&&v[0]+v[1]>=2){var vv=vsRec(l,v);src.push("vs "+pp.opp+" in past seasons: "+vv[0]+" of "+(vv[0]+vv[1])+(l.side==="under"?" unders":" overs"))}}
   }else{
     var m=DATA.games[l.ev]||{},tm=/-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"",T2=BT&&BT.teams&&BT.teams[tm];
     src.push("the book's price with its cut removed says "+pct(l.p0||l.p));
@@ -1757,6 +1777,9 @@ document.addEventListener("click",function(e){
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
+  else if(t.dataset.gmkall){GENS.ply.mk=[];genSave("ply",genSaved("ply"));genUI("ply")}
+  else if(t.dataset.gmk){var mk2=GENS.ply.mk=GENS.ply.mk||[],i2=mk2.indexOf(t.dataset.gmk);if(i2>=0)mk2.splice(i2,1);else mk2.push(t.dataset.gmk);genSave("ply",genSaved("ply"));genUI("ply")}
+  else if(t.dataset.gou){GENS.ply.ou=t.dataset.gou;genSave("ply",genSaved("ply"));genUI("ply")}
   else if(t.dataset.gmall){var G5=GENS[t.dataset.gmall];G5.multi=[];G5.games="all";G5.side="both";genSave(t.dataset.gmall,genSaved(t.dataset.gmall));genUI(t.dataset.gmall)}
   else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
   else if(t.dataset.bk!==undefined&&t.closest("#bKind")){BLD.kind=t.dataset.bk;BLD.n=50;renderBuild()}

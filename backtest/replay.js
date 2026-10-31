@@ -27,8 +27,8 @@ function grade(l, g, rows) {
   const r = (rows || []).find(x => norm(x.player_display_name) === norm(l.player));
   if (!r) return "void";
   const v = l.td ? (+r.rushing_tds || 0) + (+r.receiving_tds || 0)
-    : ({ "Passing yards": +r.passing_yards, "Rushing yards": +r.rushing_yards, "Receiving yards": +r.receiving_yards, "Receptions": +r.receptions,
-        "Passing TDs": +r.passing_tds, "Rush + rec yards": (+r.rushing_yards || 0) + (+r.receiving_yards || 0) })[l.label];
+    : (Engine.NFL_STAT[l.label] ? Engine.NFL_STAT[l.label](r) : undefined);
+  if (v === undefined || isNaN(v)) return "void";
   l.actual = v;
   if (l.side === "under") return v < l.line ? "won" : v > l.line ? "lost" : "push";
   return v > l.line ? "won" : "lost";

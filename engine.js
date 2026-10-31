@@ -8,8 +8,34 @@
   var BOOK_NAMES = { fanduel: "FanDuel", draftkings: "DraftKings", betmgm: "BetMGM", betrivers: "BetRivers" };
   function unit(label, n) {
     return { "Passing yards": "passing yds", "Rushing yards": "rushing yds", "Receiving yards": "receiving yds", "Receptions": n === 1 ? "reception" : "receptions", "Passing TDs": n === 1 ? "passing TD" : "passing TDs", "Rush + rec yards": "rush + rec yds",
+      "Pass attempts": n === 1 ? "pass attempt" : "pass attempts", "Completions": n === 1 ? "completion" : "completions", "Interceptions thrown": n === 1 ? "INT thrown" : "INTs thrown",
+      "Rush attempts": n === 1 ? "carry" : "carries", "Rushing TDs": n === 1 ? "rushing TD" : "rushing TDs", "Receiving TDs": n === 1 ? "receiving TD" : "receiving TDs", "Rush + rec TDs": n === 1 ? "rush + rec TD" : "rush + rec TDs",
+      "Pass + rush + rec yards": "pass + rush + rec yds", "Sacks": n === 1 ? "sack" : "sacks", "Solo tackles": n === 1 ? "solo tackle" : "solo tackles", "Tackles + assists": "tackles + assists", "Tackle assists": n === 1 ? "tackle assist" : "tackle assists",
+      "Def interceptions": n === 1 ? "interception" : "interceptions", "Field goals": n === 1 ? "field goal" : "field goals", "Kicking points": n === 1 ? "kicking point" : "kicking points",
       "Points": n === 1 ? "point" : "points", "Rebounds": n === 1 ? "rebound" : "rebounds", "Assists": n === 1 ? "assist" : "assists", "Threes": n === 1 ? "three" : "threes", "Pts + reb + ast": "pts + reb + ast" }[label] || label.toLowerCase();
   }
+  // ---------- NFL stat for each prop market, from an nflverse weekly player row (shared by build-data, picks and the backtest) ----------
+  function n0(x) { return +x || 0; }
+  var NFL_STAT = {
+    "Passing yards": function (r) { return n0(r.passing_yards); }, "Rushing yards": function (r) { return n0(r.rushing_yards); }, "Receiving yards": function (r) { return n0(r.receiving_yards); },
+    "Receptions": function (r) { return n0(r.receptions); }, "Passing TDs": function (r) { return n0(r.passing_tds); }, "Rush + rec yards": function (r) { return n0(r.rushing_yards) + n0(r.receiving_yards); },
+    "Anytime TD": function (r) { return n0(r.rushing_tds) + n0(r.receiving_tds); },
+    "Pass attempts": function (r) { return n0(r.attempts); }, "Completions": function (r) { return n0(r.completions); }, "Interceptions thrown": function (r) { return n0(r.passing_interceptions); },
+    "Rush attempts": function (r) { return n0(r.carries); }, "Rushing TDs": function (r) { return n0(r.rushing_tds); }, "Receiving TDs": function (r) { return n0(r.receiving_tds); },
+    "Rush + rec TDs": function (r) { return n0(r.rushing_tds) + n0(r.receiving_tds); }, "Pass + rush + rec yards": function (r) { return n0(r.passing_yards) + n0(r.rushing_yards) + n0(r.receiving_yards); },
+    "Sacks": function (r) { return n0(r.def_sacks); }, "Solo tackles": function (r) { return n0(r.def_tackles_solo); },
+    "Tackles + assists": function (r) { return n0(r.def_tackles_solo) + n0(r.def_tackles_with_assist) + n0(r.def_tackle_assists); },
+    "Tackle assists": function (r) { return n0(r.def_tackles_with_assist) + n0(r.def_tackle_assists); }, "Def interceptions": function (r) { return n0(r.def_interceptions); },
+    "Field goals": function (r) { return n0(r.fg_made); }, "Kicking points": function (r) { return 3 * n0(r.fg_made) + n0(r.pat_made); }
+  };
+  // Market groups for the Players generator's market picker (any label not listed gets its own chip)
+  var MARKET_GROUPS = {
+    nfl: [["Yards", ["Passing yards", "Rushing yards", "Receiving yards", "Rush + rec yards", "Pass + rush + rec yards"]], ["Receptions", ["Receptions"]],
+      ["Touchdowns", ["Anytime TD", "Passing TDs", "Rushing TDs", "Receiving TDs", "Rush + rec TDs"]], ["QB volume", ["Pass attempts", "Completions", "Interceptions thrown"]],
+      ["Carries", ["Rush attempts"]], ["Defense", ["Sacks", "Solo tackles", "Tackles + assists", "Tackle assists", "Def interceptions"]], ["Kicking", ["Field goals", "Kicking points"]]],
+    nba: [["Points", ["Points"]], ["Rebounds", ["Rebounds"]], ["Assists", ["Assists"]], ["Threes", ["Threes"]], ["Combos", ["Pts + reb + ast"]]]
+  };
+  function marketGroup(sport, label, td) { var G = MARKET_GROUPS[sport] || []; if (td) label = "Anytime TD"; for (var i = 0; i < G.length; i++) if (G[i][1].indexOf(label) >= 0) return G[i][0]; return label; }
   // ---------- send picks to a sportsbook's bet slip ----------
   // Each leg carries links from The Odds API ({book: url}). FanDuel and DraftKings links can be combined
   // into one parlay link; BetMGM and BetRivers get one link per leg.
@@ -151,11 +177,13 @@
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
         var p0;
+        var ua = r.under ? r.under[book] : undefined, pu, pu0;
+        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under" }), opts.calib); }
         if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: r.under ? r.under[book] : undefined };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
@@ -166,6 +194,9 @@
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
+    // The under side of a main line (only main lines have an under price)
+    function underLeg(p, r) { if (r.under === undefined || r.pu === undefined) return null;
+      return { k: "P|" + p.id + "|u", kind: "p", side: "under", since: r.since ? [r.since[1] - r.since[0], r.since[1]] : r.since, line: r.line, n: p.player + " under " + r.line + " " + unit(p.label, r.line), a: r.under, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: false, p: r.pu, p0: r.pu0, best: { a: r.under, book: BOOK_NAMES[book] || book }, links: null }; }
     function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
 
     // ---------- presets ----------
@@ -340,7 +371,7 @@
       out.push({ group: "Game lines only", slips: gamePresets() });
       return out;
     }
-    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, rungName: rungName, gamePresets: gamePresets, playerPresets: playerPresets,
+    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, underLeg: underLeg, rungName: rungName, gamePresets: gamePresets, playerPresets: playerPresets,
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
@@ -348,7 +379,9 @@
   // Legs from the same game don't hit independently (a QB's yards and his receiver's yards rise together).
   // backtest/replay.js measures, for each kind of pair, how strongly their results moved together over past seasons
   // (a correlation from -1 to 1) and saves it in backtest/corr.json. Here we turn that into a corrected chance.
-  function propGroup(label, td) { if (td) return "td"; return { "Passing yards": "pass", "Passing TDs": "pass", "Rushing yards": "rush", "Receiving yards": "rec", "Receptions": "rec", "Rush + rec yards": "rec" }[label] || String(label || "").toLowerCase(); }
+  function propGroup(label, td) { if (td) return "td"; return { "Passing yards": "pass", "Passing TDs": "pass", "Rushing yards": "rush", "Receiving yards": "rec", "Receptions": "rec", "Rush + rec yards": "rec",
+    "Pass attempts": "pass", "Completions": "pass", "Pass + rush + rec yards": "pass", "Interceptions thrown": "int", "Rush attempts": "rush", "Rushing TDs": "td", "Receiving TDs": "td", "Rush + rec TDs": "td",
+    "Sacks": "def", "Solo tackles": "def", "Tackles + assists": "def", "Tackle assists": "def", "Def interceptions": "def", "Field goals": "kick", "Kicking points": "kick" }[label] || String(label || "").toLowerCase(); }
   // What a leg is, for pairing: role, team, and whether it's a side or a total. meta = {away, home} abbreviations of its game.
   function legInfo(l, meta) {
     meta = meta || {};
@@ -381,6 +414,6 @@
     return { f: f, pairs: out };
   }
 
-  var Engine = { make: make, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

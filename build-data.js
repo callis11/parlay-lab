@@ -44,10 +44,20 @@ const MARKETS = {
   player_pass_tds: { label: "Passing TDs", stat: r => +r.passing_tds },
   player_rush_reception_yds: { label: "Rush + rec yards", stat: r => (+r.rushing_yards || 0) + (+r.receiving_yards || 0) }
 };
+// More market types (fetch-odds.js DEEP_MARKETS). Stats come from the shared definitions in engine.js.
+const S = require("./engine.js").NFL_STAT;
+[["player_pass_attempts", "Pass attempts"], ["player_pass_completions", "Completions"], ["player_pass_interceptions", "Interceptions thrown"], ["player_rush_attempts", "Rush attempts"],
+ ["player_rush_tds", "Rushing TDs"], ["player_reception_tds", "Receiving TDs"], ["player_rush_reception_tds", "Rush + rec TDs"], ["player_pass_rush_reception_yds", "Pass + rush + rec yards"],
+ ["player_sacks", "Sacks"], ["player_solo_tackles", "Solo tackles"], ["player_tackles_assists", "Tackles + assists"], ["player_assists", "Tackle assists"],
+ ["player_defensive_interceptions", "Def interceptions"], ["player_field_goals", "Field goals"], ["player_kicking_points", "Kicking points"]]
+  .forEach(([k, label]) => { MARKETS[k] = { label, stat: S[label] }; });
+// Low-count stats (0, 1, 2...) use a Poisson fit instead of a bell curve
+const COUNT = new Set(["Interceptions thrown", "Rushing TDs", "Receiving TDs", "Rush + rec TDs", "Sacks", "Def interceptions", "Field goals"]);
 // Which defensive stat each market is adjusted by, and how much spread to assume at minimum
 const CAT = { "Passing yards": "pass", "Rushing yards": "rush", "Receiving yards": "rec", "Receptions": "recs", "Passing TDs": "ptd", "Rush + rec yards": "rr" };
 const CAT_STAT = { pass: r => +r.passing_yards, rush: r => +r.rushing_yards, rec: r => +r.receiving_yards, recs: r => +r.receptions, ptd: r => +r.passing_tds, rr: r => (+r.rushing_yards || 0) + (+r.receiving_yards || 0) };
-const SD_FLOOR = { "Receptions": m => 0.25 * m + 0.8, "Passing TDs": m => 0.35 * m + 0.4 };
+const SD_FLOOR = { "Receptions": m => 0.25 * m + 0.8, "Passing TDs": m => 0.35 * m + 0.4, "Pass attempts": m => 0.15 * m + 3, "Completions": m => 0.18 * m + 2.5, "Rush attempts": m => 0.25 * m + 2,
+  "Solo tackles": m => 0.3 * m + 1, "Tackles + assists": m => 0.3 * m + 1.5, "Tackle assists": m => 0.4 * m + 1, "Kicking points": m => 0.3 * m + 2 };
 const WIND_HIT = { "Passing yards": 0.93, "Receiving yards": 0.93, "Receptions": 0.95, "Passing TDs": 0.93, "Rush + rec yards": 0.97 };
 
 // ---------- helpers ----------
@@ -84,7 +94,8 @@ function overProb(vals, line, label, raw) {
   const mean = vals.reduce((a, b) => a + b, 0) / n;
   const floor = (SD_FLOOR[label] || (m => 0.25 * m + 5))(mean);
   const sd = Math.max(Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(n - 1, 1)), floor);
-  const fit = 1 - normCdf((line - mean) / sd);
+  let fit = 1 - normCdf((line - mean) / sd);
+  if (COUNT.has(label)) { const lam = Math.max(0.05, mean), k = Math.floor(line); let c = 0, t = Math.exp(-lam); for (let i = 0; i <= k; i++) { c += t; t *= lam / (i + 1); } fit = 1 - c; }
   return { p: 0.5 * emp + 0.5 * fit, hits, n, mean };
 }
 

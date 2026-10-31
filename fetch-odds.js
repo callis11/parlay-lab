@@ -17,6 +17,13 @@ const CORE_MARKETS = [
   "player_pass_yds_alternate", "player_rush_yds_alternate", "player_reception_yds_alternate"
 ];
 const EXTRA_MARKETS = ["player_receptions", "player_receptions_alternate", "player_pass_tds", "player_rush_reception_yds"];
+// More market types (QB volume, carries, TDs by type, defense, kicking). Pulled in their own call per game, at most every
+// DEEP_HOURS (default 6) and only while credits are above DEEP_MIN, then reused until kickoff. The Odds API only charges for
+// markets that come back with prices, so a game with no defensive props costs less.
+const DEEP_MARKETS = ["player_pass_attempts", "player_pass_completions", "player_pass_interceptions", "player_rush_attempts", "player_rush_tds", "player_reception_tds",
+  "player_rush_reception_tds", "player_pass_rush_reception_yds", "player_sacks", "player_solo_tackles", "player_tackles_assists", "player_assists",
+  "player_defensive_interceptions", "player_field_goals", "player_kicking_points"];
+const DEEP_HOURS = +(process.env.DEEP_HOURS || 6), DEEP_MIN = +(process.env.DEEP_MIN || 4000);
 // Stop pulling props when credits get this low, so game lines keep updating until the plan resets
 const MIN_CREDITS_FOR_PROPS = 400;
 
@@ -59,8 +66,26 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
       }
     }
   }
+  // ---------- more market types ----------
+  const deep = (old && old.deep) || { pulledAt: null, events: {} };
+  for (const id in deep.events) if (+new Date(deep.events[id].t) < Date.now() - 12 * 36e5) delete deep.events[id];
+  const deepDue = !deep.pulledAt || Date.now() - new Date(deep.pulledAt) > DEEP_HOURS * 36e5 || process.env.DEEP === "true";
+  if (deepDue && remaining !== null && remaining > DEEP_MIN + upcoming.length * DEEP_MARKETS.length && process.env.DEEP !== "false") {
+    let got = 0;
+    for (const g of upcoming) {
+      try { const j = await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${DEEP_MARKETS.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`);
+        deep.events[g.id] = { t: g.commence_time, at: new Date().toISOString(), bookmakers: j.bookmakers || [] }; got++; }
+      catch (e) { console.warn("more markets failed for", g.id, e.message); if (e.status === 422) break; }
+    }
+    if (got) deep.pulledAt = new Date().toISOString();
+    console.log("More market types pulled for", got, "games. Credits remaining:", remaining);
+  } else console.log("More market types: reusing the pull from", deep.pulledAt);
   // Games already underway keep the props from the last pull before kickoff
   if (old && old.props) for (const p of old.props) if (started.has(p.id) && !props.some(x => x.id === p.id)) props.push(p);
-  fs.writeFileSync("odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, lines, props }));
+  // Merge the saved extra markets into each game's prop books
+  for (const ev of props) { const d = deep.events[ev.id]; if (!d) continue;
+    for (const db of d.bookmakers) { let b = (ev.bookmakers || []).find(x => x.key === db.key); if (!b) { b = { key: db.key, title: db.title, markets: [] }; (ev.bookmakers = ev.bookmakers || []).push(b); }
+      b.markets = b.markets.filter(m => !DEEP_MARKETS.includes(m.key)).concat(db.markets.filter(m => DEEP_MARKETS.includes(m.key))); } }
+  fs.writeFileSync("odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, lines, props, deep }));
   console.log("Saved odds.json:", lines.length, "games,", props.length, "prop events. Credits remaining:", remaining);
 })();
