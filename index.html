@@ -296,9 +296,9 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gp{font-weight:800}
 .gteam{font-size:12px;color:var(--muted);margin-top:1px}
 .gtm{font-weight:800;font-size:13px;color:var(--ink)}
-.gwl{list-style:none;margin:4px 0 0;padding:0;font-size:12px;color:var(--muted)}
-.gwl li{padding:1px 0}
-.gwl li:before{content:"• ";color:var(--line)}
+.gwl{list-style:none;margin:4px 0 0;padding:0;font-size:12px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:3px 14px}
+.gwl li{padding:1px 0;min-width:0}
+.gwl li.gk{color:var(--ink);opacity:.8;font-weight:600}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
@@ -849,8 +849,7 @@ function renderGenOut(cx){
       '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
-          (m.away?'<div class="gteam">'+esc(m.away+" @ "+m.home)+'</div>':"")+'<div class="gteam">Odds '+fmt(l.a)+'</div>'+
-          '<ul class="gwl">'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
+          '<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
       '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
