@@ -316,6 +316,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gwl li{padding:1px 0;min-width:0}
 .gwl li.gk{color:var(--ink);opacity:.8;font-weight:600}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
+.gauto{font-size:13px;font-weight:700;color:var(--flag);background:rgba(247,198,0,.1);border-left:3px solid var(--flag);border-radius:6px;padding:7px 9px;margin:8px 0 0;line-height:1.35}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
 .flip{flex:0 0 100%;scroll-snap-align:center;perspective:1200px;cursor:pointer}
@@ -996,14 +997,21 @@ function genRun(cx){
   if(cx==="tm"&&!(G.multi||[]).length&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
   if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
-  var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
-  if(!got){var stN=STYLE[G.style],np=P.pool.length;
-    // say exactly why: how many legs passed this style's bar, and what that bar is
-    toast("Only "+np+" leg"+(np===1?"":"s")+" here fit "+stN.name+" ("+Math.round(stN.lo*100)+"%+ to hit). Spreads and over/unders are near 50%, so they only show up in Balanced or Long shot. Try "+(n>2?(n-1)+" legs, ":"")+"Balanced"+(cx==="tm"?", or add more games.":", or more games."),true);return}
+  var avoid=last.map(function(x){return x.key}),got=genPick(P.pool,n,avoid,cx),useSt=G.style,useN=n,auto="";
+  if(!got){
+    // Can't build what was asked: try the other styles at the same legs, then fewer legs, and say what changed and why
+    var st0=STYLE[G.style],np=P.pool.length,order={safe:["bal","long"],bal:["long","safe"],long:["bal","safe"]}[G.style]||[],tries=[];
+    order.forEach(function(s2){tries.push([s2,n])});
+    for(var m=n-1;m>=2;m--)[G.style].concat(order).forEach(function(s2){tries.push([s2,m])});
+    for(var i=0;i<tries.length&&!got;i++){var keep=G.style;G.style=tries[i][0];var P2=genPool(cx),g2=genPick(P2.pool,tries[i][1],avoid,cx);G.style=keep;if(g2&&g2.inRange){got=g2;useSt=tries[i][0];useN=tries[i][1]}}
+    if(!got){toast("Not enough legs in these games to build any parlay. Add more games"+(cx==="tm"?" or pick Both teams.":"."),true);return}
+    auto=st0.name+" couldn't make "+n+" legs here: only "+np+" leg"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices (spreads and over/unders are near 50%). So this one is "+
+      (useSt!==G.style?STYLE[useSt].name:"")+(useSt!==G.style&&useN!==n?", ":"")+(useN!==n?useN+" legs":"")+".";
+    n=useN}
   var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
   var C=slipChance(got.legs.map(function(x){return x.leg}),""),raw=C.raw,f=C.f,ch=C.ch;
   var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
-  var item={t:Date.now(),key:got.key,set:Object.assign({},G),d:d,ch:ch,raw:raw,sg:sg,
+  var item={t:Date.now(),key:got.key,set:Object.assign({},G,{style:useSt,legs:n}),auto:auto,d:d,ch:ch,raw:raw,sg:sg,
     legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
     note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
       (C.cf.pairs.length?"Same-game legs here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
@@ -1024,7 +1032,7 @@ function renderGenOut(cx){
       it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
           '<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
-      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
+      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
