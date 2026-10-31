@@ -1131,6 +1131,8 @@ function renderBacktest(){
 // Sections: The price · Recent form · Past seasons · Matchup · How we got the %. Missing data says so instead of vanishing.
 var SINCE_LABEL={nfl:"since 2023",nba:"this season and last"};
 function recTxt(x,k){var a=x&&x[k];if(!a)return null;var s=a[0]+"–"+a[1]+(a[2]?"–"+a[2]:"");return s}
+// "(lines for 9 of 30 games)" when ESPN didn't keep the closing line for most of a team's games (it only has them from mid-Nov 2025 on)
+function linesNote(x){var a=x&&(x.ats||x.ou);if(!a||!x.n)return"";var k=a[0]+a[1]+(a[2]||0);return k<0.8*x.n?" (lines for "+k+" of "+x.n+" games)":""}
 function thTeam(t){return DATA&&DATA.th&&DATA.th.teams&&DATA.th.teams[t]||null}
 function thLabel(k){return DATA&&DATA.th?DATA.th[k]:k==="cur"?"this season":"last season"}
 function legStory(l){
@@ -1158,11 +1160,11 @@ function legStory(l){
     var t0=l.t.replace(/^1/,""),h1=l.t.charAt(0)==="1",side=/^(ml|sp)/.test(t0),tm=side?(/-a$/.test(t0)?m.away:m.home):null,isH=tm&&tm===m.home,op=side?(isH?m.away:m.home):null;
     var teams=side?[tm]:[m.away,m.home];
     teams.forEach(function(t){var X=thTeam(t);if(!t)return;
-      if(X&&X.cur&&X.cur.n){var c=X.cur;S.recent.push(t+" "+thLabel("cur")+": "+recTxt(c,"su")+(c.ats?", "+recTxt(c,"ats")+" vs spread":"")+(c.ou?", overs "+recTxt(c,"ou"):""));
+      if(X&&X.cur&&X.cur.n){var c=X.cur;S.recent.push(t+" "+thLabel("cur")+": "+recTxt(c,"su")+(c.ats?", "+recTxt(c,"ats")+" vs spread":"")+(c.ou?", overs "+recTxt(c,"ou"):"")+linesNote(c));
         if(side){var hs=isH?X.home:X.away;if(hs&&hs.n)S.recent.push((isH?"At home":"On the road")+": "+recTxt(hs,"su")+(hs.ats?", "+recTxt(hs,"ats")+" vs spread":""))}
         if(X.l5&&X.l5.length)S.recent.push(t+" last "+X.l5.length+": "+X.l5.map(function(g){return g.r.charAt(0)+(side?(g.c==="cover"?"✓":g.c==="miss"?"✗":g.c==="push"?"=":""):(g.o||""))}).join(" ")+(side?" (✓ covered)":" (O/U)"))}
       else S.recent.push(t+": no games "+thLabel("cur")+" yet");
-      if(X&&X.prev&&X.prev.n){var pv2=X.prev;S.past.push(t+" "+thLabel("prev")+": "+recTxt(pv2,"su")+(pv2.ats?", "+recTxt(pv2,"ats")+" vs spread":"")+(pv2.ou?", overs "+recTxt(pv2,"ou"):""))}
+      if(X&&X.prev&&X.prev.n){var pv2=X.prev;S.past.push(t+" "+thLabel("prev")+": "+recTxt(pv2,"su")+(pv2.ats?", "+recTxt(pv2,"ats")+" vs spread":"")+(pv2.ou?", overs "+recTxt(pv2,"ou"):"")+linesNote(pv2))}
       var B=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[t];if(B)S.past.push(t+" since 2021: "+(side?B.ats[0]+"–"+B.ats[1]+" vs spread":"overs "+B.ou[0]+"–"+B.ou[1]));
     });
     if(!S.past.length)S.past.push("No past-season lines for these teams yet");
@@ -1239,7 +1241,7 @@ function heroTrends(m){
   var A=thTeam(m.away),H=thTeam(m.home),out="";
   var r=function(t,X){var c=X&&X.cur;if(!c||!c.ats)return'<span><b>'+esc(t)+'</b> no lines yet</span>';return'<span><b>'+esc(t)+'</b> '+recTxt(c,"ats")+" ATS"+(c.ou?" · overs "+recTxt(c,"ou"):"")+'</span>'};
   if((A&&A.cur&&A.cur.ats)||(H&&H.cur&&H.cur.ats))out+='<div class="trends"><small>'+esc(thLabel("cur"))+'</small>'+r(m.away,A)+r(m.home,H)+'</div>';
-  else{var pa=A&&A.prev&&A.prev.ats,ph=H&&H.prev&&H.prev.ats;if(pa||ph)out+='<div class="trends"><small>'+esc(thLabel("prev"))+'</small>'+[[m.away,A],[m.home,H]].map(function(x){var c=x[1]&&x[1].prev;return'<span><b>'+esc(x[0])+'</b> '+(c&&c.ats?recTxt(c,"ats")+" ATS"+(c.ou?" · overs "+recTxt(c,"ou"):""):"no lines")+'</span>'}).join("")+'</div>'}
+  else{var pa=A&&A.prev&&A.prev.ats,ph=H&&H.prev&&H.prev.ats;if(pa||ph)out+='<div class="trends"><small>'+esc(thLabel("prev"))+'</small>'+[[m.away,A],[m.home,H]].map(function(x){var c=x[1]&&x[1].prev;return'<span><b>'+esc(x[0])+'</b> '+(c&&c.ats?recTxt(c,"ats")+" ATS"+(c.ou?" · overs "+recTxt(c,"ou"):"")+(linesNote(c)?" <small>"+esc(linesNote(c).trim())+"</small>":""):"no lines")+'</span>'}).join("")+'</div>'}
   if(SPORT==="nfl"&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home]){var b=function(t,T){return'<span><b>'+esc(t)+'</b> '+T.ats[0]+"–"+T.ats[1]+" ATS · overs "+T.ou[0]+"–"+T.ou[1]+'</span>'};out+='<div class="trends"><small>Since 2021</small>'+b(m.away,BT.teams[m.away])+b(m.home,BT.teams[m.home])+'</div>'}
   return out;
 }
@@ -1320,9 +1322,9 @@ function renderParlays(){
 function legendHTML(){
   var nfl=SPORT==="nfl",props=SPORT==="nfl"||SPORT==="nba",P=[];
   var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 154,000 legs graded in a replay of the 2023–25 seasons, and every pick we've graded live this season.",
-    nba:"Every player's box scores from last season and this one (ESPN), every team's closing lines over the same games (ESPN / DraftKings), and every pick we've graded live so far.",
-    cfb:"Every team's closing lines and results from last season and this one (ESPN / DraftKings), AP ranks and records, and every pick we've graded live so far.",
-    cbb:"Every team's closing lines and results from last season and this one (ESPN / DraftKings), AP ranks and records, and every pick we've graded live so far."}[SPORT];
+    nba:"Every player's box scores from last season and this one (ESPN), every team's closing lines over the same games (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), and every pick we've graded live so far.",
+    cfb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far.",
+    cbb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far."}[SPORT];
   P.push('<p><b>Where the % comes from</b> '+src+' Open any leg (ⓘ on Build, or How we got this % on a card) to see its price, recent form, past seasons, matchup and the math.</p>');
   if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>');
     P.push('<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>')}
