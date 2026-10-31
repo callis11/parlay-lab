@@ -29,3 +29,20 @@ Serve with `python3 -m http.server 8765` in the repo, test with Playwright (`PLA
 
 ## Open ideas Andrew liked but hasn't asked for yet
 Closing line value tracking, a weekly Monday report card, same-game correlation learning, first-half lines for college basketball, extra tags (All Green, Spread Out, Red Flag).
+
+## Remaining history pull (do this when The Odds API credits reset)
+Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=true"`); its log (`backtest/raw/last-run.log`, committed by the workflow) shows "Credits left". Need about 26K free plus ~15K for the live site.
+1. **Rest of 2023 props (57 games, ~4K credits):** just rerun the workflow with `inputs[test]=false` and `inputs[reserve]=15000`. `backtest/fetch.js` skips anything already saved, so it only fetches the missing 2023 games (and re-checks lines, which are already complete).
+2. **2023 alt lines (~10K):** 2023 was pulled with main markets only (`MAIN` in fetch.js). Needs a small code change: an env like `ALT_ONLY=2023` that requests only the four `*_alternate` markets for games already in `props-2023` and merges their bookmaker markets into the saved events.
+3. **Playoffs (~4K):** fetch.js and replay.js only use `game_type === "REG"`. Add WC/DIV/CON/SB games (separate files or a flag), and in replay.js take player history across the season boundary.
+4. **College game lines, 5 seasons (~12K):** add sport `americanfootball_ncaaf` to fetch.js (lines only, keyed by kickoff time like NFL), plus a college replay that grades with ESPN scores (fetch scores on GitHub Actions; ESPN is blocked from the Claude container). Lower priority: Andrew mainly cares about NFL.
+5. After pulling: `CALIB=1 node backtest/replay.js` locally (NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt), then `node picks.js` to refresh calibration, commit `backtest/*.json` + `calibration.json`, push, and send Andrew the new report card. Then tell him he can switch back to the $30 plan (set it to change at the next billing date).
+
+## What changed most recently (Oct 30, 2026 evening)
+- Tabs are now Parlays · Build · Players · Games · Results (Games = the old Teams tab: swipeable flip cards per game, division/conference filters, Away | Home | Both team toggle, game generator under the card with "+ Add other games").
+- **Build tab:** compact ranked board of every leg (rank · player · team tag · line · % · +); tap a row for its "why", + adds to the live parlay summary at the top (honest %, payout, warnings, How we got this %). Pick several games, filter by type, sort.
+- **Generators** on Parlays, Players and Games tabs share one code path (GENS/genBox/genUI/genPool/genRank, contexts `par`, `ply`, `tm`): best-chance search within each style's payout range, pick one game (then Away/Home/Both) or several games, last 3 kept per generator, legs show team on its own line and stats two per line.
+- Every parlay card flips to "How we got this %". Parlays tab has no game spotlight anymore (it lives on Games).
+- Header: sport tabs on top; logo row has round gold ↻ (refresh), ★ (My teams page: favorite per sport, saved per phone), ? (6-slide tour, auto-shown once).
+- Leg circle colors = chance to hit (green 70%+, yellow 50–69%, red <50%); game-line icons are letters (ML, S, O, U), TD props show TD.
+- Mowed-field green theme for football, hardwood court for basketball; end-zone header on football.
