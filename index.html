@@ -292,6 +292,14 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gen-row label{width:52px;font-size:13px;font-weight:700;color:var(--muted)}
 .gen-row .seg{flex:1;display:flex}.gen-row .seg button{flex:1}
 .gen-row select{flex:1;min-width:0;width:100%}
+.mksel{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;font:inherit;text-align:left;padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);cursor:pointer}
+.mksel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mkpanel{border:1px solid var(--line);border-radius:6px;background:var(--surface);margin:2px 0 10px;padding:4px 0}
+.mkr{display:flex;align-items:center;gap:10px;width:100%;font:inherit;text-align:left;background:none;border:0;color:var(--ink);padding:9px 12px;cursor:pointer}
+.mkr small{margin-left:auto;color:var(--muted);font-size:12px}
+.mkb{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--line);flex:none;display:grid;place-items:center;font-size:13px;font-weight:800}
+.mkr[aria-pressed="true"] .mkb{background:var(--flag);border-color:var(--flag);color:var(--flag-ink)}.mkr[aria-pressed="true"] .mkb:after{content:"✓"}
+.mkdone{display:block;margin:6px 12px 6px auto}
 .gcard{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .gcard.old{opacity:.8}
 .gcard .gh{display:flex;justify-content:space-between;align-items:flex-end}
@@ -824,7 +832,7 @@ function genBox(cx){
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
-      :cx==="ply"?'<div class="gen-row"><label>Markets</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti mkchips" id="gMkt_ply"></div>'+
+      :cx==="ply"?'<div class="gen-row"><label>Markets</label><button class="mksel" id="gMktBtn_ply" data-gmkopen="1" aria-expanded="false"><span id="gMktTxt_ply">All markets</span><svg viewBox="0 0 12 18" width="11" height="17" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="mkpanel" id="gMkt_ply" hidden></div>'+
       '<div class="gen-row"><label>Side</label><div class="seg" id="gOU_ply"><button data-cx="ply" data-gou="both">Both</button><button data-cx="ply" data-gou="over">Overs</button><button data-cx="ply" data-gou="under">Unders</button></div></div>'+
       '<div class="gen-row"><label>Games</label><span class="gm-h" style="margin:0">Tap one or several</span></div><div class="gmulti" id="gMulti_ply"></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
       :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx!=="tm"?'<div class="gmulti" id="gMulti_'+cx+'" hidden></div>':""))+
@@ -861,12 +869,16 @@ function genUI(cx){
 // Players generator: game tiles. None picked = all games; one = that game (then pick a team); several = just those
 // Players generator: market chips (none picked = every market) and overs / unders
 function plyMarkets(G){
-  var now=Date.now(),cnt={},order=[];G.mk=G.mk||[];if(["both","over","under"].indexOf(G.ou)<0)G.ou="both";
-  PROPS.forEach(function(p){if(!p.healthy||+new Date(p.g.t)<=now)return;var k=Engine.marketGroup(SPORT,p.label,p.td);if(!(k in cnt)){cnt[k]=0;order.push(k)}cnt[k]++});
-  var ref=[];(Engine.MARKET_GROUPS[SPORT]||[]).forEach(function(x){if(x[0] in cnt)ref.push(x[0])});order.forEach(function(k){if(ref.indexOf(k)<0)ref.push(k)});
+  var now=Date.now(),cnt={},labs=[];G.mk=G.mk||[];if(["both","over","under"].indexOf(G.ou)<0)G.ou="both";
+  PROPS.forEach(function(p){if(!p.healthy||+new Date(p.g.t)<=now)return;var k=p.label;if(!(k in cnt)){cnt[k]=0;labs.push(k)}cnt[k]++});
+  var order=[];(Engine.MARKET_GROUPS[SPORT]||[]).forEach(function(x){x[1].forEach(function(l){if(l in cnt)order.push(l)})});labs.forEach(function(l){if(order.indexOf(l)<0)order.push(l)});
   G.mk=G.mk.filter(function(k){return k in cnt});
-  var mb=$("gMkt_ply");if(mb)mb.innerHTML='<button data-gmkall="1" aria-pressed="'+!G.mk.length+'">All markets<small>'+ref.length+' types</small></button>'+
-    ref.map(function(k){return'<button data-gmk="'+esc(k)+'" aria-pressed="'+(G.mk.indexOf(k)>=0)+'">'+esc(k)+'<small>'+cnt[k]+' player'+(cnt[k]>1?"s":"")+'</small></button>'}).join("");
+  var txt=$("gMktTxt_ply");if(txt)txt.textContent=!G.mk.length?"All markets":G.mk.length<=2?G.mk.join(", "):G.mk.length+" markets";
+  var btn=$("gMktBtn_ply");if(btn)btn.setAttribute("aria-expanded",String(!!G.mkOpen));
+  var mb=$("gMkt_ply");if(mb){mb.hidden=!G.mkOpen;
+    mb.innerHTML='<button class="mkr" data-gmkall="1" aria-pressed="'+!G.mk.length+'"><span class="mkb"></span>All markets</button>'+
+      order.map(function(k){return'<button class="mkr" data-gmk="'+esc(k)+'" aria-pressed="'+(G.mk.indexOf(k)>=0)+'"><span class="mkb"></span>'+esc(k)+'<small>'+cnt[k]+'</small></button>'}).join("")+
+      '<button class="btn mkdone" data-gmkopen="0">Done</button>'}
   document.querySelectorAll("#gOU_ply button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.gou===G.ou))});
 }
 function plyGames(G){
@@ -901,7 +913,7 @@ function genPool(cx){
   var st=STYLE[G.style],out=[];
   if(G.kind!=="p")gl.forEach(function(g){GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
   var mk=cx==="ply"&&G.mk&&G.mk.length?G.mk:null,ou=cx==="ply"?G.ou||"both":"over";
-  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(Engine.marketGroup(SPORT,p.label,p.td))<0)return;p.rungs.forEach(function(r){
+  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(p.label)<0)return;p.rungs.forEach(function(r){
     if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
       out.push({leg:UL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pu),info:Engine.legInfo(UL,gmeta(p.ev))})}}
     if(ou==="under")return;
@@ -1777,6 +1789,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
+  else if(t.dataset.gmkopen!==undefined){GENS.ply.mkOpen=t.dataset.gmkopen==="1"?!GENS.ply.mkOpen:false;genUI("ply")}
   else if(t.dataset.gmkall){GENS.ply.mk=[];genSave("ply",genSaved("ply"));genUI("ply")}
   else if(t.dataset.gmk){var mk2=GENS.ply.mk=GENS.ply.mk||[],i2=mk2.indexOf(t.dataset.gmk);if(i2>=0)mk2.splice(i2,1);else mk2.push(t.dataset.gmk);genSave("ply",genSaved("ply"));genUI("ply")}
   else if(t.dataset.gou){GENS.ply.ou=t.dataset.gou;genSave("ply",genSaved("ply"));genUI("ply")}
