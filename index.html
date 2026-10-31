@@ -647,7 +647,7 @@ var GENCX={par:{key:"gen_",title:"⚡ Parlay generator",sub:"Pick a few things, 
   tm:{key:"gent_",title:"⚡ Build one for this game",sub:"Legs from the game on the card above"}};
 var GENS={};
 ["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
-  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply")GENS[cx].kind="p"}catch(e){}});
+  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].games="all";GENS[cx].side="both"}}catch(e){}});
 var GEN=GENS.par;
 function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}").last||[]}catch(e){return[]}}
 function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
