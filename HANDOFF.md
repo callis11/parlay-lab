@@ -19,7 +19,7 @@ Roadmap (college build-out, European soccer, budget by month, session sizing): h
 - `nba/` (fetch.js, build.js), `cfb/fetch.js` + `cfb/build.js` serve both college sports (`SPORT=cfb|cbb`, data in `cfb/` and `cbb/`).
 - `backtest/`: historical NFL odds (`raw/`, gzipped), `fetch.js` (workflow `backtest.yml`), `replay.js` (run locally with `CALIB=1`), outputs `results.json`, `teams.json`, `graded-legs.json`.
 - `schedule.json`: refresh times (US Eastern, minutes end in 0/5). The Cloudflare Worker `parlay-lab-timer` (code in `cloudflare/worker.js`) reads it every 5 min and dispatches workflows. GitHub crons are only a backup.
-- Workflows: `refresh.yml` (NFL), `nba.yml`, `cfb.yml`, `cbb.yml`, `backtest.yml`. Dispatch with `gh api -X POST repos/callis11/parlay-lab/actions/workflows/<file>/dispatches -f ref=main` (+ `-f "inputs[auto]=true"` to respect the "already pulled recently" guard). After editing a workflow file, Andrew re-saves it on GitHub so its backup cron runs under his account (cfb.yml, cbb.yml and refresh.yml still need that).
+- Workflows: `refresh.yml` (NFL), `nba.yml`, `cfb.yml`, `cbb.yml`, `backtest.yml`. Dispatch with `gh api -X POST repos/callis11/parlay-lab/actions/workflows/<file>/dispatches -f ref=main` (+ `-f "inputs[auto]=true"` to respect the "already pulled recently" guard). Scheduled backup runs already run as callis11 (checked Oct 31), so no re-saving is needed after editing a workflow. Failure emails so far came only from one-time test workflows.
 
 ## Odds plan and credits
 - The Odds API, currently on the $59 / 100K plan (upgraded Oct 30, 2026); about 8K credits were left after the history pull. Plan: stay on $59 until the rest of the history is pulled, then tell Andrew to switch back to $30.
