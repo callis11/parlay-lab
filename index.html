@@ -545,7 +545,13 @@ select,input,textarea{font-size:max(16px,1em)}
   <p class="sub" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
   <div id="resWeek"></div>
   <div id="mySec"><h2>My bets</h2>
-  <p class="sub">Only on this phone. Saved from the slip with "I placed this bet." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
+  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
+  <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
+    <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the legs, odds and wager show, then pick the screenshot here. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
+    <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <span class="sub" id="shotStat"></span>
+    <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Or paste the text</summary><p class="sub">In Photos, press and hold the screenshot, tap Copy All, and paste it here.</p>
+    <textarea id="shotTxt" rows="3" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea><button class="btn" id="shotGo" style="margin-top:6px">Read it</button></details>
+    <div id="shotOut"></div></div>
   <div id="myBets"></div>
   <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Add bets from a code</summary>
     <p class="sub">Paste a code here (for example, one Claude made from your bet screenshots) and tap Add. Adding the same code twice won't duplicate bets.</p>
@@ -1715,6 +1721,133 @@ function renderMyBets(){
         '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+(l.res?{won:"✓",lost:"✗"}[l.res]:m)+'</span>'+esc(l.n)+'</span><span>'+(l.a?fmt(l.a):"")+'</span></li>'}).join("")+'</ul>'+(b.fee?'<p class="sub" style="margin:4px 0 0">Includes $'+b.fee.toFixed(2)+' add-on fee'+(b.ret!=null?", app paid $"+b.ret.toFixed(2):"")+'</p>':"")+
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="btn rm" data-mydel="'+b.id+'">✕ Remove</button></p></div>'}).join("");
 }
+// ---------- Add bets from a screenshot (FanDuel / DraftKings "My Bets"), read on this phone ----------
+// Tesseract (free, runs in the browser) turns the picture into text; shotParse() finds each bet in that text;
+// shotMatch() ties the legs to this page's games and players; the user checks a card and taps Save.
+var SHOT={worker:null,bets:[]};
+function shotMoney(s){var m=String(s).replace(/[,\s]/g,"").match(/\$(\d+)(\.\d{1,2})?/);if(!m)return null;return{v:parseFloat(m[1]+(m[2]||"")),dot:!!m[2],raw:m[1]}}
+function shotOdds(s){var m=String(s).replace(/[−–—]/g,"-").match(/(^|[^\d.$])([+-]\d{3,5})(?!\d)/);return m?+m[2]:null}
+function shotParse(text){
+  var L=String(text||"").replace(/[−–—]/g,"-").split(/\r?\n/).map(function(x){return x.replace(/\s+/g," ").trim()}).filter(Boolean);
+  var all=L.join("\n"),book=/draft ?kings|\bdk\b/i.test(all)?"draftkings":/betmgm/i.test(all)?"betmgm":/betrivers/i.test(all)?"betrivers":/fanduel|same game parlay|reuse selections|us-[a-z]{2}:/i.test(all)?"fanduel":"";
+  // a bet starts at its header ("2 leg parlay", "4 Leg Same Game Parlay+", "Single", "Straight")
+  var heads=[];L.forEach(function(x,i){if(/\b\d+\s*-?\s*leg\b.*parlay|^(single|straight)\b/i.test(x))heads.push(i)});
+  if(!heads.length)heads=[0];
+  return heads.map(function(h,j){
+    var seg=L.slice(h,j+1<heads.length?heads[j+1]:L.length),hd=seg[0],b={book:book,legs:[],raw:seg};
+    var nm=hd.match(/(\d+)\s*-?\s*leg/i);b.n=nm?+nm[1]:null;
+    b.odds=shotOdds(hd.replace(/^\s*\d+\s*-?\s*leg/i,""));if(b.odds===null&&seg[1]&&/^[+-]\d{3,5}$/.test(seg[1]))b.odds=+seg[1];
+    seg.forEach(function(x,i){
+      var id=x.match(/BET ID:?\s*([\w:.-]{8,})/i);if(id&&!b.id)b.id=id[1];
+      var pl=x.match(/PLACED:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*([AP])M/i);
+      if(pl&&!b.placed){var hr=(+pl[4])%12+(/p/i.test(pl[6])?12:0);b.placed=new Date(pl[3]+"-"+("0"+pl[1]).slice(-2)+"-"+("0"+pl[2]).slice(-2)+"T"+("0"+hr).slice(-2)+":"+pl[5]+":00-04:00").getTime()}
+      // money labels sit under their amounts: "$10.00 $17.78" / "TOTAL WAGER TOTAL PAYOUT"
+      if(/wager|payout|to pay|to win|paid|returned|stake/i.test(x)){
+        var labs=x.match(/total wager|wager|stake|total payout|payout|to pay|to win|paid|returned/gi)||[],src=(x.match(/\$[\d,.]+/g)||[]);if(!src.length&&i>0)src=seg[i-1].match(/\$[\d,.]+/g)||[];
+        labs.forEach(function(lb,k){var m=src[k]?shotMoney(src[k]):null;if(!m)return;if(/wager|stake/i.test(lb)){if(b.stake==null)b.stake=m}else if(b.pay==null)b.pay=m})}
+      if(/\b(won|winner)\b/i.test(x)&&!/to win/i.test(x))b.status="won";else if(/\b(lost|loss)\b/i.test(x))b.status=b.status||"lost";else if(/\b(void|push)\b/i.test(x))b.status=b.status||"push";
+      if(/cash ?out|\blive\b/i.test(x)&&!b.status)b.open=true;
+      // a leg: the selection line, then its market line underneath (MONEYLINE, SPREAD, TOTAL POINTS, PASSING YDS ...)
+      var mk=x.replace(/[^A-Za-z +]/g," ").replace(/\s+/g," ").trim();
+      if(i>0&&/^(moneyline|spread( betting)?|run line|puck line|total( points| goals| runs)?|alternate .*|[a-z +]*\b(yds|yards|receptions|tds?|touchdowns?|scorer|points|rebounds|assists|threes|made|attempts|completions|interceptions)\b[a-z +]*)( \d+)?$/i.test(mk)&&!/wager|payout/i.test(mk)){
+        var sel=seg[i-1].replace(/^[^A-Za-z0-9#]+/,"").replace(/^[@&>©®"'“‘a-z]{1,2} (?=[A-Z])/,"").replace(/\s+[+-]?\d{3,5}\s*[.:i]*$/,"").replace(/\s+[.:i»]+$/,"").trim();
+        var near=null;for(var q=i+1;q<=i+2&&q<seg.length;q++)if(/ @ /.test(seg[q])){near=seg[q];break}
+        if(!near)for(var q2=i-2;q2>=0;q2--)if(/ @ /.test(seg[q2])){near=seg[q2];break}
+        b.legs.push({sel:sel,mkt:mk,mu:near?near.replace(/\s+\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim():null})}
+    });
+    // summary line fallback: "NC State Moneyline, South Florida Moneyline"
+    if(!b.legs.length)seg.forEach(function(x){(x.match(/[A-Z][\w.&' ()]+? (moneyline|spread)\b/gi)||[]).forEach(function(s){var m=s.match(/^(.*) (moneyline|spread)$/i);b.legs.push({sel:m[1],mkt:m[2],mu:null})})});
+    // the money: payouts misread without the decimal ("$1778" for $17.78) are fixed against stake x odds
+    var st=b.stake,py=b.pay;
+    b.stake=st?(!st.dot&&st.raw.length>=3&&b.pay&&b.pay.dot&&st.v>b.pay.v?st.v/100:st.v):null;
+    if(py){var exp=b.stake&&b.odds?b.stake*dec(b.odds):null,alt=py.dot?py.v:py.v/100;b.pay=!py.dot&&py.raw.length>=3&&(exp?Math.abs(alt-exp)<Math.abs(py.v-exp):true)?alt:py.v}else b.pay=null;
+    if(b.odds===null&&b.stake&&b.pay&&b.pay>b.stake)b.odds=Engine.amFromDec(b.pay/b.stake);
+    return b}).filter(function(b){return b.legs.length});
+}
+// ---- tie the legs to this page's games and players ----
+function shotNorm(s){return String(s||"").toLowerCase().replace(/#\d+\s*/g,"").replace(/\(oh\)|\bohio\b(?= *$)/g," oh").replace(/[^a-z0-9& ]/g," ").replace(/\s+/g," ").trim()}
+var SHOT_ALIAS={"miami florida":"miami","miami fl":"miami","miami oh":"miami oh","ole miss rebels":"ole miss","mississippi":"ole miss","ucf":"ucf","usc trojans":"usc","la chargers":"chargers","la rams":"rams","ny giants":"giants","ny jets":"jets","la clippers":"clippers","la lakers":"lakers"};
+function shotTeams(){
+  var T={};function add(ab,nm){var k=shotNorm(nm);if(!k)return;k=SHOT_ALIAS[k]||k;(T[k]=T[k]||{})[ab]=1}
+  var disp={};GAMES.forEach(function(g){var m=DATA.games[g.id];if(m){disp[m.away]=g.away;disp[m.home]=g.home}});
+  Object.keys(DATA.games).forEach(function(id){var m=DATA.games[id];[m.away,m.home].forEach(function(ab){add(ab,ab);if(DATA.teams&&DATA.teams[ab])add(ab,DATA.teams[ab]);if(disp[ab])add(ab,disp[ab])})});
+  if(DATA.names)Object.keys(DATA.names).forEach(function(full){var d=shotNorm(DATA.names[full]);Object.keys(T[d]||{}).forEach(function(ab){add(ab,full)})});
+  return T}
+function shotTeam(s,T){var k=shotNorm(s);k=SHOT_ALIAS[k]||k;if(T[k])return Object.keys(T[k]);
+  var best=null;Object.keys(T).forEach(function(n){if(n.length>3&&(n.indexOf(k+" ")===0||k.indexOf(n+" ")===0)&&(!best||n.length>best.length))best=n});return best?Object.keys(T[best]):[]}
+function shotGame(abs,mu,T,when){
+  var ids=Object.keys(DATA.games),pick=function(f){return ids.filter(function(id){return f(DATA.games[id])})};
+  var c=[];if(mu){var p=mu.split(/ @ /),A=shotTeam(p[0],T),H=shotTeam(p[1]||"",T);c=pick(function(m){return A.indexOf(m.away)>=0&&H.indexOf(m.home)>=0})}
+  if(abs&&abs.length)c=(c.length?c:ids).filter(function(id){var m=DATA.games[id];return abs.indexOf(m.away)>=0||abs.indexOf(m.home)>=0});
+  var tm=function(id){var g=GAMES.filter(function(x){return x.id===id})[0];return g?+new Date(g.t):DATA.games[id].date?+new Date(DATA.games[id].date+"T17:00:00Z"):0};
+  c.sort(function(a,b){return Math.abs(tm(a)-when)-Math.abs(tm(b)-when)});return c[0]||null}
+function shotLeg(raw,T,when,mus){
+  var sel=raw.sel,mk=raw.mkt.toLowerCase(),gid,g,m,t=null,line=null,side;
+  var ou=sel.match(/^(over|under)\s*(\d+(?:\.\d)?)/i),spm=sel.match(/^(.*?)\s*([+-]\d+(?:\.\d)?)$/);
+  var isProp=!/moneyline|spread|run line|puck line|^total( points| goals| runs)?$/.test(mk);
+  if(isProp){
+    // player prop: find the player on this page, then the market whose name shares words with the line under it
+    var pn=null;PROPS.forEach(function(p){if(shotNorm(sel).indexOf(shotNorm(p.player))>=0&&(!pn||p.player.length>pn.player.length))pn=p});
+    if(!pn)return{n:sel+" "+raw.mkt.toLowerCase(),a:null,time:null,ok:false};
+    var words=mk.replace(/yds/g,"yards").replace(/\btds?\b/g,"td").split(" "),cands=PROPS.filter(function(p){return p.player===pn.player}),bestP=null,bs=-1;
+    cands.forEach(function(p){var lw=p.label.toLowerCase().replace(/\btds?\b/g,"td"),s=0;words.forEach(function(w){if(w.length>1&&lw.indexOf(w.replace(/s$/,""))>=0)s++});if(/\+/.test(mk)!==/\+/.test(lw))s-=0.5;if(s>bs){bs=s;bestP=p}});
+    var p=bestP,num=(sel.match(/(\d+(?:\.\d)?)\+?\s*$/)||[])[1],under=/under/i.test(sel);
+    var lv=num?(/\+\s*$/.test(sel)?+num-0.5:+num):p.td?0.5:null,r=p.rungs.filter(function(r){return r.line===lv})[0];
+    if(r&&!under){var PL=propLeg(p,r);return{n:PL.n,a:PL.a,time:PL.time,ok:true}}
+    return{n:p.player+" "+(under?"under":"over")+" "+(lv!=null?lv:"")+" "+p.label.toLowerCase(),a:null,time:p.g&&p.g.t||null,ok:true}}
+  if(ou){gid=shotGame(null,raw.mu||mus[0],T,when);t=/^o/i.test(ou[1])?"ov":"un";line=+ou[2]}
+  else{var nm=/spread|run line|puck line/.test(mk)&&spm?spm[1]:sel;if(/spread|run line|puck line/.test(mk)&&spm)line=+spm[2];var ab=shotTeam(nm,T);gid=ab.length?shotGame(ab,raw.mu||mus.filter(function(x){return ab.some(function(a){return shotTeam(x.split(/ @ /)[0],T).indexOf(a)>=0||shotTeam(x.split(/ @ /)[1]||"",T).indexOf(a)>=0})})[0],T,when):null;
+    if(gid){m=DATA.games[gid];side=ab.indexOf(m.away)>=0?"a":"h";t=(/spread|run line|puck line/.test(mk)?"sp-":"ml-")+side}}
+  if(!gid||!t)return{n:sel+(/moneyline/.test(mk)?" ML":" "+raw.mkt.toLowerCase()),a:null,time:null,ok:false};
+  g=GAMES.filter(function(x){return x.id===gid})[0];m=DATA.games[gid];
+  if(g&&g.legs[t]&&(line===null||g.legs[t].pt===line)){var GL=gameLeg(g,t);return{n:GL.n,a:GL.a,time:GL.time,ok:true}}
+  var an=g?g.away:teamName(m.away),hn=g?g.home:teamName(m.home),tn=t.slice(-1)==="a"?an:hn;
+  var n=t==="ov"||t==="un"?an+"/"+hn+" "+(t==="ov"?"over ":"under ")+line:/^sp/.test(t)?tn+" "+(line>0?"+":"")+line:tn+" ML";
+  return{n:n,a:null,time:g?g.t:m.date?m.date+"T17:00:00Z":null,ok:true}}
+function shotMatch(b){var T=shotTeams(),when=b.placed||Date.now(),mus=b.raw.filter(function(x){return/ @ /.test(x)}).map(function(x){return x.replace(/\s+\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim()});
+  b.match=b.legs.map(function(l){return shotLeg(l,T,when,mus)});
+  if(b.odds===null){var d=1,okA=b.match.every(function(x){return x.a!=null});if(okA&&b.match.length){b.match.forEach(function(x){d*=dec(x.a)});b.odds=Engine.amFromDec(d);b.oddsGuess=true}}
+  return b}
+function shotRead(text){
+  var bets=shotParse(text).map(shotMatch),have={};myLoad().forEach(function(x){if(x.betId)have[x.betId]=1});
+  bets.forEach(function(b){b.dup=!!(b.id&&have[b.id])});SHOT.bets=SHOT.bets.concat(bets);renderShot();
+  if(!bets.length)toast("Couldn't find a bet in that. Screenshot the bet in My Bets (Open or Settled) so the legs, odds and wager show, then try again.",true)}
+function renderShot(){
+  var el=$("shotOut");if(!el)return;var B=Engine.BOOK_NAMES||{};
+  el.innerHTML=SHOT.bets.map(function(b,i){
+    var miss=b.match.filter(function(x){return!x.ok}).length;
+    return'<div class="card shotc"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+(b.n?b.n+"-leg parlay":b.legs.length>1?b.legs.length+"-leg parlay":"Single bet")+'</span><span>'+(b.odds!=null?fmt(b.odds):"")+'</span></h3>'+
+      (b.dup?'<p class="gauto">Already in My bets (same bet ID).</p>':"")+
+      '<ul class="rl">'+b.match.map(function(x){return'<li><span><span class="mk">'+(x.ok?"✓":"?")+'</span>'+esc(x.n)+'</span><span>'+(x.a!=null?fmt(x.a):"")+'</span></li>'}).join("")+'</ul>'+
+      (miss?'<p class="sub" style="margin:4px 0 0">? = not found on this '+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT]+' page. It still saves, but you\'ll mark its result yourself. If it\'s another sport, open that tab and add it there.</p>':"")+
+      '<div class="filters" style="margin:8px 0 0;gap:6px"><select data-shotf="book" data-i="'+i+'" aria-label="Betting app">'+["fanduel","draftkings","betmgm","betrivers"].map(function(k){return'<option value="'+k+'"'+((b.book||"fanduel")===k?" selected":"")+'>'+(B[k]||k)+'</option>'}).join("")+'</select>'+
+      '<label class="sub">Wager $<input data-shotf="stake" data-i="'+i+'" inputmode="decimal" value="'+(b.stake!=null?b.stake.toFixed(2):"")+'" style="width:70px"></label>'+
+      '<label class="sub">Odds <input data-shotf="odds" data-i="'+i+'" inputmode="text" value="'+(b.odds!=null?fmt(b.odds):"")+'" style="width:64px"></label>'+
+      '<select data-shotf="status" data-i="'+i+'" aria-label="Result"><option value="">Open</option><option value="won"'+(b.status==="won"?" selected":"")+'>Won</option><option value="lost"'+(b.status==="lost"?" selected":"")+'>Lost</option><option value="push"'+(b.status==="push"?" selected":"")+'>Push</option></select></div>'+
+      '<p class="sub" style="margin:6px 0 0">'+(b.pay!=null?"Payout read: $"+b.pay.toFixed(2)+". ":"")+(b.oddsGuess?"Odds weren't readable, so they're worked out from the legs; check them against your app. ":"")+(b.placed?"Placed "+new Date(b.placed).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+". ":"")+'Check the numbers, then save.</p>'+
+      '<p style="margin:8px 0 0;display:flex;gap:6px"><button class="btn flag" data-shotsave="'+i+'"'+(b.dup?" disabled":"")+'>Save to My bets</button><button class="btn rm" data-shotskip="'+i+'">Skip</button></p></div>'}).join("");
+}
+function shotSave(i){
+  var b=SHOT.bets[i];if(!b)return;var q=function(f){return document.querySelector('[data-shotf="'+f+'"][data-i="'+i+'"]')};
+  var stake=parseFloat(String(q("stake").value).replace(/[$,]/g,"")),od=parseOdds(String(q("odds").value).replace(/[−–]/g,"-")),st=q("status").value||null;
+  if(!(stake>0)){toast("Enter the wager first.",true);return}if(!od){toast("Enter the odds from your app, like +282 or -129.",true);return}
+  var times=b.match.map(function(x){return+new Date(x.time)||0}).filter(Boolean);
+  var bet={id:(b.id||Date.now().toString(36)).replace(/[^\w]/g,"").slice(-16),betId:b.id||null,sport:SPORT,book:q("book").value,stake:stake,odds:od,saved:b.placed||Date.now(),
+    last:times.length?Math.max.apply(null,times):(b.placed||Date.now()),legs:b.match.map(function(x){return{n:x.n,a:x.a,time:x.time}}),src:"shot"};
+  if(st)bet.manual=st;if(st==="won"&&b.pay)bet.ret=b.pay;
+  var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
+  all.push(bet);if(!mySave(all)){toast("This browser won't save it (private mode?).",true);return}
+  SHOT.bets.splice(i,1);renderShot();renderMyBets();toast("Saved to My bets ("+(Engine.BOOK_NAMES[bet.book]||bet.book)+").")}
+function shotLoadLib(){return new Promise(function(ok,no){if(window.Tesseract)return ok();var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function shotFiles(files){
+  var st=$("shotStat");files=[].slice.call(files||[]);if(!files.length)return;
+  try{st.textContent="Getting the reader ready (first time takes a few seconds)…";await shotLoadLib();
+    if(!SHOT.worker){SHOT.worker=await Tesseract.createWorker("eng",1,{logger:function(m){if(m.status==="recognizing text")st.textContent="Reading screenshot "+(SHOT.cur||1)+" of "+files.length+"… "+Math.round(m.progress*100)+"%"}});await SHOT.worker.setParameters({tessedit_pageseg_mode:"4"})}
+    for(var i=0;i<files.length;i++){SHOT.cur=i+1;var r=await SHOT.worker.recognize(files[i]);shotRead(r.data.text)}
+    st.textContent=""}
+  catch(e){st.textContent="";toast("Couldn't read that screenshot. Check your connection and try again, or use Paste text.",true);if(window.console)console.error(e)}
+  var inp=$("shotIn");if(inp)inp.value=""}
+document.addEventListener("change",function(e){if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files)});
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
@@ -1910,6 +2043,9 @@ document.addEventListener("click",function(e){
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
   else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="shotGo"){shotRead($("shotTxt").value);$("shotTxt").value=""}
+  else if(t.dataset.shotsave!==undefined){shotSave(+t.dataset.shotsave)}
+  else if(t.dataset.shotskip!==undefined){SHOT.bets.splice(+t.dataset.shotskip,1);renderShot()}
   else if(t.id==="impBtn"){importBets($("impCode").value);$("impCode").value=""}
   else if(t.id==="placeSave"){
     var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some legs to the slip first.",true);return}
