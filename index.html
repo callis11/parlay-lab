@@ -1774,7 +1774,7 @@ function shotParse(text){
         var sel=seg[i-1].replace(/^[^A-Za-z0-9#]+/,"").replace(/^[@&>©®"'“‘a-z]{1,2} (?=[A-Z])/,"").replace(/\s+[+-]?\d{3,5}\s*[.:i]*$/,"").replace(/\s+[.:i»]+$/,"").trim();
         var near=null;for(var q=i+1;q<=i+2&&q<seg.length;q++)if(/ @ /.test(seg[q])){near=seg[q];break}
         if(!near)for(var q2=i-2;q2>=0;q2--)if(/ @ /.test(seg[q2])){near=seg[q2];break}
-        b.legs.push({sel:sel,mkt:mk,mu:near?near.replace(/\s+\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim():null})}
+        var tmm=near&&near.match(/(\d{1,2}):(\d{2})\s*([AP])M/i);b.legs.push({sel:sel,mkt:mk,mu:near?near.replace(/\s*[-•·]?\s*(?:(?:today|tomorrow|mon|tue|wed|thu|fri|sat|sun)[a-z]*\s+)?\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim():null,tm:tmm?((+tmm[1])%12+(/p/i.test(tmm[3])?12:0))*60+(+tmm[2]):null})}
     });
     // summary line fallback: "NC State Moneyline, South Florida Moneyline"
     if(!b.legs.length)seg.forEach(function(x){(x.match(/[A-Z][\w.&' ()]+? (moneyline|spread)\b/gi)||[]).forEach(function(s){var m=s.match(/^(.*) (moneyline|spread)$/i);b.legs.push({sel:m[1],mkt:m[2],mu:null})})});
@@ -1796,11 +1796,13 @@ function shotTeams(){
   return T}
 function shotTeam(s,T){var k=shotNorm(s);k=SHOT_ALIAS[k]||k;if(T[k])return Object.keys(T[k]);
   var best=null;Object.keys(T).forEach(function(n){if(n.length>3&&(n.indexOf(k+" ")===0||k.indexOf(n+" ")===0)&&(!best||n.length>best.length))best=n});return best?Object.keys(T[best]):[]}
-function shotGame(abs,mu,T,when){
+function shotGame(abs,mu,T,when,kick){
   var ids=Object.keys(DATA.games),pick=function(f){return ids.filter(function(id){return f(DATA.games[id])})};
   var c=[];if(mu){var p=mu.split(/ @ /),A=shotTeam(p[0],T),H=shotTeam(p[1]||"",T);c=pick(function(m){return A.indexOf(m.away)>=0&&H.indexOf(m.home)>=0})}
   if(abs&&abs.length)c=(c.length?c:ids).filter(function(id){var m=DATA.games[id];return abs.indexOf(m.away)>=0||abs.indexOf(m.home)>=0});
   var tm=function(id){var g=GAMES.filter(function(x){return x.id===id})[0];return g?+new Date(g.t):DATA.games[id].date?+new Date(DATA.games[id].date+"T17:00:00Z"):0};
+  c=c.filter(function(id){var t=tm(id);return!t||(t>when-12*36e5&&t<when+9*864e5)});
+  if(kick!=null)c=c.filter(function(id){var g=GAMES.filter(function(x){return x.id===id})[0];if(!g)return true;var et=new Date(g.t).toLocaleString("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit",hour12:false}).split(":");return((+et[0])%24)*60+(+et[1])===kick});
   c.sort(function(a,b){return Math.abs(tm(a)-when)-Math.abs(tm(b)-when)});return c[0]||null}
 function shotLeg(raw,T,when,mus){
   var sel=raw.sel,mk=raw.mkt.toLowerCase(),gid,g,m,t=null,line=null,side;
@@ -1816,8 +1818,8 @@ function shotLeg(raw,T,when,mus){
     var lv=num?(/\+\s*$/.test(sel)?+num-0.5:+num):p.td?0.5:null,r=p.rungs.filter(function(r){return r.line===lv})[0];
     if(r&&!under){var PL=propLeg(p,r);return Object.assign(legKeep(PL),{ok:true})}
     return{n:p.player+" "+(under?"under":"over")+" "+(lv!=null?lv:"")+" "+p.label.toLowerCase(),a:null,time:p.g&&p.g.t||null,ok:true,kind:"p",ev:p.ev,player:p.player,label:p.label,line:lv,td:!!p.td,side:under?"under":"over"}}
-  if(ou){gid=shotGame(null,raw.mu||mus[0],T,when);t=/^o/i.test(ou[1])?"ov":"un";line=+ou[2]}
-  else{var nm=/spread|run line|puck line/.test(mk)&&spm?spm[1]:sel;if(/spread|run line|puck line/.test(mk)&&spm)line=+spm[2];var ab=shotTeam(nm,T);gid=ab.length?shotGame(ab,raw.mu||mus.filter(function(x){return ab.some(function(a){return shotTeam(x.split(/ @ /)[0],T).indexOf(a)>=0||shotTeam(x.split(/ @ /)[1]||"",T).indexOf(a)>=0})})[0],T,when):null;
+  if(ou){gid=shotGame(null,raw.mu||mus[0],T,when,raw.mu?raw.tm:null);t=/^o/i.test(ou[1])?"ov":"un";line=+ou[2]}
+  else{var nm=/spread|run line|puck line/.test(mk)&&spm?spm[1]:sel;if(/spread|run line|puck line/.test(mk)&&spm)line=+spm[2];var ab=shotTeam(nm,T);gid=ab.length?shotGame(ab,raw.mu||mus.filter(function(x){return ab.some(function(a){return shotTeam(x.split(/ @ /)[0],T).indexOf(a)>=0||shotTeam(x.split(/ @ /)[1]||"",T).indexOf(a)>=0})})[0],T,when,raw.mu?raw.tm:null):null;
     if(gid){m=DATA.games[gid];side=ab.indexOf(m.away)>=0?"a":"h";t=(/spread|run line|puck line/.test(mk)?"sp-":"ml-")+side}}
   if(!gid||!t)return{n:sel+(/moneyline/.test(mk)?" ML":" "+raw.mkt.toLowerCase()),a:null,time:null,ok:false};
   g=GAMES.filter(function(x){return x.id===gid})[0];m=DATA.games[gid];
@@ -1825,7 +1827,7 @@ function shotLeg(raw,T,when,mus){
   var an=g?g.away:teamName(m.away),hn=g?g.home:teamName(m.home),tn=t.slice(-1)==="a"?an:hn;
   var n=t==="ov"||t==="un"?an+"/"+hn+" "+(t==="ov"?"over ":"under ")+line:/^sp/.test(t)?tn+" "+(line>0?"+":"")+line:tn+" ML";
   var o={n:n,a:null,time:g?g.t:m.date?m.date+"T17:00:00Z":null,ok:true,kind:"g",ev:gid,t:t};if(line!==null)o.pt=line;return o}
-function shotMatch(b){var T=shotTeams(),when=b.placed||Date.now(),mus=b.raw.filter(function(x){return/ @ /.test(x)}).map(function(x){return x.replace(/\s+\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim()});
+function shotMatch(b){var T=shotTeams(),when=b.placed||Date.now(),mus=b.raw.filter(function(x){return/ @ /.test(x)}).map(function(x){return x.replace(/\s*[-•·]?\s*(?:(?:today|tomorrow|mon|tue|wed|thu|fri|sat|sun)[a-z]*\s+)?\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim()});
   b.match=b.legs.map(function(l){return shotLeg(l,T,when,mus)});
   if(b.odds===null){var d=1,okA=b.match.every(function(x){return x.a!=null});if(okA&&b.match.length){b.match.forEach(function(x){d*=dec(x.a)});b.odds=Engine.amFromDec(d);b.oddsGuess=true}}
   return b}
