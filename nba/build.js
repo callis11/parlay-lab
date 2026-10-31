@@ -39,7 +39,7 @@ function parseScoreboard(j) {
     const c = ev.competitions && ev.competitions[0]; if (!c) return null;
     const h = c.competitors.find(x => x.homeAway === "home"), a = c.competitors.find(x => x.homeAway === "away"); if (!h || !a) return null;
     return { id: ev.id, t: ev.date, d: etDate(ev.date), h: h.team.abbreviation, a: a.team.abbreviation, hn: h.team.name || h.team.displayName, an: a.team.name || a.team.displayName,
-      hs: +h.score || 0, as: +a.score || 0, done: !!(ev.status && ev.status.type && ev.status.type.completed) };
+      hs: +h.score || 0, as: +a.score || 0, done: !!(ev.status && ev.status.type && ev.status.type.completed), st: ev.season && ev.season.type };
   }).filter(Boolean);
 }
 function parseBox(j) {
@@ -111,7 +111,9 @@ function parseInjuries(j) {
   fs.writeFileSync("nba/logs.json", JSON.stringify(logs));
 
   // ---------- 3. player logs, team records, opponent factors ----------
-  const games = Object.values(logs.games).filter(g => g.done && logs.box[g.id]).sort((a, b) => a.t.localeCompare(b.t));
+  // Preseason games (season type 1) don't count: odd minutes and lineups. Older cached games without a type use the opening-night dates.
+  const isPre = g => g.st === 1 || (g.st == null && ((g.d >= "2025-10-01" && g.d < "2025-10-21") || (g.d >= "2026-10-01" && g.d < "2026-10-20")));
+  const games = Object.values(logs.games).filter(g => g.done && logs.box[g.id] && !isPre(g)).sort((a, b) => a.t.localeCompare(b.t));
   const isCur = g => g.d >= SEASON_START;
   const byPlayer = {}, teamLast = {}, oppTot = {}; // oppTot[label][team] = [per-game totals]
   for (const g of games) {
@@ -212,7 +214,7 @@ function parseInjuries(j) {
     if (!next[g.a]) next[g.a] = { t: g.t, opp: g.h, home: false, name: g.an };
   });
   // Team history: records against the spread and on totals from ESPN's closing lines, this season and last
-  const thRows = Object.values(logs.games).filter(g => g.done).map(g => { const L = logs.lines[g.id] || [null, null]; return { d: g.d, cur: g.d >= SEASON_START, h: g.h, a: g.a, hs: g.hs, as: g.as, sp: L[0], tot: L[1] }; });
+  const thRows = Object.values(logs.games).filter(g => g.done && !isPre(g)).map(g => { const L = logs.lines[g.id] || [null, null]; return { d: g.d, cur: g.d >= SEASON_START, h: g.h, a: g.a, hs: g.hs, as: g.as, sp: L[0], tot: L[1] }; });
   const gl = Object.values(out), th = TH.build(thRows, gl.flatMap(g => [g.away, g.home]), gl.map(g => [g.away, g.home]), { curLabel: "2026–27", prevLabel: "2025–26" });
   fs.writeFileSync("nba/data.json", JSON.stringify({ sport: "nba", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games: out, props, next, th }));
   console.log("Saved nba/data.json:", Object.keys(out).length, "games,", props.length, "props (", props.filter(p => p.ladder.some(l => l.p !== undefined)).length, "rated)");

@@ -423,6 +423,8 @@ select,input,textarea{font-size:max(16px,1em)}
 .bpc{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:700;line-height:1}
 .b2r .bx{width:30px;height:30px;font:inherit;font-weight:800;cursor:pointer}.b2r .binfo{font-size:19px;color:var(--muted);background:transparent}.b2.open .binfo{background:var(--flag);color:var(--flag-ink);border-color:var(--flag)}
 .b2.on .b2r{background:rgba(255,255,255,.06)}.b2.on .bi{color:var(--flag);font-weight:800}
+.story{display:grid;gap:8px;margin-top:6px}.sty b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--flag);margin-bottom:2px}
+.sty ul{margin:0;padding-left:16px;font-size:13px;line-height:1.4}.sty li{margin:1px 0}
 .bwhy{padding:2px 12px 12px 42px;font-size:13px}
 .bhow{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
 .bfoot{font-size:12px;color:var(--muted);text-align:center;margin:8px 0}
@@ -666,12 +668,16 @@ function matchup(g){
   var w=m.weather,wx="";
   if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
     else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
-  var rows=(m.h2h||[]).map(function(x){return"<tr><td>"+(x.date?new Date(x.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"}):x.season+" wk "+x.week)+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
+  // meetings: use the version with closing lines (team history) when the game file has none
+  var MK=DATA.th&&DATA.th.meet&&DATA.th.meet[[m.away,m.home].sort().join("|")],H2=m.h2h||[];
+  if(MK&&MK.length&&!H2.some(function(x){return x.cover}))H2=MK.map(function(x){return{date:x.d,away:x.a,as:x.as,home:x.h,hs:x.hs,cover:x.cover==="push"?"PUSH":x.cover,ou:x.ou}});
+  var l5=function(t){var X=thTeam(t);return X&&X.l5&&X.l5.length?'<span class="chip">'+esc(t)+' last '+X.l5.length+': '+X.l5.map(function(g){return g.r.charAt(0)+(g.c==="cover"?"✓":g.c==="miss"?"✗":g.c==="push"?"=":"")}).join(" ")+'</span>':""};
+  var rows=H2.map(function(x){return"<tr><td>"+(x.date?new Date(x.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"}):x.season+" wk "+x.week)+"</td><td>"+x.away+" "+x.as+" @ "+x.home+" "+x.hs+"</td><td>"+(x.cover?(x.cover==="PUSH"?"Push":x.cover+" cover"):"–")+"</td><td>"+(x.ou?{O:"Over",U:"Under",P:"Push"}[x.ou]:"–")+"</td></tr>"}).join("");
   var mv="";if(m.open&&m.now){var hm=m.home;
     if(m.open.spread!==null&&m.now.spread!==null&&m.open.spread!==m.now.spread)mv+='<span class="chip alert">'+hm+" spread opened "+(m.open.spread>0?"+":"")+m.open.spread+", now "+(m.now.spread>0?"+":"")+m.now.spread+'</span>';
     if(m.open.total!==null&&m.now.total!==null&&m.open.total!==m.now.total)mv+='<span class="chip alert">Total opened '+m.open.total+", now "+m.now.total+'</span>'}
-  return '<details><summary>Matchup'+(SPORT==="nfl"?" and weather":"")+'</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+(m.neutral?'<span class="chip">Neutral site</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+'</div>'+
-    (!m.h2h?"":rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
+  return '<details><summary>Matchup'+(SPORT==="nfl"?" and weather":"")+'</summary><div class="chips">'+mv+wx+(m.div?'<span class="chip">Division game</span>':"")+(m.neutral?'<span class="chip">Neutral site</span>':"")+rec(m.rec[m.away],m.away)+rec(m.rec[m.home],m.home)+l5(m.away)+l5(m.home)+'</div>'+
+    (!m.h2h&&!H2.length?"":rows?'<table><thead><tr><th>Game</th><th>Score</th><th>Spread</th><th>Total</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p class="empty">No recent meetings.</p>')+'</details>';
 }
 function renderGames(){
   if(!GAMES.length){$("games").innerHTML='<p class="empty">No lines yet. The next odds refresh will fill this in.</p>';return}
@@ -746,13 +752,9 @@ function icon(k,c,sm,bd){return'<span class="ic'+(sm?" sm":"")+'" style="--c:'+c
 function legIcon(l,sm){return icon(icoKey(l),legColor(l),sm,"")}
 // Past-season record for one leg: the player's main-line record for that stat, or the team's spread / over-under record
 function legHist(l){
-  if(SPORT!=="nfl"||!BT||!BT.teams)return"";
-  if(l.kind==="p"){var pp=pmap()[l.k],rg=pp&&pp.rungs.filter(function(r){return r.line===l.line})[0],sc=rg?sideRec(l,rg).since:l.since;
-    return sc&&sc[1]>=4?(l.td?"Scored in ":l.side==="under"?"Under "+l.line+" in ":"Hit "+(l.line+0.5)+"+ in ")+sc[0]+" of "+sc[1]+" games since 2023":""}
-  var tm=legTeam(l),T=tm&&BT.teams[tm],m=DATA&&DATA.games[l.ev]||{};
-  if(/^sp|^ml/.test(l.t)&&T&&T.ats[0]+T.ats[1])return tm+" "+T.ats[0]+"–"+T.ats[1]+" against the spread since 2021";
-  if((l.t==="ov"||l.t==="un")&&BT.teams[m.away]&&BT.teams[m.home]){var a=BT.teams[m.away].ou,h=BT.teams[m.home].ou;return"Overs: "+m.away+" "+a[0]+"–"+a[1]+", "+m.home+" "+h[0]+"–"+h[1]+" since 2021"}
-  return"";
+  if(!DATA)return"";var S=legStory(l),ok=function(x){return x&&!/^No |^Not enough/.test(x)};
+  if(l.kind==="p")return ok(S.past[0])?S.past[0]:ok(S.recent[0])?S.recent[0]:"";
+  return ok(S.recent[0])?S.recent[0]:ok(S.past[0])?S.past[0]:"";
 }
 // Two-column fact list used across cards: first items brighter (matchup, odds), the rest muted
 function factGrid(keys,rest){var cap=function(t){t=String(t);return t.charAt(0).toUpperCase()+t.slice(1)};
@@ -788,7 +790,7 @@ function propLines(p){
     if(cur)keep[cur.line]=1;
     var open=OPENP[p.id],hidden=p.rungs.filter(function(r){return!keep[r.line]}).length;
     var rungs=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line;
-      var stat=r.p!==undefined?'<span class="s2"><span>'+(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+'</span>'+(r.since&&r.since[1]>r.n?'<span>'+r.since[0]+" of "+r.since[1]+" since 2023</span>":"")+'</span>':"Not enough games to rate";
+      var stat=r.p!==undefined?'<span class="s2"><span>'+(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+'</span>'+(r.since&&r.since[1]>r.n?'<span>'+r.since[0]+" of "+r.since[1]+" "+(SINCE_LABEL[SPORT]||"in past seasons")+"</span>":"")+'</span>':"Not enough games to rate";
       var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5w"><span class="l5">Last 5: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5">newest</span></span>':"";
       return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     return rungs+(hidden?'<button class="lnk" data-openp="'+esc(p.id)+'">'+(open?"Show fewer":"Show all "+p.rungs.length+" lines")+'</button>':"");
@@ -954,23 +956,7 @@ function genPick(pool,n,avoid,cx){
 }
 // How often slips with this many legs really hit vs what they claimed (past seasons); falls back to 0.9
 function genFactor(n){var w=0,e=0;if(BTR&&BTR.slips)for(var k in BTR.slips){var x=BTR.slips[k];if(Math.round(x.legs/x.n)===n){w+=x.w;e+=x.exp}}return e>20?Math.max(0.6,Math.min(1.1,(w+30*0.9)/(e+30))):0.9}
-function legWhy(x){
-  var L=x.leg,p=x.p,r=x.r,bits=[];
-  if(L.kind==="p"){
-    var sr=sideRec(L,r);bits.push((L.side==="under"?"Under in ":"Hit ")+sr.hits+" of last "+sr.n);
-    if(sr.since&&sr.since[1]>sr.n)bits.push(sr.since[0]+" of "+sr.since[1]+" since 2023");
-    var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
-    if(v&&v[0]+v[1]>=2){var vv=vsRec(L,v);bits.push("vs "+p.opp+" "+vv[0]+" of "+(vv[0]+vv[1])+(L.side==="under"?" unders":" overs"))}
-    if(p.oppF>=1.04)bits.push("soft "+p.opp+" defense");else if(p.oppF&&p.oppF<=0.96)bits.push("tough "+p.opp+" defense");
-    if(p.avg!==null&&!p.td)bits.push("averages "+p.avg);
-  }else{
-    var m=DATA.games[L.ev]||{},tm=/-a$/.test(L.t)?m.away:/-h$/.test(L.t)?m.home:"",T2=BT&&BT.teams&&BT.teams[tm];
-    bits.push("book's fair chance "+Math.round((L.p0||L.p)*100)+"%");
-    if(T2&&/^sp|^ml/.test(L.t))bits.push(tm+" "+T2.ats[0]+"–"+T2.ats[1]+" ATS since 2021");
-    if((L.t==="ov"||L.t==="un")&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home])bits.push("overs "+m.away+" "+BT.teams[m.away].ou[0]+"–"+BT.teams[m.away].ou[1]+", "+m.home+" "+BT.teams[m.home].ou[0]+"–"+BT.teams[m.home].ou[1]);
-  }
-  return bits.join(" · ");
-}
+function legWhy(x){return storyLine(legStory(x.leg))}
 function genRun(cx){
   cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
   // one game with only game lines can make at most a side + the total
@@ -1040,7 +1026,7 @@ function slipFlags(legs){
     if(l.kind==="p"){var pp=pmap()[l.k];
       if(pp){if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
-        var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&rs[0]/rs[1]<l.p-0.15)red.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games since 2023");
+        var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&rs[0]/rs[1]<l.p-0.15)red.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons"));
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
         if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)red.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
       if(l.player){if(who[l.player])red.push("two legs on "+l.player+" move together");who[l.player]=1}}
@@ -1141,24 +1127,63 @@ function renderBacktest(){
     '<div class="card"><h3>Are our percentages honest?</h3><table class="ht">'+pb+'</table></div>';
 }
 // ---------- "How we got this %": the back of every parlay card ----------
-function legBreakdown(l){
-  var pct=function(x){return Math.round(x*100)+"%"},imp=1/dec(l.a),lines=[],src=[];
+// ---------- the story behind a leg's % (one layout everywhere: Build ⓘ, generator legs, How we got this %) ----------
+// Sections: The price · Recent form · Past seasons · Matchup · How we got the %. Missing data says so instead of vanishing.
+var SINCE_LABEL={nfl:"since 2023",nba:"this season and last"};
+function recTxt(x,k){var a=x&&x[k];if(!a)return null;var s=a[0]+"–"+a[1]+(a[2]?"–"+a[2]:"");return s}
+function thTeam(t){return DATA&&DATA.th&&DATA.th.teams&&DATA.th.teams[t]||null}
+function thLabel(k){return DATA&&DATA.th?DATA.th[k]:k==="cur"?"this season":"last season"}
+function legStory(l){
+  var pct=function(x){return Math.round(x*100)+"%"},S={price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
+  S.price.push("Odds "+fmt(l.a)+(l.best&&l.best.a!==undefined&&dec(l.best.a)>dec(l.a)+1e-9?" (best "+l.best.book+" "+fmt(l.best.a)+")":""));
+  S.price.push("Book's chance "+pct(1/dec(l.a))+(l.p0!=null&&l.kind==="g"?", "+pct(l.p0)+" with its cut removed":""));
   if(l.kind==="p"){
-    var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0];
-    if(r){var sr=sideRec(l,r);src.push(sr.word+sr.hits+" of his last "+sr.n+" games");
-      if(sr.since&&sr.since[1]>sr.n)src.push(sr.since[0]+" of "+sr.since[1]+" games since 2023");
-      var U=l.side==="under";if(pp.oppF>=1.04)src.push(pp.opp+" give up more than average here, so we nudged it "+(U?"down":"up"));else if(pp.oppF&&pp.oppF<=0.96)src.push(pp.opp+" are tough here, so we nudged it "+(U?"up":"down"));
-      if(pp.windF&&pp.windF<1)src.push("wind expected, so lowered");
-      var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];if(v&&v[0]+v[1]>=2){var vv=vsRec(l,v);src.push("vs "+pp.opp+" in past seasons: "+vv[0]+" of "+(vv[0]+vv[1])+(l.side==="under"?" unders":" overs"))}}
+    var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0],U=l.side==="under";
+    if(r&&r.n){var sr=sideRec(l,r);S.recent.push(sr.word+sr.hits+" of his last "+sr.n+" games");
+      if(pp.avg!==null&&!pp.td)S.recent.push("Averages "+pp.avg+" (line "+(l.td?"0.5":l.line)+")");
+      if(pp.recent&&pp.recent.length&&!pp.td)S.recent.push("Last 5: "+pp.recent.join(", "));
+      if(sr.since&&sr.since[1]>sr.n)S.past.push(sr.since[0]+" of "+sr.since[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons"));
+      else S.past.push("No longer record at this line yet");
+      var pv=SPORT==="nfl"&&playerPast(pp.team,pp.player,pp.label);if(pv&&!U)S.past.push("Main line "+(pp.td?"hit":"overs")+" "+pv[0]+"–"+pv[1]+" in replayed 2023–25 games");
+      if(r.vs){var vs=U?[r.vs[1]-r.vs[0],r.vs[1]]:r.vs;S.matchup.push("Vs "+pp.opp+": "+(U?"under":pp.td?"scored":"over")+" this line "+vs[0]+" of "+vs[1]+" games")}
+      else if(pp.opp)S.matchup.push("No past games vs "+pp.opp+" in our data");
+    }else S.recent.push("Not enough games to rate him; this leans on the book's price");
+    if(pp){if(pp.oppF>=1.04)S.matchup.push(pp.opp+" allow more than average here ("+(U?"bad":"good")+" for this pick)");else if(pp.oppF&&pp.oppF<=0.96)S.matchup.push(pp.opp+" are tough here ("+(U?"good":"bad")+" for this pick)");
+      if(pp.windF&&pp.windF<1)S.matchup.push("Wind expected, which cuts passing numbers");
+      if(pp.injury)S.matchup.push("Injury report: "+pp.injury);else if(pp.missedLast)S.matchup.push("Missed his team's last game")}
+    var w=r&&r.n?Math.round(100*r.n/(r.n+15)):0;
+    S.how.push(w?"His record gets "+w+"% of the weight and the book's price the rest (more games, more weight on him)":"Book's price only");
+    if(l.p0!=null&&Math.abs(l.p0-l.p)>=0.01)S.how.push("Graded results for legs like this tuned it from "+pct(l.p0)+" to "+pct(l.p));
   }else{
-    var m=DATA.games[l.ev]||{},tm=/-a$/.test(l.t)?m.away:/-h$/.test(l.t)?m.home:"",T2=BT&&BT.teams&&BT.teams[tm];
-    src.push("the book's price with its cut removed says "+pct(l.p0||l.p));
-    if(T2&&/^sp|^ml/.test(l.t))src.push(tm+" "+T2.ats[0]+"–"+T2.ats[1]+" against the spread since 2021");
-    if((l.t==="ov"||l.t==="un")&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home])src.push("overs since 2021: "+m.away+" "+BT.teams[m.away].ou[0]+"–"+BT.teams[m.away].ou[1]+", "+m.home+" "+BT.teams[m.home].ou[0]+"–"+BT.teams[m.home].ou[1]);
+    var t0=l.t.replace(/^1/,""),h1=l.t.charAt(0)==="1",side=/^(ml|sp)/.test(t0),tm=side?(/-a$/.test(t0)?m.away:m.home):null,isH=tm&&tm===m.home,op=side?(isH?m.away:m.home):null;
+    var teams=side?[tm]:[m.away,m.home];
+    teams.forEach(function(t){var X=thTeam(t);if(!t)return;
+      if(X&&X.cur&&X.cur.n){var c=X.cur;S.recent.push(t+" "+thLabel("cur")+": "+recTxt(c,"su")+(c.ats?", "+recTxt(c,"ats")+" vs spread":"")+(c.ou?", overs "+recTxt(c,"ou"):""));
+        if(side){var hs=isH?X.home:X.away;if(hs&&hs.n)S.recent.push((isH?"At home":"On the road")+": "+recTxt(hs,"su")+(hs.ats?", "+recTxt(hs,"ats")+" vs spread":""))}
+        if(X.l5&&X.l5.length)S.recent.push(t+" last "+X.l5.length+": "+X.l5.map(function(g){return g.r.charAt(0)+(side?(g.c==="cover"?"✓":g.c==="miss"?"✗":g.c==="push"?"=":""):(g.o||""))}).join(" ")+(side?" (✓ covered)":" (O/U)"))}
+      else S.recent.push(t+": no games "+thLabel("cur")+" yet");
+      if(X&&X.prev&&X.prev.n){var pv2=X.prev;S.past.push(t+" "+thLabel("prev")+": "+recTxt(pv2,"su")+(pv2.ats?", "+recTxt(pv2,"ats")+" vs spread":"")+(pv2.ou?", overs "+recTxt(pv2,"ou"):""))}
+      var B=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[t];if(B)S.past.push(t+" since 2021: "+(side?B.ats[0]+"–"+B.ats[1]+" vs spread":"overs "+B.ou[0]+"–"+B.ou[1]));
+    });
+    if(!S.past.length)S.past.push("No past-season lines for these teams yet");
+    var MK=DATA&&DATA.th&&DATA.th.meet&&DATA.th.meet[[m.away,m.home].sort().join("|")];
+    if(MK&&MK.length)MK.slice(0,3).forEach(function(g){S.matchup.push(g.d.slice(0,7).replace("-","/")+": "+g.a+" "+g.as+" @ "+g.h+" "+g.hs+(g.cover?" · "+(g.cover==="push"?"push":g.cover+" covered"):"")+(g.ou?" · "+(g.ou==="O"?"over":g.ou==="U"?"under":"push"):""))});
+    else S.matchup.push("No recent meetings in our data");
+    if(m.open&&m.now){var mv=lineMove(l,m);if(Math.abs(mv)>=0.5)S.matchup.push("Line moved "+Math.abs(mv)+" pts "+(mv>0?"toward":"against")+" this pick since it opened")}
+    if(m.neutral)S.matchup.push("Neutral site");if(m.weather&&m.weather.wind>=15)S.matchup.push("Wind "+m.weather.wind+" mph");
+    S.how.push("Starts from the book's price with its cut removed"+(h1?" (first-half line)":""));
+    var cb=CALIB&&CALIB.byCat&&CALIB.byCat[Engine.category(l)];
+    if(cb&&cb.factor&&Math.abs(cb.factor-1)>=0.01)S.how.push(cb.n+" graded bet"+(cb.n===1?"":"s")+" like this hit "+Math.round(cb.rate*100)+"%, so we "+(cb.factor<1?"trim":"raise")+" it "+Math.abs(Math.round((cb.factor-1)*100))+"%");
+    else S.how.push(cb&&cb.n&&cb.n>=20?cb.n+" graded bets like this matched the book, so no change":"Not enough graded bets like this yet to adjust it");
   }
-  var adj=l.p0!==undefined&&l.p0!==null&&Math.abs(l.p0-l.p)>=0.01&&l.kind==="p"?" Past seasons showed legs like this hit "+(l.p<l.p0?"less":"more")+" often than estimated, so "+pct(l.p0)+" became "+pct(l.p)+".":"";
-  return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+pct(l.p)+'</span></div>'+
-    factGrid(["Odds "+fmt(l.a),"Book's chance ~"+pct(imp)],src)+(adj?'<p>'+esc(adj.trim())+'</p>':"")+'</div>';
+  return S;
+}
+var STORY_H={price:"The price",recent:"Recent form",past:"Past seasons",matchup:"Matchup",how:"How we got the %"};
+function storyHTML(S){return'<div class="story">'+["price","recent","past","matchup","how"].filter(function(k){return S[k].length}).map(function(k){return'<div class="sty"><b>'+STORY_H[k]+'</b><ul>'+S[k].map(function(x){return"<li>"+esc(x)+"</li>"}).join("")+'</ul></div>'}).join("")+'</div>'}
+// one-line version for generator legs
+function storyLine(S){return[].concat(S.recent.slice(0,1),S.past.slice(0,1),S.matchup.slice(0,1)).filter(function(x){return!/^No /.test(x)}).join(" · ")}
+function legBreakdown(l){
+  return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span></div>'+storyHTML(legStory(l))+'</div>';
 }
 function slipWhy(legs,name){
   var pct=function(x){return Math.round(x*100)+"%"},d=1,evs={},sg=false;
@@ -1210,9 +1235,13 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(
 window.addEventListener("resize",function(){if($("pList"))fitHero()});
 function tnSize(n){var L=Math.max(String(n).length,4);return'font-size:min(78px,calc((100vw - 64px) / '+(L*0.56).toFixed(2)+'),'+Math.round(620/(L*0.56))+'px)'}
 function heroTrends(m){
-  if(SPORT!=="nfl"||!BT||!BT.teams)return"";var A=BT.teams[m.away],H=BT.teams[m.home];if(!A||!H)return"";
-  var r=function(t,T){return'<span><b>'+esc(t)+'</b> '+T.ats[0]+"–"+T.ats[1]+" ATS · overs "+T.ou[0]+"–"+T.ou[1]+'</span>'};
-  return'<div class="trends"><small>Since 2021</small>'+r(m.away,A)+r(m.home,H)+'</div>';
+  // This season's records against the spread and on overs (every sport), plus NFL's since-2021 record
+  var A=thTeam(m.away),H=thTeam(m.home),out="";
+  var r=function(t,X){var c=X&&X.cur;if(!c||!c.ats)return'<span><b>'+esc(t)+'</b> no lines yet</span>';return'<span><b>'+esc(t)+'</b> '+recTxt(c,"ats")+" ATS"+(c.ou?" · overs "+recTxt(c,"ou"):"")+'</span>'};
+  if((A&&A.cur&&A.cur.ats)||(H&&H.cur&&H.cur.ats))out+='<div class="trends"><small>'+esc(thLabel("cur"))+'</small>'+r(m.away,A)+r(m.home,H)+'</div>';
+  else{var pa=A&&A.prev&&A.prev.ats,ph=H&&H.prev&&H.prev.ats;if(pa||ph)out+='<div class="trends"><small>'+esc(thLabel("prev"))+'</small>'+[[m.away,A],[m.home,H]].map(function(x){var c=x[1]&&x[1].prev;return'<span><b>'+esc(x[0])+'</b> '+(c&&c.ats?recTxt(c,"ats")+" ATS"+(c.ou?" · overs "+recTxt(c,"ou"):""):"no lines")+'</span>'}).join("")+'</div>'}
+  if(SPORT==="nfl"&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home]){var b=function(t,T){return'<span><b>'+esc(t)+'</b> '+T.ats[0]+"–"+T.ats[1]+" ATS · overs "+T.ou[0]+"–"+T.ou[1]+'</span>'};out+='<div class="trends"><small>Since 2021</small>'+b(m.away,BT.teams[m.away])+b(m.home,BT.teams[m.home])+'</div>'}
+  return out;
 }
 function heroCard(sp0){
   if(!sp0||!sp0.g)return"";var g=sp0.g;var m=DATA&&DATA.games[g.id]||{},ca=teamColor(m.away,"a"),ch=teamColor(m.home,"h");
@@ -1282,17 +1311,27 @@ function renderParlays(){
   if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
   if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
-  html+='<div class="legend"><b>How to read these cards</b>'+
-    '<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>'+
-    '<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>'+
-    '<p><b>adj. from 59%</b> The chance to hit is corrected by how often this type really hit in past seasons, since legs on the same slip tend to win or lose together.</p>'+
-    '<p><span class="hb gr">All green</span> Every leg is 70%+ to hit. <span class="hb so">Spread out</span> Every leg is from a different game, so one bad game can only cost you one leg. <span class="hb rf">⚑ Red flag</span> Something to check first: a leg under 45%, an injury tag, a player who rarely clears this line, or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>'+
-    '<p><b>Same game</b> Legs from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).</p>'+
-    '<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>'+
-    '<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p></div>';
+  html+=legendHTML();
   $("pList").innerHTML=html;
   fitHero();
   var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
+}
+// "How to read these cards", per sport: only what that sport actually uses, plus where its numbers come from
+function legendHTML(){
+  var nfl=SPORT==="nfl",props=SPORT==="nfl"||SPORT==="nba",P=[];
+  var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 154,000 legs graded in a replay of the 2023–25 seasons, and every pick we've graded live this season.",
+    nba:"Every player's box scores from last season and this one (ESPN), every team's closing lines over the same games (ESPN / DraftKings), and every pick we've graded live so far.",
+    cfb:"Every team's closing lines and results from last season and this one (ESPN / DraftKings), AP ranks and records, and every pick we've graded live so far.",
+    cbb:"Every team's closing lines and results from last season and this one (ESPN / DraftKings), AP ranks and records, and every pick we've graded live so far."}[SPORT];
+  P.push('<p><b>Where the % comes from</b> '+src+' Open any leg (ⓘ on Build, or How we got this % on a card) to see its price, recent form, past seasons, matchup and the math.</p>');
+  if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>');
+    P.push('<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>')}
+  P.push('<p><b>adj. from 59%</b> Legs multiplied together overstate a parlay, so the chance is corrected'+(nfl?' by how often this type really hit in past seasons':' using how NFL parlays really hit in our replay (this sport doesn\'t have its own replay yet)')+'.</p>');
+  P.push('<p><span class="hb gr">All green</span> Every leg is 70%+ to hit. <span class="hb so">Spread out</span> Every leg is from a different game, so one bad game can only cost you one leg. <span class="hb rf">⚑ Red flag</span> Something to check first: a leg under 45%'+(props?', an injury tag, a player who rarely clears this line':'')+', or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>');
+  P.push('<p><b>Same game</b> '+(nfl?'Legs from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).':'A side and the total from the same game get adjusted for how those pairs finished together in past seasons.')+'</p>');
+  P.push('<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>');
+  P.push('<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p>');
+  return'<div class="legend"><b>How to read these cards</b>'+P.join("")+'</div>';
 }
 var DIVS={nfl:{"AFC East":["BUF","MIA","NE","NYJ"],"AFC North":["BAL","CIN","CLE","PIT"],"AFC South":["HOU","IND","JAX","TEN"],"AFC West":["DEN","KC","LV","LAC"],"NFC East":["DAL","NYG","PHI","WAS"],"NFC North":["CHI","DET","GB","MIN"],"NFC South":["ATL","CAR","NO","TB"],"NFC West":["ARI","LA","SF","SEA"]},
  nba:{"Atlantic":["BOS","BKN","NY","PHI","TOR"],"Central":["CHI","CLE","DET","IND","MIL"],"Southeast":["ATL","CHA","MIA","ORL","WSH"],"Northwest":["DEN","MIN","OKC","POR","UTAH"],"Pacific":["GS","LAC","LAL","PHX","SAC"],"Southwest":["DAL","HOU","MEM","NO","SA"]}};
@@ -1417,17 +1456,7 @@ function renderBuild(){
   $("bSort").value=BLD.sort;
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   var rows=buildRows(),shown=rows.slice(0,BLD.n);
-  var why=function(x){var L=x.leg,facts=[],keys=["Odds "+fmt(L.a),"Book's chance ~"+Math.round(100/dec(L.a))+"%"];
-    if(x.p){var p=x.p,r=x.r;facts.push((p.td?"Scored in ":"Hit it in ")+r.hits+" of last "+r.n);if(r.since&&r.since[1]>=4)facts.push(r.since[0]+" of "+r.since[1]+" since 2023");
-      if(p.avg!==null&&!p.td)facts.push("Averages "+p.avg);if(p.recent&&p.recent.length)facts.push("Last 5: "+p.recent.join(", "));
-      if(p.oppF>=1.04)facts.push(p.opp+" defense allows more here");else if(p.oppF&&p.oppF<=0.96)facts.push(p.opp+" defense is tough here");
-      var T=BT&&BT.teams&&BT.teams[p.team],vv=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];if(vv&&vv[0]+vv[1]>=2)facts.push("Vs "+p.opp+" in past seasons: "+vv[0]+" of "+(vv[0]+vv[1])+" overs");
-      if(p.injury)facts.push("Injury report: "+p.injury);if(L.p0!=null&&Math.abs(L.p0-L.p)>=0.01)facts.push("Past seasons tuned it "+(L.p<L.p0?"down":"up")+" from "+Math.round(L.p0*100)+"%");
-    }else{var m=DATA.games[x.g.id]||{},tm=legTeam(L),T2=BT&&BT.teams&&BT.teams[tm];facts.push("Book's fair chance (cut removed) "+Math.round((L.p0||L.p)*100)+"%");
-      if(T2&&/^sp|^ml/.test(L.t))facts.push(tm+" "+T2.ats[0]+"–"+T2.ats[1]+" against the spread since 2021");
-      if((L.t==="ov"||L.t==="un")&&BT&&BT.teams&&BT.teams[m.away]&&BT.teams[m.home])facts.push("Overs since 2021: "+m.away+" "+BT.teams[m.away].ou[0]+"–"+BT.teams[m.away].ou[1]+", "+m.home+" "+BT.teams[m.home].ou[0]+"–"+BT.teams[m.home].ou[1])}
-    var how=x.p?"We blend his recent games and his record at this line with the book's price (less history means more weight on the book), adjust for the defense, then check it against three past seasons.":"We take the book's price, remove its cut, and adjust it by how these bets did in past seasons.";
-    return'<div class="bwhy">'+factGrid(keys,facts)+'<p class="bhow">'+how+'</p></div>'};
+  var why=function(x){return'<div class="bwhy">'+storyHTML(legStory(x.leg))+'</div>'};
   $("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
     var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
     var nm=x.p?x.p.player:L.n,line=x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:"");
@@ -1858,9 +1887,9 @@ var TOUR=[
  ["🧪","Welcome to ParlayLabs","Parlays built from live sportsbook odds, every player's recent games, and three past seasons of real results. Every % is our honest chance to hit, checked against how picks like it actually did.","Pick a sport at the top: NFL, NBA, NCAAF or NCAAB."],
  ["⚡","Parlays tab","<b>ParlayLabs Generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
  ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks. <b>All green</b>, <b>Spread out</b> and <b>⚑ Red flag</b> tags tell you what's inside at a glance.","Estimates, not guarantees. They hold up over many bets, not one."],
- ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. The ParlayLabs Generator is here too, players only.","Tap any line to add it to your slip."],
+ ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and over a longer stretch (since 2023 for NFL, this season and last for NBA), plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. The ParlayLabs Generator is here too, players only.","Tap any line to add it to your slip."],
  ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: the ParlayLabs Generator for that game, and parlays for either team or <b>Both</b>.","Tap ★ at the top to set your team for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
- ["🛠️","Build tab","Make your own parlay: every leg on the board ranked by our chance to hit, with its team, game and record since 2023. Filter by game or type (players, TDs, game lines) and tap a row to add it, or ⓘ for its data and history.<br><br>Your parlay sits at the top and updates live: honest %, payout, warnings for same-game legs, and <b>How we got this %</b>.","Open slip to bet sends it to FanDuel or DraftKings."],
+ ["🛠️","Build tab","Make your own parlay: every leg on the board ranked by our chance to hit, with its team, game and longer record. Filter by game or type (players, TDs, game lines) and tap a row to add it, or ⓘ for its data and history.<br><br>Your parlay sits at the top and updates live: honest %, payout, warnings for same-game legs, and <b>How we got this %</b>.","Open slip to bet sends it to FanDuel or DraftKings."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> starts with the weekly report card (new every Monday), then how our picks did, whether we beat the closing line, and your saved bets by app.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
