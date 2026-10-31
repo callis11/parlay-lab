@@ -283,7 +283,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gen-row{display:flex;align-items:center;gap:10px;margin:8px 0}
 .gen-row label{width:52px;font-size:13px;font-weight:700;color:var(--muted)}
 .gen-row .seg{flex:1;display:flex}.gen-row .seg button{flex:1}
-.gen-row select{flex:1}
+.gen-row select{flex:1;min-width:0;width:100%}
 .gcard{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .gcard.old{opacity:.8}
 .gcard .gh{display:flex;justify-content:space-between;align-items:flex-end}
@@ -337,6 +337,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .gen-t{display:flex;justify-content:space-between;align-items:center}
 .gen-c:after{content:"Open ▾";font-family:"Barlow",sans-serif;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0}
 .gen[open] .gen-c:after{content:"Close ✕"}
+.gmulti{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.gm-h{width:100%;margin:0 0 2px;font-size:12px;color:var(--muted)}
+.gmulti button{font:inherit;font-size:13px;font-weight:700;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;cursor:pointer;flex:1 1 46%;min-width:0}
+.gmulti button small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+.gmulti button[aria-pressed="true"]{border-color:var(--flag);background:color-mix(in srgb,var(--flag) 18%,var(--bg))}
+.gmulti button[aria-pressed="true"]:before{content:"✓ ";color:var(--flag)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -658,7 +664,7 @@ function genBox(cx){
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
-      :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>')+
+      :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx==="par"?'<div class="gmulti" id="gMulti_par" hidden></div>':""))+
     '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
     '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
 }
@@ -670,9 +676,12 @@ function genUI(cx){
   if(sel){
     // older saves picked a team; switch them to that team's game
     if(G.games.slice(0,2)==="t:"){var tt=G.games.slice(2),gg=GAMES.filter(function(g){var m=DATA.games[g.id]||{};return m.away===tt||m.home===tt})[0];if(gg){var mm=DATA.games[gg.id];G.games="g:"+gg.id;G.side=mm.away===tt?"a":"h"}else G.games="all"}
-    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"");
+    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+(cx==="par"?'<option value="multi">Pick several games…</option>':"");
     GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'});
     sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}
+    var mb=$("gMulti_"+cx);
+    if(mb){mb.hidden=G.games!=="multi";if(G.games==="multi"){G.multi=(G.multi||[]).filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now})});
+      mb.innerHTML='<p class="gm-h">Tap the games to use · '+G.multi.length+' picked</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="'+cx+'" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
     var row=$(x("gSideRow")),one=G.games.slice(0,2)==="g:"&&GAMES.filter(function(g){return g.id===G.games.slice(2)})[0];
     if(row){row.hidden=!one;if(one){if(["a","h","both"].indexOf(G.side)<0)G.side="both";
       $(x("gSide")).innerHTML=[["a",one.away],["h",one.home],["both","Both"]].map(function(b){return'<button data-cx="'+cx+'" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join("")}}}
@@ -691,6 +700,7 @@ function genPool(cx){
   else{
     if(G.games==="slate"&&sel&&sel.games)gl=gl.filter(function(g){return sel.games.some(function(x){return x.id===g.id})});
     if(G.games.slice(0,2)==="g:"){var gid=G.games.slice(2);gl=gl.filter(function(g){return g.id===gid})}
+    if(G.games==="multi"){var mm2=G.multi||[];gl=gl.filter(function(g){return mm2.indexOf(g.id)>=0})}
   }
   gl.forEach(function(g){ids[g.id]=1});
   var only=cx==="tm"?(gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null):(G.games.slice(0,2)==="g:"&&gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null);
@@ -769,6 +779,7 @@ function genRun(cx){
   cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
   // one game with only game lines can make at most a side + the total
   if(cx==="tm"&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
+  if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
   var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
   if(!got){toast("Not enough legs fit those choices. Try fewer legs or another style"+(cx==="tm"||G.games.slice(0,2)==="g:"?", or Both teams.":", or All games."),true);return}
@@ -1363,6 +1374,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
+  else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=30;renderProps();renderSlip()}
   else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
     // Teams tab: go back up to the game cards; elsewhere: back to the generator's header
