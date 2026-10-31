@@ -602,6 +602,9 @@ select,input,textarea{font-size:max(16px,1em)}
     <div id="legs"></div>
     <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
     <div class="placed" id="placeBox"><b>I placed this bet</b>
+      <p class="sub" style="margin:4px 0 6px">Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
+      <p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="placePaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="placeIn" accept="image/*" hidden></label></p>
+      <div class="sub" id="placeStat" style="margin:6px 0 0"></div>
       <div class="filters" style="margin:6px 0 0"><select id="placeBook" aria-label="Betting app"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select>
       <input id="placeOdds" type="text" inputmode="text" placeholder="Odds in app, e.g. +250" aria-label="Odds the app gave you" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);flex:1;min-width:120px"></div>
       <button class="btn flag" id="placeSave" style="margin-top:8px">Save to My bets</button>
@@ -1857,26 +1860,37 @@ function shotSave(i){
   all.push(bet);if(!mySave(all)){toast("This browser won't save it (private mode?).",true);return}
   SHOT.bets.splice(i,1);renderShot();renderMyBets();toast("Saved to My bets ("+(Engine.BOOK_NAMES[bet.book]||bet.book)+").")}
 function shotLoadLib(){return new Promise(function(ok,no){if(window.Tesseract)return ok();var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
-async function shotFiles(files){
-  var st=$("shotStat");files=[].slice.call(files||[]);if(!files.length)return;
+async function shotFiles(files,mode){
+  var slip=mode==="slip",st=$(slip?"placeStat":"shotStat"),done=slip?slipFromText:shotRead;files=[].slice.call(files||[]);if(!files.length)return;
+  if(slip)files=files.slice(0,1);SHOT.st=st;SHOT.n=files.length;
   try{st.textContent="Getting the reader ready (first time takes a few seconds)…";await shotLoadLib();
-    if(!SHOT.worker){SHOT.worker=await Tesseract.createWorker("eng",1,{logger:function(m){if(m.status==="recognizing text")st.textContent="Reading screenshot "+(SHOT.cur||1)+" of "+files.length+"… "+Math.round(m.progress*100)+"%"}});await SHOT.worker.setParameters({tessedit_pageseg_mode:"4"})}
-    for(var i=0;i<files.length;i++){SHOT.cur=i+1;var r=await SHOT.worker.recognize(files[i]);shotRead(r.data.text)}
+    if(!SHOT.worker){SHOT.worker=await Tesseract.createWorker("eng",1,{logger:function(m){if(m.status==="recognizing text"&&SHOT.st)SHOT.st.textContent="Reading screenshot "+(SHOT.cur||1)+" of "+SHOT.n+"… "+Math.round(m.progress*100)+"%"}});await SHOT.worker.setParameters({tessedit_pageseg_mode:"4"})}
+    for(var i=0;i<files.length;i++){SHOT.cur=i+1;st.textContent="Reading…";var r=await SHOT.worker.recognize(files[i]);st.textContent="";done(r.data.text)}
     st.textContent=""}
   catch(e){st.textContent="";toast("Couldn't read that screenshot. Check your connection and try again, or use Paste text.",true);if(window.console)console.error(e)}
-  var inp=$("shotIn");if(inp)inp.value=""}
+  var inp=$(slip?"placeIn":"shotIn");if(inp)inp.value=""}
+// Slip box: read the receipt you just got and fill in the app, odds and wager (the legs stay the ones on your slip)
+function slipFromText(text){
+  var b=shotParse(text)[0],st=$("placeStat");
+  if(!b||(b.odds==null&&b.stake==null)){toast("Couldn't find the odds or wager in that. Screenshot the receipt or the bet in My Bets and try again, or type them in.",true);return}
+  if(b.book)$("placeBook").value=b.book;if(b.odds!=null)$("placeOdds").value=fmt(b.odds);
+  if(b.stake!=null){$("stake").value=b.stake.toFixed(2);$("stake").dispatchEvent(new Event("input",{bubbles:true}))}
+  SHOT.slipMeta={betId:b.id||null,pay:b.pay,placed:b.placed||null};
+  var n=Object.keys(SLIP).length,cnt=b.n||b.legs.length,dup=b.id&&myLoad().some(function(x){return x.betId===b.id});
+  st.innerHTML='<span class="gauto" style="display:block">Read: '+esc((Engine.BOOK_NAMES[b.book]||"app not found")+(b.odds!=null?" · "+fmt(b.odds):"")+(b.stake!=null?" · $"+b.stake.toFixed(2)+" wager":"")+(b.pay!=null?" · pays $"+b.pay.toFixed(2):""))+'.'+
+    (cnt&&n&&cnt!==n?" Your receipt has "+cnt+" legs but this slip has "+n+", so check it's the right slip.":"")+(dup?" This bet is already in My bets.":" Check it, then Save.")+'</span>'}
 // Paste a copied screenshot: the button reads the clipboard (the phone shows a small Paste bubble to allow it); pasting into the box works too
-async function shotPasteBtn(){
+async function shotPasteBtn(mode){
   try{if(!navigator.clipboard||!navigator.clipboard.read)throw 0;var items=await navigator.clipboard.read(),imgs=[];
     for(var i=0;i<items.length;i++){var ty=items[i].types.filter(function(t){return/^image\//.test(t)})[0];if(ty)imgs.push(await items[i].getType(ty))}
-    if(imgs.length){shotFiles(imgs);return}
+    if(imgs.length){shotFiles(imgs,mode);return}
     var tx=items.some(function(x){return x.types.indexOf("text/plain")>=0})?await navigator.clipboard.readText():"";
-    if(tx.trim()){shotRead(tx);return}
+    if(tx.trim()){(mode==="slip"?slipFromText:shotRead)(tx);return}
     toast("No screenshot on the clipboard. Copy one first (tap the screenshot, Share, Copy).",true)}
   catch(e){toast("Couldn't read the clipboard here. Open \"Or paste\" below and paste into the box, or use Pick screenshots.",true)}}
 document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
   var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
-document.addEventListener("change",function(e){if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files)});
+document.addEventListener("change",function(e){if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
@@ -2071,8 +2085,9 @@ document.addEventListener("click",function(e){
     var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" legs. It's at the bottom of the screen.");
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];renderSlip()}
-  else if(t.id==="clear"){SLIP={};renderSlip()}
+  else if(t.id==="clear"){SLIP={};SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";renderSlip()}
   else if(t.id==="shotPaste"){shotPasteBtn()}
+  else if(t.id==="placePaste"){shotPasteBtn("slip")}
   else if(t.id==="shotGo"){shotRead($("shotTxt").value);$("shotTxt").value=""}
   else if(t.dataset.shotsave!==undefined){shotSave(+t.dataset.shotsave)}
   else if(t.dataset.shotskip!==undefined){SHOT.bets.splice(+t.dataset.shotskip,1);renderShot()}
@@ -2082,8 +2097,10 @@ document.addEventListener("click",function(e){
     var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=parseOdds($("placeOdds").value);
     var bet={id:Date.now().toString(36),sport:SPORT,book:$("placeBook").value,stake:parseFloat($("stake").value)||0,odds:od||Engine.amFromDec(d),saved:Date.now(),
       last:Math.max.apply(null,legs.map(function(l){return +new Date(l.time)||Date.now()})),legs:legs.map(legKeep)};
-    var all=myLoad();all.push(bet);
-    if(mySave(all)){toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");$("placeOdds").value="";$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
+    var M=SHOT.slipMeta;if(M){if(M.betId)bet.betId=M.betId;if(M.pay)bet.pay=M.pay;if(M.placed)bet.saved=M.placed}
+    var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
+    all.push(bet);
+    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");$("placeOdds").value="";$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
     else toast("This browser won't save it (private mode?).",true)}
   else if(t.dataset.mydel){
     // two taps so a bet isn't removed by accident
