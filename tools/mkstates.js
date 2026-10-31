@@ -1,5 +1,5 @@
 const fs=require("fs"),out=process.argv[2]||"states.json";
-const topo=JSON.parse(fs.readFileSync(path+"/node_modules/us-atlas/states-10m.json"));
+const topo=JSON.parse(fs.readFileSync("./node_modules/us-atlas/states-10m.json"));
 const tc=require("topojson-client");
 const fc=tc.feature(topo,topo.objects.states);
 // FIPS -> postal
