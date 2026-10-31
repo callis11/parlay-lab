@@ -68,5 +68,5 @@ Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=t
 ## Automations already running (don't duplicate)
 - **Monday 7:35 AM ET email:** "ParlayLabs Monday review" scheduled task. Grades the weekend locally (no push, no credits), breaks results down by market, % bucket, price, situation, tags and closing line, and suggests model and site changes with "change now / watch / leave". Andrew brings the ones he wants to a chat.
 - **Tuesday 1:13 PM ET email:** "ParlayLabs weekly report" scheduled task. Last week, season to date, this week's top parlays.
-- **Nov 1, 2026, 9 AM ET:** reminder back into the Oct 30-31 chat to run the remaining history pull (steps below).
+- **Nov 1, 2026, 9 AM ET:** reminder back into the Oct 30-31 chat to run the remaining history pull (steps in "Remaining history pull" above).
 - **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
