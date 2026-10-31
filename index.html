@@ -883,18 +883,18 @@ function genUI(cx){
     // older saves picked a team; switch them to that team's game
     if(G.games.slice(0,2)==="t:"){var tt=G.games.slice(2),gg=GAMES.filter(function(g){var m=DATA.games[g.id]||{};return m.away===tt||m.home===tt})[0];if(gg){var mm=DATA.games[gg.id];G.games="g:"+gg.id;G.side=mm.away===tt?"a":"h"}else G.games="all"}
     var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+'<option value="multi">Pick several games…</option>';
-    GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'});
+    GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byTimeRank).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'});
     sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}
     var mb=$("gMulti_"+cx);
     if(mb){mb.hidden=G.games!=="multi";if(G.games==="multi"){G.multi=(G.multi||[]).filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now})});
-      mb.innerHTML='<p class="gm-h">Tap the games to use · '+G.multi.length+' picked</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="'+cx+'" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
+      mb.innerHTML='<p class="gm-h">Tap the games to use · '+G.multi.length+' picked</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byTimeRank).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="'+cx+'" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
     var row=$(x("gSideRow")),one=G.games.slice(0,2)==="g:"&&GAMES.filter(function(g){return g.id===G.games.slice(2)})[0];
     if(row){row.hidden=!one;if(one){if(["a","h","both"].indexOf(G.side)<0)G.side="both";
       $(x("gSide")).innerHTML=[["a",one.away],["h",one.home],["both","Both"]].map(function(b){return'<button data-cx="'+cx+'" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join("")}}}
   if($(x("genGo")))$(x("genGo")).textContent=genSaved(cx).length?"Generate another":"Generate a parlay";
   if(cx==="tm"){var rg0=ENG.teamSlips(TEAM,TGAME).g,now2=Date.now(),mt=$("gMulti_tm");G.multi=(G.multi||[]).filter(function(id){return(!rg0||id!==rg0.id)&&GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now2})});
     if(mt){var showG=G.addOpen||G.multi.length;mt.hidden=!showG;$("gAdd_tm").textContent=G.multi.length?"+ "+G.multi.length+" other game"+(G.multi.length>1?"s":"")+" added":(G.addOpen?"Hide other games":"+ Add other games");
-      if(showG)mt.innerHTML='<p class="gm-h">Also use these games · '+G.multi.length+' added</p>'+GAMES.filter(function(g){return+new Date(g.t)>now2&&(!rg0||g.id!==rg0.id)}).slice().sort(byRankTime).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="tm" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
+      if(showG)mt.innerHTML='<p class="gm-h">Also use these games · '+G.multi.length+' added</p>'+GAMES.filter(function(g){return+new Date(g.t)>now2&&(!rg0||g.id!==rg0.id)}).slice().sort(byTimeRank).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="tm" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
   if(cx==="tm"){var rg=ENG.teamSlips(TEAM,TGAME).g,sub=document.querySelector("#gen_tm .gen-s");if(sub)sub.textContent=rg?"For "+rg.away+" @ "+rg.home+", the card above":"Pick a game card above";
     if(["a","h","both"].indexOf(G.side)<0)G.side="both";
     $("gSide_tm").innerHTML=rg?[["a",rg.away],["h",rg.home],["both","Both"]].map(function(b){return'<button data-cx="tm" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join(""):""}
@@ -1294,6 +1294,8 @@ function heroCard(sp0){
 function gameScore(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});return sc}
 // College: best AP rank in the matchup (99 if neither team is ranked)
 function colRank(g){var b=99;[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r&&+r[1]<b)b=+r[1]});return b}
+// Game pickers (generators, Build, Players): kickoff order, early games first; same kickoff → higher ranked first (college)
+function byTimeRank(a,b){return(new Date(a.t)-new Date(b.t))||(COL?colRank(a)-colRank(b):0)}
 function byRankTime(a,b){return COL?(colRank(a)-colRank(b))||(new Date(a.t)-new Date(b.t)):new Date(a.t)-new Date(b.t)}
 function isMine(g){var o=Engine.OPTS[SPORT]||{},m=DATA&&DATA.games[g.id]||{};return!!o.featured&&(m.away===o.featured||m.home===o.featured)}
 function topGame(list){var b=null,bs=-1e9;list.forEach(function(g){var sc=gameScore(g);if(sc>bs){bs=sc;b=g}});return b}
@@ -1516,10 +1518,10 @@ function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
-  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
+  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byTimeRank).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
   var bm=$("bMulti");bm.hidden=BLD.game!=="multi";
   if(BLD.game==="multi"){BLD.multi=BLD.multi.filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now})});
-    bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}
+    bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byTimeRank).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}
   $("bSort").value=BLD.sort;
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   BLD.win=winChips($("bWin"),GAMES.filter(function(g){return+new Date(g.t)>Date.now()}),BLD.win,"bwin");
@@ -1861,7 +1863,7 @@ function renderAll(){
   renderParlays();renderTeam();renderResults();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
-  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.slice().sort(byRankTime).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+"</option>"}).join("");fg.value=v;
+  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.slice().sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+"</option>"}).join("");fg.value=v;
   var b=(ODDS&&ODDS.lines||[]).length;
   $("src").textContent=b?"Lines: "+Engine.BOOK_NAMES[BOOK]+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
   renderSlip();
