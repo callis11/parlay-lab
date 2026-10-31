@@ -8,14 +8,14 @@ jobs:
           cat > p.js <<'J'
           const U={cfb:"football/college-football/scoreboard?dates=20261024&groups=80&limit=5",cbb:"basketball/mens-college-basketball/scoreboard?dates=20260307&groups=50&limit=5",nba:"basketball/nba/scoreboard?dates=20260307",nfl:"football/nfl/scoreboard?dates=20251019"};
           (async()=>{for(const k in U){const j=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/"+U[k])).json();const e=(j.events||[])[0];const c=e&&e.competitions[0];
-            console.log("PROBE",k,(j.events||[]).length,"events; status",c&&c.status.type.name,"; odds:",JSON.stringify(c&&c.odds).slice(0,600));}
+            console.log("::notice::PROBE",k,(j.events||[]).length,"events; status",c&&c.status.type.name,"; odds:",JSON.stringify(c&&c.odds).slice(0,600));}
            // summary endpoint for one past game (has pickcenter / against the spread)
            const j=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20260307")).json();const id=j.events[0].id;
            const s=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event="+id)).json();
-           console.log("PROBE summary keys",Object.keys(s).join(","));console.log("PROBE pickcenter",JSON.stringify(s.pickcenter).slice(0,500));console.log("PROBE ats",JSON.stringify(s.againstTheSpread).slice(0,500));
+           console.log("::notice::PROBE summary keys",Object.keys(s).join(","));console.log("::notice::PROBE pickcenter",JSON.stringify(s.pickcenter).slice(0,500));console.log("::notice::PROBE ats",JSON.stringify(s.againstTheSpread).slice(0,500));
            const cj=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=20261024&groups=80&limit=3")).json();const cid=cj.events[0].id;
            const cs=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event="+cid)).json();
-           console.log("PROBE cfb pickcenter",JSON.stringify(cs.pickcenter).slice(0,500));console.log("PROBE cfb ats",JSON.stringify(cs.againstTheSpread).slice(0,700));
-          })();
+           console.log("::notice::PROBE cfb pickcenter",JSON.stringify(cs.pickcenter).slice(0,500));console.log("::notice::PROBE cfb ats",JSON.stringify(cs.againstTheSpread).slice(0,700));
+          })().catch(e=>console.log("::notice::PROBE ERR "+e.stack));
           J
           node p.js
