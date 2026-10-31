@@ -436,6 +436,7 @@ select,input,textarea{font-size:max(16px,1em)}
 #refreshBtn.spin{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.toast.long{border-radius:14px;width:min(92vw,420px);font-size:14px;line-height:1.35;text-align:center}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
 .leg{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
@@ -996,7 +997,9 @@ function genRun(cx){
   if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
   var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
-  if(!got){toast("Not enough legs fit those choices. Try fewer legs or another style"+(cx==="tm"||G.games.slice(0,2)==="g:"?", or Both teams.":", or All games."),true);return}
+  if(!got){var stN=STYLE[G.style],np=P.pool.length;
+    // say exactly why: how many legs passed this style's bar, and what that bar is
+    toast("Only "+np+" leg"+(np===1?"":"s")+" here fit "+stN.name+" ("+Math.round(stN.lo*100)+"%+ to hit). Spreads and over/unders are near 50%, so they only show up in Balanced or Long shot. Try "+(n>2?(n-1)+" legs, ":"")+"Balanced"+(cx==="tm"?", or add more games.":", or more games."),true);return}
   var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
   var C=slipChance(got.legs.map(function(x){return x.leg}),""),raw=C.raw,f=C.f,ch=C.ch;
   var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
@@ -1740,7 +1743,7 @@ function renderResults(){
       '<p class="sub" style="margin:8px 0 0">'+(s.sg?"~":"")+am(s.legs.reduce(function(d,x){return d*dec(x.a)},1))+(st==="won"?' · $10 won <b class="pos">'+money(10*(s.dec-1))+"</b>":st==="lost"?' · $10 lost':"")+'</p></div>'}).join(""):'<p class="empty">No slips here yet. Slips appear once their first game kicks off.</p>';
 }
 
-function toast(msg,bad){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");if(bad)d.style.background="var(--red)";d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},2600)}
+function toast(msg,bad){var d=document.createElement("div");d.className="toast"+(msg.length>70?" long":"");d.setAttribute("role","status");if(bad)d.style.background="var(--red)";d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},Math.max(2600,msg.length*45))}
 // ---------- send to FanDuel ----------
 function fdButton(legs){
   var apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),btns=[],notes=[];

@@ -65,6 +65,9 @@ Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=t
 - **Slip:** one "Open in …" button per app in My betting apps; prices come from "Show odds from".
 - Leg circle colors = chance to hit (green 70%+, yellow 50–69%, red <50%). Football = mowed-field theme, basketball = hardwood.
 
+## Oct 31 fixes
+- Generator "not enough legs" toast now says how many legs passed the style's bar and why (Safe = 60%+ to hit, so college spreads/totals near 50% never qualify; ML favorites like -20000 are outside the price range). Long toasts (>70 chars) get a wider box and stay up longer. Note: with a Team picked on the Games generator, that game's over/under is left out (it isn't either team's leg); other added games' totals can be used. Andrew asked about over/unders as an option; possible next step: a Bets choice (Sides / Totals / Both) on the Games generator.
+
 ## Automations already running (don't duplicate)
 - **Monday 7:35 AM ET email:** "ParlayLabs Monday review" scheduled task. Grades the weekend locally (no push, no credits), breaks results down by market, % bucket, price, situation, tags and closing line, and suggests model and site changes with "change now / watch / leave". Andrew brings the ones he wants to a chat.
 - **Tuesday 1:13 PM ET email:** "ParlayLabs weekly report" scheduled task. Last week, season to date, this week's top parlays.
