@@ -670,7 +670,7 @@ function genUI(cx){
   if(sel){
     // older saves picked a team; switch them to that team's game
     if(G.games.slice(0,2)==="t:"){var tt=G.games.slice(2),gg=GAMES.filter(function(g){var m=DATA.games[g.id]||{};return m.away===tt||m.home===tt})[0];if(gg){var mm=DATA.games[gg.id];G.games="g:"+gg.id;G.side=mm.away===tt?"a":"h"}else G.games="all"}
-    var now=Date.now(),o='<option value="all">All games</option>'+(cx==="par"?'<option value="slate">The slate picked below</option>':"");
+    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"");
     GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'});
     sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}
     var row=$(x("gSideRow")),one=G.games.slice(0,2)==="g:"&&GAMES.filter(function(g){return g.id===G.games.slice(2)})[0];
