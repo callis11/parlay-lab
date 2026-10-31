@@ -477,6 +477,7 @@ select,input,textarea{font-size:max(16px,1em)}
     <select id="bGame" aria-label="Game"></select>
     <select id="bSort" aria-label="Sort"><option value="p">Most likely first</option><option value="a">Biggest payout first</option></select>
   </div>
+  <div class="gmulti" id="bMulti" hidden></div>
   <div class="seg bkind" id="bKind"><button data-bk="">All</button><button data-bk="p">Players</button><button data-bk="td">TDs</button><button data-bk="g">Game lines</button></div>
   <div id="bList"></div>
 </section>
@@ -1282,12 +1283,13 @@ function renderTeamLower(){
 }
 
 // ---------- Build tab: pick your own legs from a ranked list ----------
-var BLD={kind:"",game:"",sort:"p",n:50};
+var BLD={kind:"",game:"",sort:"p",n:50,multi:[]};
+function bGameOk(id){return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BLD.multi.indexOf(id)>=0):id===BLD.game)}
 function buildRows(){
   var now=Date.now(),rows=[];
-  GAMES.forEach(function(g){if(+new Date(g.t)<=now||(BLD.game&&g.id!==BLD.game))return;
+  GAMES.forEach(function(g){if(+new Date(g.t)<=now||!bGameOk(g.id))return;
     if(BLD.kind===""||BLD.kind==="g")["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(L.a<-1500)return;rows.push({leg:L,g:g,t:t})})});
-  if(BLD.kind!=="g")PROPS.forEach(function(p){if(BLD.game&&p.ev!==BLD.game)return;if(+new Date(p.g.t)<=now)return;if(BLD.kind==="td"&&!p.td)return;if(BLD.kind==="p"&&p.td)return;
+  if(BLD.kind!=="g")PROPS.forEach(function(p){if(!bGameOk(p.ev))return;if(+new Date(p.g.t)<=now)return;if(BLD.kind==="td"&&!p.td)return;if(BLD.kind==="p"&&p.td)return;
     p.rungs.forEach(function(r){if(r.p===undefined||r.a<-1200)return;rows.push({leg:propLeg(p,r),p:p,r:r})})});
   rows.sort(BLD.sort==="a"?function(a,b){return b.leg.a-a.leg.a}:function(a,b){return(b.leg.p||0)-(a.leg.p||0)});
   return rows;
@@ -1296,7 +1298,10 @@ function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
-  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'}).join("");bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
+  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
+  var bm=$("bMulti");bm.hidden=BLD.game!=="multi";
+  if(BLD.game==="multi"){BLD.multi=BLD.multi.filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now})});
+    bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}
   $("bSort").value=BLD.sort;
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   var rows=buildRows(),shown=rows.slice(0,BLD.n);
@@ -1544,6 +1549,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
   else if(t.dataset.bk!==undefined&&t.closest("#bKind")){BLD.kind=t.dataset.bk;BLD.n=50;renderBuild()}
   else if(t.id==="bMore"){BLD.n+=50;renderBuild()}
+  else if(t.dataset.bgm){var ix=BLD.multi.indexOf(t.dataset.bgm);if(ix>=0)BLD.multi.splice(ix,1);else BLD.multi.push(t.dataset.bgm);BLD.n=50;renderBuild()}
   else if(t.dataset.bclear){SLIP={};renderSlip();renderBuild()}
   else if(t.id==="bOpen"){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=30;renderProps();renderSlip()}
