@@ -1051,7 +1051,7 @@ function renderParlays(){
     '<p><b>adj. from 59%</b> The chance to hit is corrected by how often this type really hit in past seasons, since legs on the same slip tend to win or lose together.</p>'+
     '<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>'+
     '<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p></div>';
-  $("pList").innerHTML=heroCarousel(heroList(S))+html;wireCarousel();
+  $("pList").innerHTML=html;
   fitHero();
   var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
 }
