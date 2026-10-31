@@ -1264,7 +1264,9 @@ function renderParlays(){
   try{genUI()}catch(e){}
   var S=slateList(),now=Date.now();
   // default: next slate that hasn't started, else Best
-  if(!PST.slate||(PST.slate!=="all"&&!S.some(function(x){return x.id===PST.slate}))){var up=S.filter(function(x){return x.t&&+new Date(x.t)>now})[0];PST.slate=up?up.id:"best"}
+  // first load: a saved slate that has no parlays now (e.g. a one-game day) falls back to the next one that does
+  if(!renderParlays.done&&PST.slate&&PST.slate!=="all"){renderParlays.done=1;var cur=S.filter(function(x){return x.id===PST.slate})[0];try{if(cur&&!cur.list().length)PST.slate=""}catch(e){}}
+  if(!PST.slate||(PST.slate!=="all"&&!S.some(function(x){return x.id===PST.slate}))){var up=S.filter(function(x){if(!x.t||+new Date(x.t)<=now)return false;try{return x.list().length>0}catch(e){return false}})[0]||S.filter(function(x){return x.t&&+new Date(x.t)>now})[0];PST.slate=up?up.id:"best"}
   var chips=[{id:"all",label:"Everything"}].concat(S);
   $("slateChips").innerHTML=chips.map(function(c){return'<button role="tab" data-slate="'+esc(c.id)+'" aria-selected="'+(c.id===PST.slate)+'">'+esc(c.label)+(c.count>1?"<small>"+c.count+"</small>":"")+'</button>'}).join("");
   document.querySelectorAll("[data-pm]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pm===PST.mode)});
