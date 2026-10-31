@@ -370,6 +370,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .s2{display:inline-grid;grid-template-columns:auto auto;gap:0 14px}
 .piece .gwl{margin-top:3px}
 .wl .gwl{margin-top:4px}
+.btn.gadd{flex:1;min-height:38px;font-size:14px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -716,7 +717,7 @@ function genBox(cx){
     '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'</div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
-    (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
+    (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
       :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx!=="tm"?'<div class="gmulti" id="gMulti_'+cx+'" hidden></div>':""))+
     '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
     '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
@@ -739,6 +740,9 @@ function genUI(cx){
     if(row){row.hidden=!one;if(one){if(["a","h","both"].indexOf(G.side)<0)G.side="both";
       $(x("gSide")).innerHTML=[["a",one.away],["h",one.home],["both","Both"]].map(function(b){return'<button data-cx="'+cx+'" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join("")}}}
   if($(x("genGo")))$(x("genGo")).textContent=genSaved(cx).length?"Generate another":"Generate a parlay";
+  if(cx==="tm"){var rg0=ENG.teamSlips(TEAM,TGAME).g,now2=Date.now(),mt=$("gMulti_tm");G.multi=(G.multi||[]).filter(function(id){return(!rg0||id!==rg0.id)&&GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now2})});
+    if(mt){var showG=G.addOpen||G.multi.length;mt.hidden=!showG;$("gAdd_tm").textContent=G.multi.length?"+ "+G.multi.length+" other game"+(G.multi.length>1?"s":"")+" added":(G.addOpen?"Hide other games":"+ Add other games");
+      if(showG)mt.innerHTML='<p class="gm-h">Also use these games · '+G.multi.length+' added</p>'+GAMES.filter(function(g){return+new Date(g.t)>now2&&(!rg0||g.id!==rg0.id)}).slice().sort(byRankTime).map(function(g){return'<button data-gm="'+esc(g.id)+'" data-cx="tm" aria-pressed="'+(G.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</small></button>'}).join("")}}
   if(cx==="tm"){var rg=ENG.teamSlips(TEAM,TGAME).g,sub=document.querySelector("#gen_tm .gen-s");if(sub)sub.textContent=rg?"For "+rg.away+" @ "+rg.home+", the card above":"Pick a game card above";
     if(["a","h","both"].indexOf(G.side)<0)G.side="both";
     $("gSide_tm").innerHTML=rg?[["a",rg.away],["h",rg.home],["both","Both"]].map(function(b){return'<button data-cx="tm" data-gt="'+b[0]+'" aria-pressed="'+(G.side===b[0])+'">'+esc(b[1])+'</button>'}).join(""):""}
@@ -749,17 +753,18 @@ var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Safe"},bal:
 function genPool(cx){
   cx=cx||"par";var G=GENS[cx],now=Date.now(),ids={},S=slateList(),sel=S.filter(function(x){return x.id===PST.slate})[0];
   var gl=GAMES.filter(function(g){return+new Date(g.t)>now});
-  if(cx==="tm"){var r=ENG.teamSlips(TEAM,TGAME);gl=r.g&&+new Date(r.g.t)>now?[r.g]:[]}
+  if(cx==="tm"){var r=ENG.teamSlips(TEAM,TGAME),ex=G.multi||[];gl=(r.g&&+new Date(r.g.t)>now?[r.g]:[]).concat(gl.filter(function(g){return ex.indexOf(g.id)>=0&&(!r.g||g.id!==r.g.id)}))}
   else{
     if(G.games==="slate"&&sel&&sel.games)gl=gl.filter(function(g){return sel.games.some(function(x){return x.id===g.id})});
     if(G.games.slice(0,2)==="g:"){var gid=G.games.slice(2);gl=gl.filter(function(g){return g.id===gid})}
     if(G.games==="multi"){var mm2=G.multi||[];gl=gl.filter(function(g){return mm2.indexOf(g.id)>=0})}
   }
   gl.forEach(function(g){ids[g.id]=1});
+  var cardId=cx==="tm"&&gl[0]?gl[0].id:null;
   var only=cx==="tm"?(gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null):(G.games.slice(0,2)==="g:"&&gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null);
   var st=STYLE[G.style],out=[];
-  if(G.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(only&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p})})});
-  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&p.team!==only)return;p.rungs.forEach(function(r){
+  if(G.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p})})});
+  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;p.rungs.forEach(function(r){
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
     // Trust a leg less when its record at this exact line since 2023 is worse than our estimate
     var pe=r.p;if(r.since&&r.since[1]>=8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
@@ -771,7 +776,7 @@ function genPool(cx){
 // Search for the parlays with the best real chance that land in the style's payout range.
 // "Generate another" walks down this list, so each spin is the next-best one you haven't seen.
 function genRank(pool,n,cx){
-  cx=cx||"par";var G=GENS[cx],st=Object.assign({},STYLE[G.style]),team=cx==="tm"||G.games.slice(0,2)==="g:";
+  cx=cx||"par";var G=GENS[cx],st=Object.assign({},STYLE[G.style]),team=(cx==="tm"&&!(G.multi||[]).length)||G.games.slice(0,2)==="g:";
   if(n>=4){st.dmax*=G.style==="long"?1.7:1.4}
   // keep legs whose price fits the style's per-leg share of the payout target
   var lo=Math.pow(st.dmin,1/n)/1.8,hi=Math.pow(st.dmax,1/n)*1.8;
@@ -831,7 +836,7 @@ function legWhy(x){
 function genRun(cx){
   cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
   // one game with only game lines can make at most a side + the total
-  if(cx==="tm"&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
+  if(cx==="tm"&&!(G.multi||[]).length&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
   if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
   var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
@@ -1427,6 +1432,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
+  else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
   else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=30;renderProps();renderSlip()}
   else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
