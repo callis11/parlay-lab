@@ -343,6 +343,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .gmulti button small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
 .gmulti button[aria-pressed="true"]{border-color:var(--flag);background:color-mix(in srgb,var(--flag) 18%,var(--bg))}
 .gmulti button[aria-pressed="true"]:before{content:"✓ ";color:var(--flag)}
+.pc summary .nm:after{content:"Tap to open ▾";display:inline-block;margin-left:8px;font-family:"Barlow",sans-serif;font-size:11px;font-weight:700;color:var(--flag);letter-spacing:.02em;vertical-align:1px;white-space:nowrap}
+.pc[open] summary .nm:after{content:"Tap to close ▴"}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
