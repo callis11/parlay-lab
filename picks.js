@@ -35,6 +35,37 @@ async function getCSV(url) {
 }
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
 
+// ---------- closing line value ----------
+// For each pick we keep the price when we first posted it (a1) and the last price before its game started (close).
+// If the line moved toward our pick, the market agreed with us; beating the close over many bets is the earliest sign of a real edge.
+function priceIndex(E) {
+  const G = {}, P = {};
+  E.G.forEach(g => { G[g.id] = g; });
+  E.P.forEach(p => { P[p.ev + "|" + p.player + "|" + p.label] = p; });
+  return function (l, ev) {
+    if (l.kind === "g") { const g = G[ev]; const L = g && g.legs[l.t]; return L ? { a: L.a, pt: L.pt } : null; }
+    const p = P[ev + "|" + l.player + "|" + l.label]; const r = p && p.rungs.find(x => x.line === l.line); if (!r) return null;
+    const a = l.side === "under" ? r.under : r.a; return a === undefined ? null : { a };
+  };
+}
+// Implied chance gained between the pick price and the close (positive = we beat the close). Moved numbers count about 3% a point (2% for totals).
+function clvOf(l) {
+  if (l.a1 === undefined || !l.close) return null;
+  const imp = a => 1 / Engine.dec(a);
+  if (l.kind === "g" && l.pt !== undefined && l.close.pt !== undefined && l.close.pt !== l.pt1) {
+    const d = l.close.pt - l.pt1, tot = /ov$|un$/.test(l.t), per = tot ? 0.02 : 0.03;
+    return +((/ov$/.test(l.t) ? d : -d) * per).toFixed(3);
+  }
+  return +(imp(l.close.a) - imp(l.a1)).toFixed(3);
+}
+function trackClose(legs, priceOf, evOf) {
+  for (const l of legs) {
+    if (+new Date(l.time) <= now) continue; // game started: close is final
+    const c = priceOf(l, evOf(l)); if (!c) continue;
+    l.close = c; l.clv = clvOf(l);
+  }
+}
+
 // ---------- record ----------
 function record(store) {
   const odds = readJSON(DIR + "odds.json", null), data = readJSON(DIR + "data.json", null);
@@ -55,10 +86,14 @@ function record(store) {
       if (old && old.lock <= now) continue; // already locked
       if (lock <= now) continue;
       const evs = {}; let sg = false; s.l.forEach(l => { if (evs[l.ev]) sg = true; evs[l.ev] = 1; });
+      // first price we posted for each leg of this slip
+      const firstOf = {}; if (old) old.legs.forEach(x => { if (x.a1 !== undefined) firstOf[x.n] = x; });
       store.slips[id] = {
         id, season: meta.season, week: meta.week, group: grp.group, name: s.n, desc: s.d, sg, lock, saved: now,
         legs: s.l.map(l => { const m = data.games[l.ev] || {};
-          return { n: l.n, a: l.a, p: l.p, p0: l.p0, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, label: l.label, td: l.td, time: l.time, gid: m.gid, away: m.away, home: m.home }; }),
+          const f = firstOf[l.n];
+          return { n: l.n, a: l.a, p: l.p, p0: l.p0, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, team: l.team, label: l.label, td: l.td, time: l.time, ev: l.ev, gid: m.gid, away: m.away, home: m.home,
+            a1: f ? f.a1 : l.a, pt1: f ? f.pt1 : l.pt, t1: f ? f.t1 : now }; }),
         status: "open"
       };
       old ? updated++ : added++;
@@ -70,6 +105,9 @@ function record(store) {
     const s = store.slips[id], gk = `${s.season}-W${s.week}|${s.group}`;
     if (seen[gk] && !seen[gk][id] && s.lock > now) { delete store.slips[id]; dropped++; }
   }
+  // Keep following each leg's price until its own game starts (later games in a slip keep moving after the slip locks)
+  const priceOf = priceIndex(E);
+  for (const id in store.slips) { const s = store.slips[id]; if (["won", "lost", "push"].includes(s.status)) continue; trackClose(s.legs.filter(l => l.ev), priceOf, l => l.ev); }
   console.log(`Recorded: ${added} new, ${updated} refreshed, ${dropped} dropped`);
 }
 
@@ -87,7 +125,7 @@ function buildCards(cards, book) {
   for (const g of E.G) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
-    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] })) }; made++; continue; } // no props: grade game lines only
+    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] })) }; made++; continue; } // no props: grade game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -110,7 +148,9 @@ function buildCards(cards, book) {
       return eo >= eu ? Object.assign({ edge: eo }, m.over) : Object.assign({ edge: eu }, m.under);
     }).sort((a, b) => b.edge - a.edge), 10);
     const tdPicks = onePer(tds.sort((a, b) => b.p - a.p), 5);
-    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p: +(l.p || 0).toFixed(3) })),
+    const prev = cards.cards[g.id], firstOf = {};
+    if (prev) ["pieces", "straights", "tds"].forEach(k => { if (prev[k]) prev[k].legs.forEach(x => { if (x.a1 !== undefined) firstOf[x.nm] = x.a1; }); });
+    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, a1: firstOf[l.nm] !== undefined ? firstOf[l.nm] : l.a, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p: +(l.p || 0).toFixed(3) })),
       bookExp: +legs.reduce((s, l) => s + imp(l.a), 0).toFixed(2), ourExp: +legs.reduce((s, l) => s + (l.p || 0), 0).toFixed(2) });
     cards.cards[g.id] = { ev: g.id, gid: meta.gid, away: g.away, home: g.home, aa: meta.away, ha: meta.home, t: g.t, season: meta.season, week: meta.week, saved: now, status: "open",
       pieces: sec(pieces), straights: sec(straights), tds: SPORT === "nfl" ? sec(tdPicks) : null };
@@ -130,7 +170,11 @@ function ENG_NAME(p, r, side) {
 function gradeLeg(l, games, stats) {
   const g = l.gid && games[l.gid];
   if (!g || g.result === "") return "pending";
-  const hs = +g.home_score, as = +g.away_score;
+  let hs = +g.home_score, as = +g.away_score;
+  if (l.kind === "g" && l.t.charAt(0) === "1") { // first half
+    if (g.h1_home == null || g.h1_away == null) return "void";
+    hs = +g.h1_home; as = +g.h1_away; l = Object.assign({}, l, { t: l.t.slice(1) });
+  }
   if (l.kind === "g") {
     if (l.t === "ml-h" || l.t === "ml-a") { const m = l.t === "ml-h" ? hs - as : as - hs; return m > 0 ? "won" : m < 0 ? "lost" : "push"; }
     if (l.t === "sp-h" || l.t === "sp-a") { const m = (l.t === "sp-h" ? hs - as : as - hs) + l.pt; return m > 0 ? "won" : m < 0 ? "lost" : "push"; }
@@ -164,7 +208,7 @@ function gradeLeg(l, games, stats) {
     const games = {}, stats = {};
     if (SPORT === "cfb" || SPORT === "cbb") {
       const logs = readJSON(SPORT + "/logs.json", { games: {} });
-      for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.h.score, away_score: g.a.score }; }
+      for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.h.score, away_score: g.a.score, h1_home: g.h.h1, h1_away: g.a.h1 }; }
     } else if (SPORT === "nba") {
       const logs = readJSON("nba/logs.json", { games: {}, box: {} });
       for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.hs, away_score: g.as }; }

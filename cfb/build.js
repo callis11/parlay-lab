@@ -16,7 +16,7 @@ function parse(j) {
     const c = ev.competitions && ev.competitions[0]; if (!c) return null;
     const side = w => c.competitors.find(x => x.homeAway === w);
     const h = side("home"), a = side("away"); if (!h || !a) return null;
-    const t = x => ({ id: x.team.id, conf: x.team.conferenceId || null, abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0,
+    const t = x => ({ id: x.team.id, conf: x.team.conferenceId || null, abbr: x.team.abbreviation, name: x.team.displayName, loc: x.team.location || x.team.shortDisplayName, score: +x.score || 0, h1: x.linescores && x.linescores.length >= 2 ? +(x.linescores[0].value != null ? x.linescores[0].value : x.linescores[0].displayValue) : null,
       rank: x.curatedRank && x.curatedRank.current && x.curatedRank.current <= 25 ? x.curatedRank.current : null,
       rec: (x.records || []).find(r => r.type === "total" || r.name === "overall") ? (x.records.find(r => r.type === "total" || r.name === "overall").summary) : (x.records && x.records[0] && x.records[0].summary) || null });
     // ESPN lists kickoff times not yet announced as midnight Eastern; flag those as TBD

@@ -34,7 +34,8 @@
   // actually hit with what we estimated and saves a correction factor in calibration.json.
   function bucket(a) { return a <= -250 ? "big fav" : a <= -120 ? "fav" : a < 120 ? "even" : "dog"; }
   function category(leg) {
-    var mk = leg.kind === "g" ? (leg.t.slice(0, 2) === "ml" ? "Moneyline" : leg.t.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label + (leg.side === "under" ? " under" : "");
+    var t2 = leg.kind === "g" ? leg.t.replace(/^1/, "") : "", h1 = leg.kind === "g" && leg.t.charAt(0) === "1" ? "1H " : "";
+    var mk = leg.kind === "g" ? h1 + (t2.slice(0, 2) === "ml" ? "Moneyline" : t2.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label + (leg.side === "under" ? " under" : "");
     return mk + "|" + bucket(leg.a);
   }
   function calibrate(p, cat, calib) {
@@ -116,6 +117,11 @@
           e.bookmakers.forEach(function (b2) { var m = (b2.markets || []).filter(function (x) { return x.key === mkey; })[0], o = m && m.outcomes.filter(function (x) { return x.name === name; })[0]; if (o && o.link) out[b2.key] = o.link; });
           return out;
         }
+        // First-half lines (college basketball): spreads_h1 / totals_h1, pulled for a handful of games a day
+        var h1s = mk("spreads_h1"), h1t = mk("totals_h1"), H1 = null;
+        if (h1s && h1t) { var a1 = oc(h1s, e.away_team), b1 = oc(h1s, e.home_team), o1 = oc(h1t, "Over"), u1 = oc(h1t, "Under");
+          if (a1 && b1 && o1 && u1) H1 = { "1sp-a": [a1, b1, "spreads_h1", e.away_team, A + " 1H " + (a1.point > 0 ? "+" : "") + a1.point], "1sp-h": [b1, a1, "spreads_h1", e.home_team, H + " 1H " + (b1.point > 0 ? "+" : "") + b1.point],
+            "1ov": [o1, u1, "totals_h1", "Over", A + "/" + H + " 1H over " + o1.point], "1un": [u1, o1, "totals_h1", "Under", A + "/" + H + " 1H under " + u1.point] }; }
         var lk = { "sp-a": fl("spreads", e.away_team), "sp-h": fl("spreads", e.home_team), "ml-a": fl("h2h", e.away_team), "ml-h": fl("h2h", e.home_team), "ov": fl("totals", "Over"), "un": fl("totals", "Under") };
         G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, p0: raw, links: lk,
           p: { "sp-a": cg(nv(as.price, hs.price), "sp-a", as.price), "sp-h": cg(nv(hs.price, as.price), "sp-h", hs.price), "ml-a": cg(nv(mlA, mlH), "ml-a", mlA), "ml-h": cg(nv(mlH, mlA), "ml-h", mlH), "ov": cg(nv(ov.price, un.price), "ov", ov.price), "un": cg(nv(un.price, ov.price), "un", un.price) },
@@ -129,8 +135,12 @@
           "ml-h": { n: H + " ML", a: oc(h, e.home_team).price },
           "ov": { n: A + "/" + H + " over " + ov.point, a: ov.price, pt: ov.point },
           "un": { n: A + "/" + H + " under " + un.point, a: un.price, pt: un.point } } });
+        if (H1) { var gg = G[G.length - 1]; gg.h1 = true;
+          for (var t1 in H1) { var X = H1[t1], q = nv(X[0].price, X[1].price);
+            gg.legs[t1] = { n: X[4], a: X[0].price, pt: X[0].point }; gg.p0[t1] = q; gg.p[t1] = cg(q, t1, X[0].price);
+            gg.best[t1] = best(X[2], X[3], X[0].point, X[0].price); gg.links[t1] = fl(X[2], X[3]); } }
       });
-    function gkey(g, t) { return "G|" + g.id + "|" + (t.slice(0, 2) === "sp" ? "sp" : t.slice(0, 2) === "ml" ? "ml" : "tot"); }
+    function gkey(g, t) { var h = t.charAt(0) === "1" ? "1" : "", u = t.replace(/^1/, ""); return "G|" + g.id + "|" + h + (u.slice(0, 2) === "sp" ? "sp" : u.slice(0, 2) === "ml" ? "ml" : "tot"); }
     function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], links: g.links[t] }; }
 
     // ---------- props ----------
@@ -156,7 +166,7 @@
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
     });
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
@@ -334,6 +344,43 @@
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
-  var Engine = { make: make, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  // ---------- same-game correlation ----------
+  // Legs from the same game don't hit independently (a QB's yards and his receiver's yards rise together).
+  // backtest/replay.js measures, for each kind of pair, how strongly their results moved together over past seasons
+  // (a correlation from -1 to 1) and saves it in backtest/corr.json. Here we turn that into a corrected chance.
+  function propGroup(label, td) { if (td) return "td"; return { "Passing yards": "pass", "Passing TDs": "pass", "Rushing yards": "rush", "Receiving yards": "rec", "Receptions": "rec", "Rush + rec yards": "rec" }[label] || String(label || "").toLowerCase(); }
+  // What a leg is, for pairing: role, team, and whether it's a side or a total. meta = {away, home} abbreviations of its game.
+  function legInfo(l, meta) {
+    meta = meta || {};
+    if (l.kind === "g") { var t = l.t.replace(/^1/, ""), side = t.slice(0, 2) === "ml" || t.slice(0, 2) === "sp";
+      return { ev: l.ev, p: l.p, g: true, h1: l.t.charAt(0) === "1", side: side, team: side ? (/-a$/.test(t) ? meta.away : meta.home) : null,
+        role: side ? "side-" + ((t.slice(0, 2) === "ml" ? l.a < 0 : l.pt < 0) ? "fav" : "dog") : (t === "ov" ? "tot-o" : "tot-u") }; }
+    return { ev: l.ev, p: l.p, g: false, team: l.team || null, player: l.player, role: propGroup(l.label, l.td) + (l.side === "under" ? "-u" : "-o") };
+  }
+  function pairKey(A, B) {
+    if (A.ev !== B.ev) return null;
+    if (A.g && B.g) { if (A.h1 !== B.h1 || A.side === B.side) return null; var s = A.side ? A : B, o = A.side ? B : A; return s.role + "+" + o.role; }
+    if (A.g || B.g) { var gl = A.g ? A : B, pr = A.g ? B : A; if (gl.side) return "side+" + pr.role + "|" + (gl.team && gl.team === pr.team ? "for" : "vs"); return gl.role + "+" + pr.role; }
+    if (A.player && A.player === B.player) return null;
+    var r = [A.role, B.role].sort(); return r[0] + "+" + r[1] + "|" + (A.team && A.team === B.team ? "same" : "opp");
+  }
+  // Chance both hit, from each one's chance and the pair's correlation, kept inside what's possible
+  function joint(pa, pb, rho) { var j = pa * pb + rho * Math.sqrt(pa * (1 - pa) * pb * (1 - pb)); return Math.max(Math.max(0, pa + pb - 1) + 1e-4, Math.min(Math.min(pa, pb), j)); }
+  // Correlation for a pair, shrunk toward zero when we have few past examples
+  function pairRho(key, corr) { var c = key && corr && corr.pairs && corr.pairs[key]; if (!c || c.n < 100) return 0; return c.rho * c.n / (c.n + 400); }
+  // Multiplier on the independent chance for a set of legs; also returns the pairs that moved it
+  function corrAdj(legs, metaOf, corr) {
+    var f = 1, out = [], I = legs.map(function (l) { return legInfo(l, metaOf ? metaOf(l.ev) : null); });
+    for (var i = 0; i < I.length; i++) for (var j = i + 1; j < I.length; j++) {
+      var a = I[i], b = I[j]; if (a.ev !== b.ev || a.p == null || b.p == null) continue;
+      var k = pairKey(a, b), rho = pairRho(k, corr); if (!rho) continue;
+      var m = joint(a.p, b.p, rho) / (a.p * b.p); f *= m; out.push({ i: i, j: j, key: k, rho: rho, m: m });
+    }
+    var mn = 1; I.forEach(function (x) { if (x.p != null && x.p < mn) mn = x.p; });
+    var base = chance(legs); if (base) f = Math.min(f, mn / base); // never more likely than the weakest leg alone
+    return { f: f, pairs: out };
+  }
+
+  var Engine = { make: make, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

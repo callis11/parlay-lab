@@ -259,6 +259,14 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .rec.past{border-top:0;padding-top:0;margin-top:2px;opacity:.85}
 .hb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:5px;vertical-align:1px}
 .hb.pr{background:var(--green);color:var(--green-ink)}.hb.wk{background:var(--red);color:#fff}
+.hb.gr{background:#36D399;color:#06281A}.hb.so{background:#5B9BFF;color:#06142E}.hb.rf{background:transparent;color:#FF6B5E;box-shadow:inset 0 0 0 1.5px #FF6B5E}
+.rfn{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:rgba(255,107,94,.12);font-size:13px;line-height:1.35}.rfn b{color:#FF6B5E}.rfn ul{margin:4px 0 0;padding-left:18px}
+.clv{font-size:12px;font-weight:600;color:var(--muted)}.clv.up{color:#36D399}.clv.dn{color:#FF6B5E}
+.wkc{position:relative}.wkc .wkh{display:flex;justify-content:space-between;align-items:center;gap:8px}.wkc .wkh h3{margin:0}
+.wkc .wknav{display:flex;gap:6px}.wkc .wknav button{font:inherit;font-weight:700;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:4px 10px}
+.wkc .wknav button:disabled{opacity:.35}
+.wkc table.ht td{vertical-align:top}
+.tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#FF6B5E;margin-left:5px;vertical-align:2px}
 .piece .hh{color:var(--flag);opacity:.9}
 .hero .trends{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-top:8px}
 .hero .trends small{width:100%;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
@@ -510,6 +518,9 @@ select,input,textarea{font-size:max(16px,1em)}
 </section>
 
 <section id="v-results" role="tabpanel" aria-labelledby="t-results" hidden>
+  <h2 id="wkH">Weekly report card</h2>
+  <p class="sub" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
+  <div id="resWeek"></div>
   <div id="mySec"><h2>My bets</h2>
   <p class="sub">Only on this phone. Saved from the slip with "I placed this bet." Results fill in when our grading covers those legs; otherwise mark them yourself.</p>
   <div id="myBets"></div>
@@ -520,6 +531,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <h2>How our picks did</h2>
   <p class="sub">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
   <div id="resSummary"></div>
+  <h2>Beating the closing line</h2>
+  <p class="sub">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
+  <div id="resCLV"></div>
   <h2>Game report cards</h2>
   <p class="sub" id="cardsSub">For every game we lock our top-rated legs at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
   <div id="resCards"></div>
@@ -630,7 +644,9 @@ function gameLeg(g,t){return ENG.gameLeg(g,t)}
 function propLeg(p,r){return ENG.propLeg(p,r)}
 function rungName(p,r){return ENG.rungName(p,r)}
 function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
-  return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:L.n)+'</span><small>'+fmt(L.a)+'</small></button>'}
+  return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:t==="1ov"?"Over "+L.pt:t==="1un"?"Under "+L.pt:L.n.replace(" 1H",""))+'</span><small>'+fmt(L.a)+'</small></button>'}
+// Game-line types on the board for a game: full game, plus first half when the books have it (college basketball)
+function GTYPES(g){return["ml-a","ml-h","sp-a","sp-h","ov","un"].concat(g&&g.h1?["1sp-a","1sp-h","1ov","1un"]:[])}
 function rec(r,t){if(!r)return"";
   if(r.wl===null&&r.rank===undefined)return"";
   if(r.rank!==undefined)return(r.rank?'<span class="chip">'+t+" #"+r.rank+" AP</span>":"")+(r.wl?'<span class="chip">'+t+" "+r.wl[0]+"-"+r.wl[1]+"</span>":"");
@@ -660,7 +676,8 @@ function renderGames(){
 }
 function gameCard(g,open){
   return '<div class="card" id="gc-'+esc(g.id)+'"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+(open?when(g.t):new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+'<div class="gcbar">'+winBar(g)+'</div>'+
-    '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+matchup(g).replace("<details>",open?"<details open>":"<details>")+'</div>';
+    '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+
+    (g.h1?'<div class="line"><b>1H Spread</b>'+gpick(g,"1sp-a")+gpick(g,"1sp-h")+'</div><div class="line"><b>1H Total</b>'+gpick(g,"1ov")+gpick(g,"1un")+'</div>':"")+matchup(g).replace("<details>",open?"<details open>":"<details>")+'</div>';
 }
 
 // ---------- props ----------
@@ -699,7 +716,7 @@ ICO.mltxt='<text x="12" y="18.2" text-anchor="middle" font-family="Barlow Conden
 var HOOPS=SPORT==="nba"||SPORT==="cbb";
 // Game lines get players too: football ML = TD celebration, spread = running back, total = QB; hoops ML = rebound, spread = shooter, total = three
 function icoKey(l){
-  if(l.kind==="g"){var t=l.t.slice(0,2);return t==="ml"?"mltxt":t==="sp"?"stxt":l.t==="ov"?"otxt":"utxt"}
+  if(l.kind==="g"){var t0=l.t.replace(/^1/,""),t=t0.slice(0,2);return t==="ml"?"mltxt":t==="sp"?"stxt":t0==="ov"?"otxt":"utxt"}
   var b=(l.label||"").toLowerCase();
   if(l.td||/touchdown|td/.test(b))return"td";if(/pass/.test(b))return"pass";if(/rush/.test(b)&&!/rec/.test(b))return"rush";if(/rec/.test(b))return"rec";
   if(/three|3/.test(b))return"three";if(/rebound/.test(b))return"reb";if(/assist/.test(b))return"ast";return SPORT==="nba"?"bb":"fb";
@@ -786,9 +803,9 @@ function propCard(p){return playerCard({ps:[p]})}
 
 // ---------- Parlay generator: builds a parlay from your choices and explains each leg ----------
 // Three copies share this code: Parlays tab (par), Players tab (ply, player props only), Teams tab (tm, this game only)
-var GENCX={par:{key:"gen_",title:"⚡ Parlay generator",sub:"Pick a few things, we build one and tell you why"},
-  ply:{key:"genp_",title:"⚡ Player parlay generator",sub:"Player props only, built from the best lines on the board"},
-  tm:{key:"gent_",title:"⚡ Build one for this game",sub:"Legs from the game on the card above"}};
+var GENCX={par:{key:"gen_",title:"⚡ ParlayLabs Generator",sub:"Pick a few things, we build one and tell you why"},
+  ply:{key:"genp_",title:"⚡ ParlayLabs Generator",sub:"Player props only, built from the best lines on the board"},
+  tm:{key:"gent_",title:"⚡ ParlayLabs Generator",sub:"Builds one from the game on the card above"}};
 var GENS={};
 ["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
   try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi")GENS[cx].games="all"}}catch(e){}});
@@ -847,14 +864,14 @@ function genPool(cx){
   var cardId=cx==="tm"&&gl[0]?gl[0].id:null;
   var only=cx==="tm"?(gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null):(G.games.slice(0,2)==="g:"&&gl[0]&&G.side!=="both"?(DATA.games[gl[0].id]||{})[G.side==="a"?"away":"home"]:null);
   var st=STYLE[G.style],out=[];
-  if(G.kind!=="p")gl.forEach(function(g){["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p})})});
+  if(G.kind!=="p")gl.forEach(function(g){GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
   if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;p.rungs.forEach(function(r){
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
     // Trust a leg less when its record at this exact line since 2023 is worse than our estimate
     var pe=r.p;if(r.since&&r.since[1]>=8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
     var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
     if(v&&v[0]+v[1]>=4&&v[0]/(v[0]+v[1])<0.3&&!p.td)pe-=0.05; // keeps missing against this team
-    out.push({leg:propLeg(p,r),who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pe)})})});
+    var PL=propLeg(p,r);out.push({leg:PL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pe),info:Engine.legInfo(PL,gmeta(p.ev))})})});
   return{pool:out,games:gl};
 }
 // Search for the parlays with the best real chance that land in the style's payout range.
@@ -876,9 +893,11 @@ function genRank(pool,n,cx){
     beam.forEach(function(b){for(var i=b.ix+1;i<c.length;i++){var x=c[i];
       if(b.who[x.who])continue; // one side and one total per game at most
       var d=b.d*dec(x.leg.a);if(d>st.dmax*1.15)continue;if(k===n-1&&d<st.dmin)continue;
-      var same=b.evs[x.ev]&&!team?0.85:1; // legs from the same game fail together more often
+      // legs from the same game: use what past seasons say about pairs like these (QB + his receiver rise together, etc.)
+      var cm=1;if(b.evs[x.ev]&&CORR&&x.info)b.legs.forEach(function(y){if(y.ev!==x.ev||!y.info)return;var rho=Engine.pairRho(Engine.pairKey(y.info,x.info),CORR);if(rho)cm*=Engine.joint(y.pe,x.pe,rho)/(y.pe*x.pe)});
+      var same=b.evs[x.ev]&&!team?0.92:1; // when picking across games, lean away from same-game legs (books pay less on those)
       var w=Object.assign({},b.who);w[x.who]=1;var g=Object.assign({},b.gev);if(x.leg.kind==="g")g[x.ev]=1;var e=Object.assign({},b.evs);e[x.ev]=1;
-      next.push({ix:i,legs:b.legs.concat([x]),pr:b.pr*x.pe*same,d:d,who:w,gev:g,evs:e})}});
+      next.push({ix:i,legs:b.legs.concat([x]),pr:b.pr*x.pe*cm*same,d:d,who:w,gev:g,evs:e})}});
     // rank by chance, but steer toward the payout target so long shots actually reach their range
     var kk=k+1,score=function(b){var need=Math.pow(st.dmin,kk/n),r=Math.min(1,b.d/need);return b.pr*r*r*r};
     next.sort(function(a,b){return score(b)-score(a)});beam=next.slice(0,500);
@@ -925,13 +944,14 @@ function genRun(cx){
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
   var got=genPick(P.pool,n,last.map(function(x){return x.key}),cx);
   if(!got){toast("Not enough legs fit those choices. Try fewer legs or another style"+(cx==="tm"||G.games.slice(0,2)==="g:"?", or Both teams.":", or All games."),true);return}
-  var d=1,raw=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);raw*=x.pe;if(evs[x.ev])sg=true;evs[x.ev]=1});
-  var f=genFactor(n),ch=raw*f;
+  var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
+  var C=slipChance(got.legs.map(function(x){return x.leg}),""),raw=C.raw,f=C.f,ch=C.ch;
   var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
   var item={t:Date.now(),key:got.key,set:Object.assign({},G),d:d,ch:ch,raw:raw,sg:sg,
     legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
     note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
-      (Math.abs(f-1)>0.01?n+"-leg slips hit about "+Math.round(f*100)+"% as often as their legs suggested, so "+Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"%. ":"")+
+      (C.cf.pairs.length?"Same-game legs here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
+      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for same-game pairs and how "+n+"-leg slips really hit. ":"")+
       (sg?"Some legs are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every leg is from a different game.")};
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
@@ -941,14 +961,14 @@ function renderGenOut(cx){
   if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
   var now=Date.now();
   el.innerHTML=last.map(function(it,i){
-    var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});
+    var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return+new Date(l.time)>now}).length?LL:[]);
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
-      '<div class="mt">'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
+      '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
           '<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
-      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
+      '<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
@@ -960,13 +980,47 @@ function slipHist(name){
   var said=b.exp/b.n,K=60,fac=said>0?((b.w+K*said)/(b.n+K))/said:1,roi=b.profit/(10*b.n);
   return{n:b.n,w:b.w,roi:roi,fac:Math.max(0.5,Math.min(1.3,fac)),weak:b.n>=40&&roi<=-0.2,proven:b.n>=40&&roi>=0};
 }
+// ---------- same-game correlation (learned from past seasons in backtest/corr.json) ----------
+var CORR=null;
+function gmeta(ev){return DATA&&DATA.games&&DATA.games[ev]||{}}
+function corrOf(legs){if(!CORR||legs.length<2)return{f:1,pairs:[]};return Engine.corrAdj(legs,gmeta,CORR)}
+// A slip's chance, one way everywhere: legs multiplied, corrected for legs from the same game moving together,
+// then for how this kind of parlay really hit in past seasons (named types) or how parlays this long hit (your own and generated ones)
+function slipChance(legs,name){
+  var raw=Engine.chance(legs);if(raw===null)return{raw:null,ch:null,c1:null,cf:{f:1,pairs:[]},h:null,f:1};
+  var cf=corrOf(legs),c1=Math.max(0.001,Math.min(0.99,raw*cf.f)),h=name?slipHist(name):null,f=h?h.fac:(!name&&legs.length>1?genFactor(legs.length):1);
+  return{raw:raw,cf:cf,c1:c1,h:h,f:f,ch:Math.max(0.001,Math.min(0.99,c1*f))};
+}
+// ---------- tags: All green, Spread out, Red flag ----------
+// How far the market moved against a game-line pick since the line opened (points; negative = against)
+function lineMove(l,m){if(!m||!m.open||!m.now)return 0;var t=l.t;
+  if((t==="sp-h"||t==="sp-a")&&m.open.spread!=null&&m.now.spread!=null){var d=m.now.spread-m.open.spread;return t==="sp-h"?-d:d}
+  if((t==="ov"||t==="un")&&m.open.total!=null&&m.now.total!=null){var d2=m.now.total-m.open.total;return t==="ov"?d2:-d2}
+  return 0}
+function slipFlags(legs){
+  var n=legs.length,evs={},who={},red=[],now=Date.now();
+  legs.forEach(function(l){evs[l.ev]=1;
+    if(l.p!=null&&l.p<0.45)red.push(l.n+" is only "+pct(l.p)+" to hit");
+    if(l.time&&+new Date(l.time)<=now)red.push(l.n+": that game has started");
+    if(l.kind==="p"){var pp=pmap()[l.k];
+      if(pp){if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
+        var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
+        if(r&&r.since&&r.since[1]>=8&&l.p!=null&&r.since[0]/r.since[1]<l.p-0.15)red.push(pp.player+" cleared this line only "+r.since[0]+" of "+r.since[1]+" games since 2023");
+        var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
+        if(!l.td&&v&&v[0]+v[1]>=4&&v[0]/(v[0]+v[1])<0.3)red.push(pp.player+" went over only "+v[0]+" of "+(v[0]+v[1])+" times vs "+pp.opp)}
+      if(l.player){if(who[l.player])red.push("two legs on "+l.player+" move together");who[l.player]=1}}
+    else{var mv=lineMove(l,gmeta(l.ev));if(mv<=-1.5)red.push(l.n+": the line has moved "+Math.abs(mv)+" points against this side since it opened")}
+  });
+  var seen={};red=red.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
+  return{green:n>=2&&legs.every(function(l){return l.p!=null&&l.p>=0.7}),spread:n>=3&&Object.keys(evs).length===n,red:red};
+}
+function flagBadges(F){return(F.green?'<span class="hb gr">All green</span>':"")+(F.spread?'<span class="hb so">Spread out</span>':"")+(F.red.length?'<span class="hb rf">⚑ Red flag</span>':"")}
+function flagNote(F){return F.red.length?'<div class="rfn"><b>⚑ Red flag</b><ul>'+F.red.map(function(x){return"<li>"+esc(x.charAt(0).toUpperCase()+x.slice(1))+"</li>"}).join("")+'</ul></div>':""}
 function slipInfo(p){
   var d=1,evs={},sg=false,props=0,games=0;
   p.l.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.kind==="p")props++;else games++});
-  var ch=Engine.chance(p.l),h=slipHist(p.n),raw=ch;
-  // Correct the chance by how often this parlay type really hit over past seasons (shrunk toward no change)
-  if(ch!==null&&h)ch=Math.max(0.001,Math.min(0.99,ch*h.fac));
-  return{s:p,d:d,ch:ch,raw:raw,h:h,weak:!!(h&&h.weak),proven:!!(h&&h.proven),ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
+  var C=slipChance(p.l,p.n),ch=C.ch,h=C.h;
+  return{s:p,d:d,ch:ch,raw:C.raw,h:h,C:C,F:slipFlags(p.l),weak:!!(h&&h.weak),proven:!!(h&&h.proven),ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
 }
 function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join();if(seen[k])return false;seen[k]=1;return true})}
 // Slates: "Best of week" (or "Best overall" for NBA), each kickoff slate, then the hometown team
@@ -1007,7 +1061,7 @@ function rankSlips(raw){
   var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||x.kind===PST.kind)});
   var used={},top=[];
   function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||x.weak||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
-  pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null});
+  pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null&&!x.F.red.length});
   pick("value",function(x){return x.ev},function(x){return x.ev!==null&&x.ch>=0.15});
   pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
   var rest=L.filter(function(x){return!x.tag}).sort(function(a,b){return(b.ch||0)-(a.ch||0)});
@@ -1072,15 +1126,19 @@ function legBreakdown(l){
     factGrid(["Odds "+fmt(l.a),"Book's chance ~"+pct(imp)],src)+(adj?'<p>'+esc(adj.trim())+'</p>':"")+'</div>';
 }
 function slipWhy(legs,name){
-  var pct=function(x){return Math.round(x*100)+"%"},raw=1,d=1,evs={},sg=false;
-  legs.forEach(function(l){raw*=l.p;d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
-  var h=name&&slipHist(name),ch=h?Math.max(0.001,Math.min(0.99,raw*h.fac)):raw,be=1/d,b=SPORT==="nfl"&&BTR&&BTR.slips&&BTR.slips[name];
+  var pct=function(x){return Math.round(x*100)+"%"},d=1,evs={},sg=false;
+  legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
+  var C=slipChance(legs,name),raw=C.raw||0,h=C.h,ch=C.ch||0,be=1/d,b=SPORT==="nfl"&&name&&BTR&&BTR.slips&&BTR.slips[name],F=slipFlags(legs);
   var avg=legs.reduce(function(a,l){return a+l.p},0)/legs.length,bk=BTR&&BTR.legs&&BTR.legs.byP&&BTR.legs.byP[Math.min(9,Math.floor(avg*10))];
   var anyProp=legs.some(function(l){return l.kind==="p"});
   var steps=[anyProp?'<li><b>Each leg:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>':'<li><b>Each leg:</b> we take the sportsbook\'s price, remove its cut to get a fair chance, and adjust it by how those kinds of bets did in past seasons.</li>',
     '<li><b>Multiply:</b> '+legs.map(function(l){return pct(l.p)}).join(" × ")+' = <b>'+pct(raw)+'</b> if the legs were independent.</li>'];
-  if(h&&Math.round(raw*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
-  if(sg)steps.push('<li><b>Same game:</b> some legs come from the same game. They tend to win or lose together, so treat the % as rough, and your book will pay less than shown.</li>');
+  if(C.cf.pairs.length){var pw=C.cf.pairs.slice().sort(function(a,b){return Math.abs(b.m-1)-Math.abs(a.m-1)}).slice(0,3).map(function(q){return esc(legs[q.i].n)+" and "+esc(legs[q.j].n)+(q.m>=1?" tend to hit together":" tend to pull against each other")+" ("+(q.m>=1?"+":"−")+Math.abs(Math.round((q.m-1)*100))+"%)"});
+    steps.push('<li><b>Same game:</b> '+pw.join("; ")+'. From how pairs like these finished over three past seasons, '+pct(raw)+' becomes <b>'+pct(C.c1)+'</b>.</li>')}
+  if(h&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
+  if(!name&&legs.length>1&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>Parlay check:</b> in past seasons, '+legs.length+'-leg parlays hit about '+Math.round(C.f*100)+'% as often as their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
+  if(sg)steps.push('<li><b>Payout:</b> some legs come from the same game, so your book will pay less than shown here.</li>');
+  if(F.red.length)steps.push('<li><b>⚑ Red flag:</b> '+F.red.map(esc).join("; ")+'.</li>');
   if(bk&&bk.n)steps.push('<li><b>Track record:</b> in past seasons, legs we rated '+Math.floor(avg*10)*10+'–'+(Math.floor(avg*10)*10+10)+'% hit '+pct(bk.w/bk.n)+' of the time ('+bk.n.toLocaleString()+' legs).</li>');
   steps.push('<li><b>Price vs chance:</b> at '+am(d)+' you need it to hit '+pct(be)+' of the time to break even. We think it hits '+pct(ch)+(ch>=be*1.03?", a little better than the price, but small edges swing a lot over a few bets.":ch>=be*0.97?", about what the price says.":", less than the price needs, so it loses money over many tries. Bet it for fun, not as an edge.")+'</li>');
   if(b&&b.n>=10)steps.push('<li><b>This type in past seasons:</b> '+b.w+'–'+(b.n-b.w)+', '+(b.profit>=0?"+":"-")+'$'+Math.abs(b.profit).toFixed(0)+' at $10 a slip.</li>');
@@ -1090,12 +1148,12 @@ function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><d
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
-    (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit'+(x.h&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+Math.round(x.raw*100)+"%":"")+'</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
+  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+    (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit'+(x.raw!==null&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+Math.round(x.raw*100)+"%":"")+'</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
     '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p><div class="pieces">'+p.l.map(piece).join("")+'</div>'+shop+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+'<div class="pieces">'+p.l.map(piece).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
@@ -1191,6 +1249,8 @@ function renderParlays(){
     '<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>'+
     '<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>'+
     '<p><b>adj. from 59%</b> The chance to hit is corrected by how often this type really hit in past seasons, since legs on the same slip tend to win or lose together.</p>'+
+    '<p><span class="hb gr">All green</span> Every leg is 70%+ to hit. <span class="hb so">Spread out</span> Every leg is from a different game, so one bad game can only cost you one leg. <span class="hb rf">⚑ Red flag</span> Something to check first: a leg under 45%, an injury tag, a player who rarely clears this line, or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>'+
+    '<p><b>Same game</b> Legs from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).</p>'+
     '<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>'+
     '<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p></div>';
   $("pList").innerHTML=html;
@@ -1303,7 +1363,7 @@ function bGameOk(id){return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BL
 function buildRows(){
   var now=Date.now(),rows=[];
   GAMES.forEach(function(g){if(+new Date(g.t)<=now||!bGameOk(g.id))return;
-    if(BLD.kind===""||BLD.kind==="g")["ml-a","ml-h","sp-a","sp-h","ov","un"].forEach(function(t){var L=gameLeg(g,t);if(L.a<-1500)return;rows.push({leg:L,g:g,t:t})})});
+    if(BLD.kind===""||BLD.kind==="g")GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(L.a<-1500)return;rows.push({leg:L,g:g,t:t})})});
   if(BLD.kind!=="g")PROPS.forEach(function(p){if(!bGameOk(p.ev))return;if(+new Date(p.g.t)<=now)return;if(BLD.kind==="td"&&!p.td)return;if(BLD.kind==="p"&&p.td)return;
     p.rungs.forEach(function(r){if(r.p===undefined||r.a<-1200)return;rows.push({leg:propLeg(p,r),p:p,r:r})})});
   rows.sort(BLD.sort==="a"?function(a,b){return b.leg.a-a.leg.a}:function(a,b){return(b.leg.p||0)-(a.leg.p||0)});
@@ -1344,14 +1404,118 @@ function renderBuild(){
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});
   if(!legs.length){$("bSlip").innerHTML='<div class="bslip empty2">Your parlay is empty. Tap legs below to add them.</div>';return}
   var d=1,raw=1,evs={},sg=false,who={},dup=false;legs.forEach(function(l){d*=dec(l.a);raw*=(l.p||0.5);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.player){if(who[l.player])dup=true;who[l.player]=1}});
-  var f=legs.length>1?genFactor(legs.length):1,ch=raw*f,key="bld";PRE[key]=legs;
+  var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
   var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+(ch>=0.45?"var(--green)":ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+
-    '<div class="mt">'+legs.length+' leg'+(legs.length>1?"s":"")+' · $10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(0)+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'% for how '+legs.length+'-leg parlays really hit':"")+'</div>'+
+    '<div class="mt">'+legs.length+' leg'+(legs.length>1?"s":"")+' · $10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(0)+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-leg parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
     legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small></span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
     (sg?'<p class="sg">Some legs are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
-    (dup?'<p class="sg">Two legs on the same player can move together. Books may not allow some combos.</p>':"")+
+    (dup?'<p class="sg">Two legs on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
     '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" id="bOpen">Open slip to bet ›</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
   $("bSlip").innerHTML=whyWrap(front,legs,"");
+}
+// ---------- closing line value ----------
+// Every pick leg we posted (slips and report cards) whose game has started, with its first price and its closing price
+function impA(a){return 1/dec(a)}
+function clvLegs(filter){
+  var out=[],seen={},now=Date.now();
+  function add(x){var k=x.n+"|"+x.time;if(seen[k]){if(x.result&&!seen[k].result)seen[k].result=x.result;return}seen[k]=x;out.push(x)}
+  if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(id){var s=PICKS.slips[id];if(filter&&!filter(s))return;
+    s.legs.forEach(function(l){if(l.clv==null||!l.close||+new Date(l.time)>now)return;add({n:l.n,kind:l.kind,clv:l.clv,a1:l.a1,ca:l.close.a,pt1:l.pt1,cpt:l.close.pt,time:l.time,result:l.result})})});
+  if(CARDS&&CARDS.cards)Object.keys(CARDS.cards).forEach(function(id){var c=CARDS.cards[id];if(+new Date(c.t)>now)return;if(filter&&!filter({season:c.season,week:c.week,lock:+new Date(c.t),card:1}))return;
+    ["pieces","straights","tds"].forEach(function(k){if(c[k])c[k].legs.forEach(function(l){if(l.a1===undefined)return;add({n:l.nm,kind:l.kind,clv:+(impA(l.a)-impA(l.a1)).toFixed(3),a1:l.a1,ca:l.a,time:c.t,result:l.result})})})});
+  return out;
+}
+function clvSum(L){var n=L.length,beat=0,lost=0,tot=0;L.forEach(function(x){tot+=x.clv;if(x.clv>0.004)beat++;else if(x.clv<-0.004)lost++});return{n:n,beat:beat,lost:lost,same:n-beat-lost,avg:n?tot/n:0}}
+function clvTxt(x){if(x.cpt!=null&&x.pt1!=null&&x.cpt!==x.pt1)return(x.pt1>0?"+":"")+x.pt1+" → "+(x.cpt>0?"+":"")+x.cpt;return fmt(x.a1)+" → "+fmt(x.ca)}
+// Small marker next to a leg: where the line closed compared with our first price
+function clvMark(l){if(l.clv==null||!l.close||l.a1===undefined)return"";var up=l.clv>0.004,dn=l.clv<-0.004;if(!up&&!dn)return"";
+  return' <small class="clv '+(up?"up":"dn")+'">'+(up?"▲":"▼")+" closed "+(l.close.pt!=null&&l.pt1!=null&&l.close.pt!==l.pt1?(l.close.pt>0?"+":"")+l.close.pt:fmt(l.close.a))+'</small>'}
+function renderCLV(){
+  var el=$("resCLV");if(!el)return;var L=clvLegs();
+  if(!L.length){el.innerHTML='<p class="empty">Starts with this week\'s picks: each one\'s first posted price against its last price before kickoff. The first numbers show up once those games start.</p>';return}
+  var A=clvSum(L),G=clvSum(L.filter(function(x){return x.kind==="g"})),P=clvSum(L.filter(function(x){return x.kind==="p"}));
+  var gr=function(f){var a=L.filter(function(x){return f(x)&&(x.result==="won"||x.result==="lost")}),w=a.filter(function(x){return x.result==="won"}).length;return a.length?Math.round(100*w/a.length)+"% <small>("+w+"/"+a.length+")</small>":"—"};
+  var row=function(nm,x){return'<tr><td>'+nm+'</td><td class="r">'+(x.n?Math.round(100*x.beat/x.n)+"% beat <small>("+x.beat+" of "+x.n+")</small><br><small>"+(x.avg>=0?"+":"")+(x.avg*100).toFixed(1)+" pts a leg · "+x.lost+" moved against</small>":"—")+'</td></tr>'};
+  var top=L.filter(function(x){return x.clv>0}).sort(function(a,b){return b.clv-a.clv}).slice(0,3);
+  el.innerHTML='<div class="stats"><div class="stat"><span class="num '+(A.beat>=A.lost?"pos":"neg")+'">'+Math.round(100*A.beat/A.n)+'%</span><span>Picks the line moved toward</span></div>'+
+    '<div class="stat"><span class="num">'+Math.round(100*A.lost/A.n)+'%</span><span>Moved against us</span></div>'+
+    '<div class="stat"><span class="num '+(A.avg>=0?"pos":"neg")+'">'+(A.avg>=0?"+":"")+(A.avg*100).toFixed(1)+'</span><span>Avg points of chance gained per leg</span></div>'+
+    '<div class="stat"><span class="num">'+A.n+'</span><span>Legs tracked</span></div></div>'+
+    '<div class="card"><table class="ht">'+row("Game lines",G)+row("Player props",P)+
+      '<tr><td>When we beat the close</td><td class="r">legs hit '+gr(function(x){return x.clv>0.004})+'</td></tr><tr><td>When it moved against us</td><td class="r">legs hit '+gr(function(x){return x.clv<-0.004})+'</td></tr></table></div>'+
+    (top.length?'<p class="sub" style="margin-top:8px">Biggest moves our way: '+top.map(function(x){return"<b>"+esc(x.n)+"</b> "+esc(clvTxt(x))}).join(" · ")+'</p>':"")+
+    '<p class="sub">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
+}
+// ---------- weekly report card (the "Monday report card") ----------
+var WKSEL=null;
+function etMonday(t){var d=new Date(new Date(t).toLocaleString("en-US",{timeZone:"America/New_York"}));d.setHours(12,0,0,0);var w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return d.toISOString().slice(0,10)}
+function wkKey(s){return SPORT==="nfl"&&s.season&&s.week&&!/-/.test(String(s.week))?s.season+"-W"+s.week:"wk"+etMonday(s.lock)}
+function wkLabel(k){if(/-W/.test(k))return"Week "+k.split("-W")[1];return"Week of "+new Date(k.slice(2)+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+function weekKeys(){var now=Date.now(),m={};if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(id){var s=PICKS.slips[id];if(s.lock>now)return;var k=wkKey(s);m[k]=Math.max(m[k]||0,s.lock)});
+  return Object.keys(m).sort(function(a,b){return m[b]-m[a]})}
+function weekReport(k){
+  var now=Date.now(),all=Object.keys(PICKS.slips).map(function(id){return PICKS.slips[id]}).filter(function(s){return s.lock<=now&&wkKey(s)===k});
+  var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"}),w=0,l=0,pu=0,pr=0;
+  done.forEach(function(s){if(s.status==="won")w++;else if(s.status==="lost")l++;else pu++;pr+=profit(s)});
+  var legs={},LL=[];all.forEach(function(s){s.legs.forEach(function(x){var key=x.n+"|"+x.time;if(legs[key])return;legs[key]=1;LL.push(x)})});
+  var gl=LL.filter(function(x){return x.result==="won"||x.result==="lost"}),hit=gl.filter(function(x){return x.result==="won"}).length,said=gl.reduce(function(a,x){return a+(x.p||0)},0);
+  var wins=done.filter(function(s){return s.status==="won"}).sort(function(a,b){return b.dec-a.dec}),best=wins[0];
+  var miss=done.filter(function(s){return s.status==="lost"&&s.legs.filter(function(x){return x.result==="lost"}).length===1}).map(function(s){return{s:s,ch:Engine.chance(s.legs)||0}}).sort(function(a,b){return b.ch-a.ch})[0];
+  var ty={};done.forEach(function(s){if(s.status==="push")return;var t=ty[s.name]=ty[s.name]||{n:0,w:0,pr:0};t.n++;if(s.status==="won")t.w++;t.pr+=profit(s)});
+  var tl=Object.keys(ty).map(function(n){var t=ty[n];t.k=n;return t}).filter(function(t){return t.n>=2}).sort(function(a,b){return b.pr-a.pr});
+  var fav=(Engine.OPTS[SPORT]||{}).featuredName,fs=done.filter(function(s){return s.group===fav+" parlays"}),fw=fs.filter(function(s){return s.status==="won"}).length,fl=fs.filter(function(s){return s.status==="lost"}).length;
+  var cs={hit:0,n:0,book:0};if(CARDS&&CARDS.cards)Object.keys(CARDS.cards).forEach(function(id){var c=CARDS.cards[id];if(c.status!=="graded"||wkKey({season:c.season,week:c.week,lock:+new Date(c.t)})!==k)return;
+    ["pieces","straights","tds"].forEach(function(x){if(c[x]){cs.hit+=c[x].hit||0;cs.n+=c[x].graded||0;cs.book+=c[x].bookExp||0}})});
+  var clv=clvSum(clvLegs(function(s){return wkKey(s)===k}));
+  var t0=Math.min.apply(null,all.map(function(s){return s.lock})),t1=Math.max.apply(null,all.map(function(s){return s.lock}));
+  var open=all.length-done.length;
+  return{k:k,all:all,done:done,w:w,l:l,pu:pu,pr:pr,risk:10*(w+l),hit:hit,gl:gl.length,said:said,best:best,miss:miss,types:tl,fav:fav,fw:fw,fl:fl,cs:cs,clv:clv,t0:t0,t1:t1,open:open,final:open===0&&done.length>0};
+}
+function renderWeek(){
+  var el=$("resWeek");if(!el)return;var keys=PICKS&&PICKS.slips?weekKeys():[];
+  if(!keys.length){el.innerHTML='<p class="empty">The first report card shows up after this week\'s first games are graded.</p>';return}
+  if(!WKSEL||keys.indexOf(WKSEL)<0)WKSEL=keys[0];
+  var i=keys.indexOf(WKSEL),R=weekReport(WKSEL),d=function(t){return new Date(t).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})};
+  try{if(R.final&&i===0)localStorage.setItem("wkseen_"+SPORT,WKSEL)}catch(e){}tabDot();
+  var nm=function(s){return esc(s.name)+' <small>· '+esc(s.group)+'</small>'};
+  var rows=[];
+  if(R.best)rows.push(['Best hit',nm(R.best)+'<br><small>'+am(R.best.dec)+' · $10 won '+money(10*(R.best.dec-1))+'</small>']);
+  if(R.miss){var ml=R.miss.s.legs.filter(function(x){return x.result==="lost"})[0];rows.push(['Toughest miss',nm(R.miss.s)+'<br><small>One leg away ('+Math.round(R.miss.ch*100)+'% to hit): '+esc(ml.n)+(ml.actual!==undefined&&!ml.td?" ("+ml.actual+")":"")+'</small>'])}
+  if(R.types.length){var b=R.types[0],z=R.types[R.types.length-1];rows.push(['Best type',esc(b.k)+'<br><small>'+b.w+'–'+(b.n-b.w)+' · '+money(b.pr)+'</small>']);if(R.types.length>1&&z.pr<0)rows.push(['Worst type',esc(z.k)+'<br><small>'+z.w+'–'+(z.n-z.w)+' · '+money(z.pr)+'</small>'])}
+  if(R.fw+R.fl)rows.push([esc(R.fav)+' parlays',R.fw+'–'+R.fl]);
+  if(R.cs.n)rows.push(['Report cards',R.cs.hit+' of '+R.cs.n+' legs hit<br><small>books expected '+R.cs.book.toFixed(1)+'</small>']);
+  if(R.clv.n)rows.push(['Closing line',Math.round(100*R.clv.beat/R.clv.n)+'% of picks moved our way<br><small>'+(R.clv.avg>=0?"+":"")+(R.clv.avg*100).toFixed(1)+' pts a leg · '+R.clv.n+' legs</small>']);
+  el.innerHTML='<div class="card wkc"><div class="wkh"><h3>'+esc(wkLabel(WKSEL))+' <span class="badge '+(R.final?"won":"")+'">'+(R.final?"Final":"In progress")+'</span></h3><div class="wknav"><button data-wk="'+(i+1)+'" aria-label="Earlier week"'+(i>=keys.length-1?" disabled":"")+'>‹</button><button data-wk="'+(i-1)+'" aria-label="Later week"'+(i<=0?" disabled":"")+'>›</button></div></div>'+
+    '<p class="sub" style="margin:2px 0 8px">'+d(R.t0)+(d(R.t0)!==d(R.t1)?" – "+d(R.t1):"")+(R.open?" · "+R.open+" slip"+(R.open>1?"s":"")+" still waiting on box scores":"")+'</p>'+
+    '<div class="stats"><div class="stat"><span class="num">'+R.w+"-"+R.l+(R.pu?"-"+R.pu:"")+'</span><span>Slips won-lost</span></div>'+
+    '<div class="stat"><span class="num '+(R.pr>=0?"pos":"neg")+'">'+money(R.pr)+'</span><span>Profit at $10 each'+(R.risk?" ("+(R.pr>=0?"+":"")+Math.round(100*R.pr/R.risk)+"%)":"")+'</span></div>'+
+    '<div class="stat"><span class="num">'+(R.gl?Math.round(100*R.hit/R.gl)+"%":"–")+'</span><span>Legs hit'+(R.gl?" ("+R.hit+" of "+R.gl+")":"")+'</span></div>'+
+    '<div class="stat"><span class="num">'+(R.gl?Math.round(100*R.said/R.gl)+"%":"–")+'</span><span>What we said'+(R.gl?(Math.abs(R.said/R.gl-R.hit/R.gl)<0.03?" · right on":R.hit/R.gl<R.said/R.gl?" · ran hot":" · ran cold"):"")+'</span></div></div>'+
+    (rows.length?'<table class="ht" style="margin-top:10px">'+rows.map(function(r){return'<tr><td>'+r[0]+'</td><td class="r">'+r[1]+'</td></tr>'}).join("")+'</table>':"")+
+    (R.done.length?'<p style="margin:10px 0 0"><button class="btn" data-wkshare="1">Share image</button></p>':"")+'</div>';
+}
+// Red dot on the Results tab when a finished weekly card hasn't been opened yet
+function tabDot(){var t=$("t-results");if(!t||!PICKS||!PICKS.slips)return;var k=weekKeys()[0],seen=null;try{seen=localStorage.getItem("wkseen_"+SPORT)}catch(e){}
+  var R=k&&weekReport(k),on=!!(R&&R.final&&seen!==k),d=t.querySelector(".dot");if(on&&!d)t.insertAdjacentHTML("beforeend",'<span class="dot" aria-label="new report card"></span>');if(!on&&d)d.remove()}
+function shareWeek(){
+  var R=weekReport(WKSEL),W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;var x=cv.getContext("2d");
+  var ink="#14213D",flag="#F7C600",green="#36D399",red="#FF6B5E",mut="#9AA5B8",F='"Arial Narrow",Impact,sans-serif',S="system-ui,-apple-system,Segoe UI,sans-serif";
+  x.fillStyle=ink;x.fillRect(0,0,W,H);x.fillStyle=flag;x.fillRect(0,0,W,14);
+  x.fillStyle="#fff";x.font="800 64px "+F;x.fillText("PARLAYLABS",56,104);
+  x.fillStyle=flag;x.font="700 44px "+F;x.fillText((wkLabel(WKSEL)+" report card").toUpperCase()+"  ·  "+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT],56,164);
+  x.fillStyle=mut;x.font="26px "+S;x.fillText((R.final?"Final":"In progress")+" · every auto-built slip at $10, graded from box scores",56,204);
+  var box=function(i,big,lab,col){var bw=(W-112-60)/4,bx=56+i*(bw+20);x.fillStyle="#1E2B4A";x.fillRect(bx,236,bw,170);x.fillStyle=col||"#fff";x.font="800 "+(big.length>6?54:70)+"px "+F;x.fillText(big,bx+18,326);x.fillStyle=mut;x.font="22px "+S;lab.split("\n").forEach(function(t,j){x.fillText(t,bx+18,362+j*26)})};
+  box(0,R.w+"-"+R.l,"slips won-lost");box(1,money(R.pr).replace(".00",""),"profit at $10\neach",R.pr>=0?green:red);box(2,R.gl?Math.round(100*R.hit/R.gl)+"%":"–","legs hit");box(3,R.gl?Math.round(100*R.said/R.gl)+"%":"–","what we said");
+  var y=480,line=function(lab,val,sub){x.fillStyle=flag;x.font="700 30px "+F;x.fillText(lab.toUpperCase(),56,y);x.fillStyle="#fff";x.font="34px "+S;x.fillText(val.length>48?val.slice(0,47)+"…":val,56,y+44);if(sub){x.fillStyle=mut;x.font="26px "+S;x.fillText(sub.length>64?sub.slice(0,63)+"…":sub,56,y+80)}y+=sub?130:100};
+  if(R.best)line("Best hit",R.best.name+" · "+R.best.group,am(R.best.dec)+" · $10 won "+money(10*(R.best.dec-1)));
+  if(R.miss){var ml=R.miss.s.legs.filter(function(q){return q.result==="lost"})[0];line("Toughest miss",R.miss.s.name+" · "+R.miss.s.group,"one leg away: "+ml.n)}
+  if(R.fw+R.fl)line(R.fav+" parlays",R.fw+"–"+R.fl);
+  if(R.cs.n)line("Report cards",R.cs.hit+" of "+R.cs.n+" legs hit","books expected "+R.cs.book.toFixed(1));
+  if(R.clv.n)line("Closing line",Math.round(100*R.clv.beat/R.clv.n)+"% of picks moved our way",(R.clv.avg>=0?"+":"")+(R.clv.avg*100).toFixed(1)+" points of chance per leg");
+  x.fillStyle=mut;x.font="24px "+S;x.fillText(location.host+location.pathname+"  ·  21+  ·  For entertainment only",56,H-40);
+  cv.toBlob(function(b){var file=new File([b],"parlaylabs-"+WKSEL+".png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"ParlayLabs weekly report card"}).catch(function(){})}
+    else{var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=file.name;document.body.appendChild(a);a.click();a.remove()}});
 }
 // ---------- results ----------
 function money(x){return(x<0?"-$":"$")+Math.abs(x).toFixed(2)}
@@ -1404,7 +1568,7 @@ function renderMyBets(){
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="btn rm" data-mydel="'+b.id+'">✕ Remove</button></p></div>'}).join("");
 }
 function renderResults(){
-  renderMyBets();renderBacktest();
+  renderMyBets();renderBacktest();renderWeek();renderCLV();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});
   if(!done.length){$("resSummary").innerHTML='<p class="empty">Nothing graded yet. This week\'s slips are saved and will be graded after the games, once box scores are posted.</p>'}
@@ -1436,7 +1600,7 @@ function renderResults(){
   var mark={won:"✓",lost:"✗",push:"–",void:"–",pending:"…"};
   $("resList").innerHTML=list.length?list.map(function(s){var st=s.status==="open"?"pending":s.status;
     return '<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(s.name)+' <span>'+(/-/.test(String(s.week))?new Date(s.week+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"Week "+s.week)+" · "+esc(s.group)+'</span></span><span class="badge '+st+'">'+{won:"Won",lost:"Lost",push:"Push",pending:"Live"}[st]+'</span></h3>'+
-      '<ul class="rl">'+s.legs.map(function(x){var r=x.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(x.n)+(x.actual!==undefined&&!x.td?" <small style=\"color:var(--muted)\">("+x.actual+")</small>":"")+(r==="void"?" <small style=\"color:var(--muted)\">(didn\'t play)</small>":"")+'</span><span>'+fmt(x.a)+'</span></li>'}).join("")+'</ul>'+
+      '<ul class="rl">'+s.legs.map(function(x){var r=x.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(x.n)+(x.actual!==undefined&&!x.td?" <small style=\"color:var(--muted)\">("+x.actual+")</small>":"")+(r==="void"?" <small style=\"color:var(--muted)\">(didn\'t play)</small>":"")+clvMark(x)+'</span><span>'+fmt(x.a)+'</span></li>'}).join("")+'</ul>'+
       '<p class="sub" style="margin:8px 0 0">'+(s.sg?"~":"")+am(s.legs.reduce(function(d,x){return d*dec(x.a)},1))+(st==="won"?' · $10 won <b class="pos">'+money(10*(s.dec-1))+"</b>":st==="lost"?' · $10 lost':"")+'</p></div>'}).join(""):'<p class="empty">No slips here yet. Slips appear once their first game kicks off.</p>';
 }
 
@@ -1462,7 +1626,7 @@ function renderCards(){
   $("resCards").innerHTML=L.slice(0,CARDSHOW).map(function(c,i){
     var secs=["pieces","straights","tds"].filter(function(k){return c[k]&&c[k].legs.length});
     var tally=secs.map(function(k){var x=c[k],h=x.hit||0,n=x.graded||0;return'<div><span class="num">'+(c.status==="open"?"–":h+'<small style="font-size:15px;color:var(--muted)">/'+(n||x.legs.length)+'</small>')+'</span><span>'+secLabel(k)+'<br>books expected '+x.bookExp.toFixed(1)+'</span></div>'}).join("");
-    var lists=secs.map(function(k){return'<details><summary>'+secLabel(k)+' ('+c[k].legs.length+')</summary><ul class="rl">'+c[k].legs.map(function(l){var r=l.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(l.nm)+(l.actual!==undefined&&!l.td?' <small style="color:var(--muted)">('+l.actual+')</small>':"")+(r==="void"?' <small style="color:var(--muted)">(didn\'t play)</small>':"")+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul></details>'}).join("");
+    var lists=secs.map(function(k){return'<details><summary>'+secLabel(k)+' ('+c[k].legs.length+')</summary><ul class="rl">'+c[k].legs.map(function(l){var r=l.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(l.nm)+(l.actual!==undefined&&!l.td?' <small style="color:var(--muted)">('+l.actual+')</small>':"")+(r==="void"?' <small style="color:var(--muted)">(didn\'t play)</small>':"")+(l.a1!==undefined&&l.a1!==l.a?' <small class="clv '+(impA(l.a)>impA(l.a1)?"up":"dn")+'">'+(impA(l.a)>impA(l.a1)?"▲":"▼")+" posted at "+fmt(l.a1)+'</small>':"")+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul></details>'}).join("");
     return'<div class="card rc"><h3><span>'+esc(c.away)+' <span>at</span> '+esc(c.home)+' <span>· '+when(c.t)+'</span></span><span class="badge '+(c.status==="graded"?"won":"")+'">'+(c.status==="graded"?"Final":"Live")+'</span></h3><div class="tally">'+tally+'</div>'+lists+
       (c.status==="graded"?'<p style="margin:10px 0 0"><button class="btn" data-share="'+esc(c.ev)+'">Share image</button></p>':"")+'</div>'}).join("")+
     (L.length>CARDSHOW?'<button class="more" id="moreCards">Show more games</button>':"");
@@ -1614,6 +1778,8 @@ document.addEventListener("click",function(e){
   else if(t.dataset.side==="BOTH"){TSIDE="both";renderTeamLower();renderSlip()}
   else if(t.dataset.side){TSIDE="team";TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}
   else if(t.dataset.share){shareCard(t.dataset.share)}
+  else if(t.dataset.wk!==undefined){var ks=weekKeys(),j=+t.dataset.wk;if(ks[j]){WKSEL=ks[j];renderWeek()}}
+  else if(t.dataset.wkshare){shareWeek()}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
   else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
   else if(t.dataset.openp){OPENP[t.dataset.openp]=!OPENP[t.dataset.openp];var y=window.scrollY;renderProps();if($("teamProps"))renderTeam();window.scrollTo(0,y)}
@@ -1630,7 +1796,7 @@ $("stake").addEventListener("input",renderSlip);
 // Works inside the home-screen app, where pull-to-refresh isn't available.
 $("refreshBtn").addEventListener("click",function(){
   var b=$("refreshBtn");b.disabled=true;b.classList.add("spin");toast("Refreshing…");
-  var files=[location.pathname,"engine.js","schedule.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json"];
+  var files=[location.pathname,"engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json"];
   Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
     var u=location.pathname+location.search.replace(/[?&]r=\d+/,"");u+=(u.indexOf("?")<0?"?":"&")+"r="+Date.now();location.replace(u+location.hash)});
 });
@@ -1648,12 +1814,12 @@ if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight'
 // ---------- Quick tour: first visit, and any time from the ? button ----------
 var TOUR=[
  ["🧪","Welcome to ParlayLabs","Parlays built from live sportsbook odds, every player's recent games, and three past seasons of real results. Every % is our honest chance to hit, checked against how picks like it actually did.","Pick a sport at the top: NFL, NBA, NCAAF or NCAAB."],
- ["⚡","Parlays tab","<b>Parlay generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
- ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks.","Estimates, not guarantees. They hold up over many bets, not one."],
- ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. There's a player-only generator here too.","Tap any line to add it to your slip."],
- ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Tap ★ at the top to set your team for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
+ ["⚡","Parlays tab","<b>ParlayLabs Generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
+ ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks. <b>All green</b>, <b>Spread out</b> and <b>⚑ Red flag</b> tags tell you what's inside at a glance.","Estimates, not guarantees. They hold up over many bets, not one."],
+ ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. The ParlayLabs Generator is here too, players only.","Tap any line to add it to your slip."],
+ ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: the ParlayLabs Generator for that game, and parlays for either team or <b>Both</b>.","Tap ★ at the top to set your team for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
  ["🛠️","Build tab","Make your own parlay: every leg on the board ranked by our chance to hit, with its team, game and record since 2023. Filter by game or type (players, TDs, game lines) and tap + to add.<br><br>Your parlay sits at the top and updates live: honest %, payout, warnings for same-game legs, and <b>How we got this %</b>.","Open slip to bet sends it to FanDuel or DraftKings."],
- ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> shows how our picks did, your saved bets by app, and the past-seasons report card.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
+ ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> starts with the weekly report card (new every Monday), then how our picks did, whether we beat the closing line, and your saved bets by app.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
   $("tdots").innerHTML=TOUR.map(function(_,i){return'<i'+(i===TI?' class="on"':"")+'></i>'}).join("");$("tNext").textContent=TI===TOUR.length-1?"Let's go":"Next";$("tSkip").style.visibility=TI===TOUR.length-1?"hidden":"visible"}
@@ -1687,7 +1853,7 @@ $("favBtn").onclick=favOpen;$("favCancel").onclick=function(){$("favs").hidden=t
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];renderAll();renderSync();setInterval(renderSync,60000)});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 </body>
 </html>

@@ -42,6 +42,9 @@ const imp = a => 1 / dec(a);
   const R = { builtAt: new Date().toISOString(), seasons: {}, legs: { byCat: {}, byP: {}, byMarket: {} }, slips: {}, teamParlays: {}, cards: { pieces: [0, 0, 0, 0], straights: [0, 0, 0, 0], tds: [0, 0, 0, 0] }, games: { ats: {}, fav: {} } };
   const teams = {}; // team -> stats for the Teams page
   const graded = [];
+  // Same-game pairs: for each kind of pair, how often each leg hit and how often both did (main lines and game lines)
+  const PAIRS = {}, slipLog = [];
+  const pairAdd = (k, a, b) => { const x = PAIRS[k] = PAIRS[k] || { n: 0, a: 0, b: 0, ab: 0 }; x.n++; x.a += a; x.b += b; x.ab += a * b; };
   const add = (o, k, won, a, p) => { const x = o[k] = o[k] || { n: 0, w: 0, profit: 0, exp: 0, book: 0 }; x.n++; if (won) x.w++; x.profit += won ? 10 * (dec(a) - 1) : -10; if (p !== undefined) x.exp += p; x.book += imp(a); };
 
   for (const season of seasons) {
@@ -72,6 +75,8 @@ const imp = a => 1 / dec(a);
       S.weeks++; S.games += W.length; S.propGames += odds.props.length;
       const meta = id => { const m = data.games[id] || {}; return { gid: m.gid, away: m.away, home: m.home }; };
 
+      const perGame = {}; // ev -> [{info, won}]
+      const pg = (ev, info, won) => (perGame[ev] = perGame[ev] || []).push({ info, won });
       // ---- every rated leg (like the live gradebook) ----
       for (const g of E.G) {
         const m = meta(g.id), G0 = games[m.gid];
@@ -82,6 +87,7 @@ const imp = a => 1 / dec(a);
           add(R.legs.byCat, cat, won, L.a, leg.p); add(R.legs.byMarket, cat.split("|")[0], won, L.a, leg.p);
           if (leg.p !== undefined) add(R.legs.byP, pBucket(leg.p), won, L.a, leg.p);
           graded.push([cat, +(leg.p || 0).toFixed(3), won ? 1 : 0, first]);
+          pg(g.id, Engine.legInfo(Object.assign({ ev: g.id }, leg), m), won ? 1 : 0);
         });
         // team over/under record
         const tr = grade({ kind: "g", t: "ov", pt: g.legs["ov"].pt }, G0);
@@ -104,6 +110,7 @@ const imp = a => 1 / dec(a);
             const leg = { kind: "p", player: p.player, label: p.label, td: p.td, line: r.line, side: sd.side, a: sd.a, p: sd.p };
             const res = grade(leg, games[m.gid], rows); if (res !== "won" && res !== "lost") continue;
             const won = res === "won";
+            if (r.under !== undefined || p.td) pg(p.ev, Engine.legInfo({ kind: "p", ev: p.ev, player: p.player, team: p.team, label: p.label, td: p.td, side: sd.side, p: sd.p }), won ? 1 : 0);
             // team history: main lines only (the ones with an under price), overs
             if (sd.side === "over" && (r.under !== undefined || p.td) && p.team) {
               const T = teams[p.team] = teams[p.team] || newTeam();
@@ -125,6 +132,10 @@ const imp = a => 1 / dec(a);
           }
         }
       }
+      for (const ev in perGame) { const L = perGame[ev];
+        for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const k = Engine.pairKey(L[i].info, L[j].info); if (!k) continue;
+          // keep the pair's order stable so "a" and "b" mean the same role every time
+          const swap = L[i].info.role > L[j].info.role; pairAdd(k, swap ? L[j].won : L[i].won, swap ? L[i].won : L[j].won); } }
       const sect = (src, n, key, sort) => { for (const gk in src) { const seen = {}; src[gk].sort(sort).filter(x => !seen[x.k] && (seen[x.k] = 1)).slice(0, n).forEach(x => { const c = R.cards[key]; c[0]++; if (x.won) c[1]++; c[2] += x.p; c[3] += imp(x.a); }); } };
       sect(pieces, 20, "pieces", (a, b) => b.p - a.p); sect(straights, 10, "straights", (a, b) => b.edge - a.edge); sect(tds, 5, "tds", (a, b) => b.p - a.p);
 
@@ -143,6 +154,7 @@ const imp = a => 1 / dec(a);
         S.slips++;
         const x = R.slips[s.n] = R.slips[s.n] || { n: 0, w: 0, profit: 0, exp: 0, legs: 0 };
         x.n++; if (r.won) x.w++; x.profit += r.won ? 10 * (r.d - 1) : -10; x.exp += r.ch || 0; x.legs += s.l.length;
+        slipLog.push({ name: s.n, ch: r.ch, legs: s.l.map(l => Object.assign({}, l)), metas: Object.fromEntries(s.l.map(l => [l.ev, meta(l.ev)])) });
       }
       // every team's own parlays (like the Lions page), so each team has a history
       const playing = new Set(); Object.values(data.games).forEach(m => { playing.add(m.away); playing.add(m.home); });
@@ -156,9 +168,18 @@ const imp = a => 1 / dec(a);
       process.stdout.write(`${season} W${wk}: ${W.length} games, ${odds.props.length} with props\n`);
     }
   }
+  // ---- correlations ----
+  const corr = { builtAt: R.builtAt, note: "rho = how strongly two legs from the same game win or lose together (0 = independent). n = past pairs.", pairs: {} };
+  for (const k in PAIRS) { const x = PAIRS[k]; if (x.n < 50) continue;
+    const pa = x.a / x.n, pb = x.b / x.n, pab = x.ab / x.n, den = Math.sqrt(pa * (1 - pa) * pb * (1 - pb));
+    if (!den) continue; corr.pairs[k] = { n: x.n, rho: +((pab - pa * pb) / den).toFixed(3), both: +pab.toFixed(3), a: +pa.toFixed(3), b: +pb.toFixed(3) }; }
+  // Re-score every past slip with the correlation adjustment, so the site's slip-type correction only fixes what's left
+  for (const k in R.slips) { R.slips[k].expRaw = R.slips[k].exp; R.slips[k].exp = 0; }
+  for (const x of slipLog) { if (x.ch == null) continue; const a = Engine.corrAdj(x.legs, ev => x.metas[ev], corr); R.slips[x.name].exp += Math.min(0.99, x.ch * a.f); }
+  fs.writeFileSync("backtest/corr.json", JSON.stringify(corr, null, 1));
   // round
   const r2 = o => { for (const k in o) for (const f of ["profit", "exp", "book"]) if (typeof o[k][f] === "number") o[k][f] = +o[k][f].toFixed(2); };
-  r2(R.legs.byCat); r2(R.legs.byP); r2(R.legs.byMarket); r2(R.slips);
+  r2(R.legs.byCat); r2(R.legs.byP); r2(R.legs.byMarket); r2(R.slips); for (const k in R.slips) R.slips[k].expRaw = +R.slips[k].expRaw.toFixed(2);
   R.cards = Object.fromEntries(Object.entries(R.cards).map(([k, c]) => [k, { n: c[0], w: c[1], ours: +c[2].toFixed(1), book: +c[3].toFixed(1) }]));
   // team file: keep players with at least 4 graded main lines
   for (const t in teams) { const T = teams[t]; for (const p in T.players) { const tot = Object.values(T.players[p]).reduce((a, b) => a + b[0] + b[1], 0); if (tot < 4) { delete T.players[p]; delete T.pvs[p]; } }
