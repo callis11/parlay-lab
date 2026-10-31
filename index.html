@@ -1745,17 +1745,19 @@ function shotMoney(s){var m=String(s).replace(/[,\s]/g,"").match(/\$(\d+)(\.\d{1
 function shotOdds(s){var m=String(s).replace(/[−–—]/g,"-").match(/(^|[^\d.$])([+-]\d{3,5})(?!\d)/);return m?+m[2]:null}
 function shotParse(text){
   var L=String(text||"").replace(/[−–—]/g,"-").split(/\r?\n/).map(function(x){return x.replace(/\s+/g," ").trim()}).filter(Boolean);
-  var all=L.join("\n"),book=/draft ?kings|\bdk\b/i.test(all)?"draftkings":/betmgm/i.test(all)?"betmgm":/betrivers/i.test(all)?"betrivers":/fanduel|same game parlay|reuse selections|us-[a-z]{2}:/i.test(all)?"fanduel":"";
+  var all=L.join("\n"),book=/draft ?kings|\bdk\b|\bDK\d{10,}|pick parlay|keep picks in betslip/i.test(all)?"draftkings":/betmgm/i.test(all)?"betmgm":/betrivers/i.test(all)?"betrivers":/fanduel|same game parlay|reuse selections|us-[a-z]{2}:/i.test(all)?"fanduel":"";
   // a bet starts at its header ("2 leg parlay", "4 Leg Same Game Parlay+", "Single", "Straight")
-  var heads=[];L.forEach(function(x,i){if(/\b\d+\s*-?\s*leg\b.*parlay|^(single|straight)\b/i.test(x))heads.push(i)});
+  var heads=[];L.forEach(function(x,i){if(/\b\d+\s*-?\s*(leg|pick)\b.*parlay|^(single|straight)\b/i.test(x))heads.push(i)});
   if(!heads.length)heads=[0];
   return heads.map(function(h,j){
     var seg=L.slice(h,j+1<heads.length?heads[j+1]:L.length),hd=seg[0],b={book:book,legs:[],raw:seg};
-    var nm=hd.match(/(\d+)\s*-?\s*leg/i);b.n=nm?+nm[1]:null;
-    b.odds=shotOdds(hd.replace(/^\s*\d+\s*-?\s*leg/i,""));if(b.odds===null&&seg[1]&&/^[+-]\d{3,5}$/.test(seg[1]))b.odds=+seg[1];
+    var nm=hd.match(/(\d+)\s*-?\s*(?:leg|pick)/i);b.n=nm?+nm[1]:null;
+    b.odds=shotOdds(hd.replace(/^\s*\d+\s*-?\s*(leg|pick)/i,""));if(b.odds===null&&seg[1]&&/^[+-]\d{3,5}$/.test(seg[1]))b.odds=+seg[1];
     seg.forEach(function(x,i){
-      var id=x.match(/BET ID:?\s*([\w:.-]{8,})/i);if(id&&!b.id)b.id=id[1];
+      var id=x.match(/BET ID:?\s*([\w:.-]{8,})/i)||x.match(/\b(DK\d{10,})\b/);if(id&&!b.id)b.id=id[1];
       var pl=x.match(/PLACED:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*([AP])M/i);
+      var pd=!pl&&x.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2}), (\d{4}),? (\d{1,2}):(\d{2})(?::\d{2})? ?([AP])M/i); // DraftKings: "Oct 31, 2026, 2:44:43 PM"
+      if(pd)pl=[0,"JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(pd[1].slice(0,3).replace(/^./,function(c){return c.toUpperCase()}))/3+1,pd[2],pd[3],pd[4],pd[5],pd[6]];
       if(pl&&!b.placed){var hr=(+pl[4])%12+(/p/i.test(pl[6])?12:0);b.placed=new Date(pl[3]+"-"+("0"+pl[1]).slice(-2)+"-"+("0"+pl[2]).slice(-2)+"T"+("0"+hr).slice(-2)+":"+pl[5]+":00-04:00").getTime()}
       // money labels sit under their amounts: "$10.00 $17.78" / "TOTAL WAGER TOTAL PAYOUT"
       if(/wager|payout|to pay|to win|paid|returned|stake/i.test(x)){
