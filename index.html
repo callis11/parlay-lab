@@ -415,7 +415,7 @@ select,input,textarea{font-size:max(16px,1em)}
   <button class="tab" role="tab" id="t-parlays" data-v="parlays" aria-selected="true" aria-controls="v-parlays">Parlays</button>
   <button class="tab" role="tab" id="t-games" data-v="games" aria-selected="false" aria-controls="v-games" hidden>Games</button>
   <button class="tab" role="tab" id="t-props" data-v="props" aria-selected="false" aria-controls="v-props">Players</button>
-  <button class="tab" role="tab" id="t-team" data-v="team" aria-selected="false" aria-controls="v-team">Teams</button>
+  <button class="tab" role="tab" id="t-team" data-v="team" aria-selected="false" aria-controls="v-team">Games</button>
   <button class="tab" role="tab" id="t-results" data-v="results" aria-selected="false" aria-controls="v-results">Results</button>
 </div>
 
@@ -474,7 +474,7 @@ select,input,textarea{font-size:max(16px,1em)}
 </section>
 
 <section id="v-team" role="tabpanel" aria-labelledby="t-team" hidden>
-  <h2>Teams</h2>
+  <h2>Games</h2>
   <div class="filters"><select id="fDiv" aria-label="Division"></select><select id="fTeam" aria-label="Team"></select></div>
   <div id="teamCar"></div>
   <div id="genMount_tm"></div>
@@ -1499,7 +1499,7 @@ var TOUR=[
  ["⚡","Parlays tab","<b>Parlay generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
  ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks.","Estimates, not guarantees. They hold up over many bets, not one."],
  ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. There's a player-only generator here too.","Tap any line to add it to your slip."],
- ["🔄","Teams tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Pick ★ My team at the top for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
+ ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Pick ★ My team at the top for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> shows how our picks did, your saved bets by app, and the past-seasons report card.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
