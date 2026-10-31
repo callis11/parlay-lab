@@ -366,6 +366,10 @@ header{position:relative}
 /* iPhone: no zoom on quick repeated taps, and form fields at 16px so focusing them never zooms */
 html,body,button,a,select,summary,.flip,.rung,.pick{touch-action:manipulation}
 select,input,textarea{font-size:max(16px,1em)}
+.gwl li.wide{grid-column:1/-1}
+.s2{display:inline-grid;grid-template-columns:auto auto;gap:0 14px}
+.piece .gwl{margin-top:3px}
+.wl .gwl{margin-top:4px}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -635,11 +639,16 @@ function legHist(l){
   if((l.t==="ov"||l.t==="un")&&BT.teams[m.away]&&BT.teams[m.home]){var a=BT.teams[m.away].ou,h=BT.teams[m.home].ou;return"Overs: "+m.away+" "+a[0]+"–"+a[1]+", "+m.home+" "+h[0]+"–"+h[1]+" since 2021"}
   return"";
 }
+// Two-column fact list used across cards: first items brighter (matchup, odds), the rest muted
+function factGrid(keys,rest){var cap=function(t){t=String(t);return t.charAt(0).toUpperCase()+t.slice(1)};
+  return'<ul class="gwl">'+keys.filter(Boolean).map(function(k){return'<li class="gk">'+esc(k)+'</li>'}).join("")+rest.filter(Boolean).map(function(k){return'<li'+(String(k).length>19?' class="wide"':"")+'>'+esc(cap(k))+'</li>'}).join("")+'</ul>'}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
   var mu=g?(DATA&&DATA.games[g.id]&&DATA.games[g.id].away||g.away)+" @ "+(DATA&&DATA.games[g.id]&&DATA.games[g.id].home||g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"";
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div><div class="sub2">'+(tm?esc(tm)+" · ":"")+esc(mu)+" · "+fmt(l.a)+(l.best&&l.best.a!==l.a?" ("+esc(l.best.book)+" "+fmt(l.best.a)+")":"")+'</div>'+(hh?'<div class="sub2 hh">'+esc(hh)+'</div>':"")+'</div>'+
+  var m2=g&&DATA&&DATA.games[g.id]||{};
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
+    factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Odds "+fmt(l.a)],[g?new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"",l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",hh])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 var PSIDE="both";
@@ -664,7 +673,7 @@ function propLines(p){
     if(cur)keep[cur.line]=1;
     var open=OPENP[p.id],hidden=p.rungs.filter(function(r){return!keep[r.line]}).length;
     var rungs=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line;
-      var stat=r.p!==undefined?(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+(r.since&&r.since[1]>r.n?" · "+r.since[0]+" of "+r.since[1]+" since 2023":""):"Not enough games to rate";
+      var stat=r.p!==undefined?'<span class="s2"><span>'+(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+'</span>'+(r.since&&r.since[1]>r.n?'<span>'+r.since[0]+" of "+r.since[1]+" since 2023</span>":"")+'</span>':"Not enough games to rate";
       var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5w"><span class="l5">Last 5: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5">newest</span></span>':"";
       return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     return rungs+(hidden?'<button class="lnk" data-openp="'+esc(p.id)+'">'+(open?"Show fewer":"Show all "+p.rungs.length+" lines")+'</button>':"");
@@ -971,7 +980,7 @@ function legBreakdown(l){
   }
   var adj=l.p0!==undefined&&l.p0!==null&&Math.abs(l.p0-l.p)>=0.01&&l.kind==="p"?" Past seasons showed legs like this hit "+(l.p<l.p0?"less":"more")+" often than estimated, so "+pct(l.p0)+" became "+pct(l.p)+".":"";
   return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+pct(l.p)+'</span></div>'+
-    '<p>'+esc((function(t){return t.charAt(0).toUpperCase()+t.slice(1)})(src.join(" · ")))+'. The book\'s '+fmt(l.a)+' means about '+pct(imp)+' (before its cut).'+esc(adj)+'</p></div>';
+    factGrid(["Odds "+fmt(l.a),"Book's chance ~"+pct(imp)],src)+(adj?'<p>'+esc(adj.trim())+'</p>':"")+'</div>';
 }
 function slipWhy(legs,name){
   var pct=function(x){return Math.round(x*100)+"%"},raw=1,d=1,evs={},sg=false;
