@@ -27,8 +27,13 @@ Per leg: player's last-10 hit rate (normal fit + empirical), adjusted for oppone
 ## Testing
 Serve with `python3 -m http.server 8765` in the repo, test with Playwright (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`), set `localStorage age21=yes, tour1=seen` before loading. Node network needs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt`. ESPN and Open-Meteo are blocked from the container (they work on GitHub Actions); nflverse (GitHub releases) works.
 
-## Open ideas Andrew liked but hasn't asked for yet
-Closing line value tracking, a weekly Monday report card, same-game correlation learning, first-half lines for college basketball, extra tags (All Green, Spread Out, Red Flag).
+## Built Oct 30, 2026 (late): no open ideas left from the old list
+- **ParlayLabs Generator**: the name on all three generators (Parlays, Players, Games tabs); subtitles say what each one uses.
+- **Closing line value**: picks.js stores `a1`/`pt1` (first posted price) and `close`/`clv` per leg, followed until that leg's own game starts. Report-card legs keep `a1`. Results tab "Beating the closing line" section; ▲/▼ markers on graded legs. Old slips from before this have no `a1`, so numbers start with Week 9 games.
+- **Weekly report card** (Results tab, ‹ › to page weeks): record, profit, legs hit, what we said vs reality, best hit, toughest miss, closing line. Finishes filling in once Monday night's box scores post.
+- **Same-game correlation**: `backtest/replay.js` writes `backtest/corr.json` (pair types such as QB pass + same-team rec, side+prop for/vs, shrunk with n/(n+400), ignored under 100 pairs). `Engine.corrAdj` and the site's `slipChance()` use it for every % (named slips, generators, Build). The replay's slip-type factor is measured after correlation (`expRaw` keeps the old number).
+- **College basketball first half**: `cfb/fetch.js` (SPORT=cbb) buys `spreads_h1,totals_h1` per event (2 credits each), at most 10 games (`H1_MAX`) every 8 hours (Michigan State first, then ranked, then closest spreads), only if over 3,000 credits are left. Force with env `H1=true`. Leg types `1sp-a/1sp-h/1ov/1un`, graded from ESPN first-half scores (`h1` in cbb/logs.json). Cost about 1.5–2K credits a month during the season.
+- **Tags**: All green (every leg 70%+), Spread out (3+ legs, all different games), ⚑ Red flag (leg under 45%, injury or missed last game, rarely clears the line since 2023, poor history vs this opponent, two legs on one player, line moved 1.5+ points against, game started). Red-flag slips never get the Safest pick.
 
 ## Remaining history pull (do this when The Odds API credits reset)
 Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=true"`); its log (`backtest/raw/last-run.log`, committed by the workflow) shows "Credits left". Need about 26K free plus ~15K for the live site.
