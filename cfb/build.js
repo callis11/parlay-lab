@@ -104,6 +104,8 @@ function parse(j) {
   catch (e) { console.warn("conference list", e.message); }
   const conf = {};
   all.forEach(g => [g.a, g.h].forEach(x => { if (x.conf && confName[x.conf] && !/^(FBS|NCAA|Division)/i.test(confName[x.conf])) conf[x.abbr] = confName[x.conf]; }));
-  fs.writeFileSync(SP + "/data.json", JSON.stringify({ conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
+  // Every school we've seen, for the My teams picker
+  const teamsAll = {}; all.forEach(g => [g.a, g.h].forEach(x => { if (x.abbr && x.loc) teamsAll[x.abbr] = x.loc; }));
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ teams: teamsAll, conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
   console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();

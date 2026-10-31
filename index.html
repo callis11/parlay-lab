@@ -371,6 +371,13 @@ select,input,textarea{font-size:max(16px,1em)}
 .piece .gwl{margin-top:3px}
 .wl .gwl{margin-top:4px}
 .btn.gadd{flex:1;min-height:38px;font-size:14px}
+.tbtns{display:flex;gap:6px;flex:none}
+.helpq.star{color:var(--flag);font-size:17px}
+.fh{margin:6px 0 4px;font-family:"Barlow Condensed",sans-serif;font-size:28px}
+.fsub{margin:0 0 12px;font-size:13px;color:var(--muted);line-height:1.45}
+.frow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.frow label{width:62px;font-weight:800;font-size:14px}
+.frow select{flex:1;min-width:0}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -392,6 +399,12 @@ select,input,textarea{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
+<div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
+  <div class="ticon">★</div><h2 class="fh">My teams</h2>
+  <p class="fsub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week. Saved on this phone only.</p>
+  <div id="favRows"></div>
+  <div class="tnav"><button class="lnk" id="favCancel">Cancel</button><button class="btn flag" id="favSave">Save</button></div>
+</div></div>
 <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="How to use ParlayLabs"><div class="tbox">
   <div class="ttrack" id="ttrack"></div>
   <div class="tnav"><button class="lnk" id="tSkip">Skip</button><div class="hdots" id="tdots"></div><button class="btn flag" id="tNext">Next</button></div>
@@ -405,10 +418,9 @@ select,input,textarea{font-size:max(16px,1em)}
 </div></div>
 <div class="wrap">
 <header>
-  <div class="toprow"><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav><button class="helpq" id="helpBtn" aria-label="How to use ParlayLabs">?</button></div>
+  <div class="toprow"><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav><span class="tbtns"><button class="helpq star" id="favBtn" aria-label="My teams">★</button><button class="helpq" id="helpBtn" aria-label="How to use ParlayLabs">?</button></span></div>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
-  <p style="margin-top:10px" class="hpick"><label for="myTeam">★ My team </label><select id="myTeam"></select></p>
   <p style="margin-top:6px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
 </header>
 
@@ -527,7 +539,31 @@ var ENG=null;
 // My team: each person's favorite per sport, saved on their device (default Lions / Pistons / Michigan State)
 var DEFAULT_FAV={team:(Engine.OPTS[SPORT]||{}).featured,name:(Engine.OPTS[SPORT]||{}).featuredName};
 (function(){try{var f=JSON.parse(localStorage.getItem("fav_"+SPORT)||"null");if(f&&f.team&&Engine.OPTS[SPORT]){Engine.OPTS[SPORT].featured=f.team;Engine.OPTS[SPORT].featuredName=f.name}}catch(e){}})();
-function renderMyTeam(){
+var NFL_T={ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",CLE:"Browns",DAL:"Cowboys",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",JAX:"Jaguars",KC:"Chiefs",LV:"Raiders",LAC:"Chargers",LA:"Rams",MIA:"Dolphins",MIN:"Vikings",NE:"Patriots",NO:"Saints",NYG:"Giants",NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SF:"49ers",SEA:"Seahawks",TB:"Buccaneers",TEN:"Titans",WAS:"Commanders"};
+var NBA_T={ATL:"Hawks",BOS:"Celtics",BKN:"Nets",CHA:"Hornets",CHI:"Bulls",CLE:"Cavaliers",DAL:"Mavericks",DEN:"Nuggets",DET:"Pistons",GS:"Warriors",HOU:"Rockets",IND:"Pacers",LAC:"Clippers",LAL:"Lakers",MEM:"Grizzlies",MIA:"Heat",MIL:"Bucks",MIN:"Timberwolves",NO:"Pelicans",NY:"Knicks",OKC:"Thunder",ORL:"Magic",PHI:"76ers",PHX:"Suns",POR:"Trail Blazers",SAC:"Kings",SA:"Spurs",TOR:"Raptors",UTAH:"Jazz",WSH:"Wizards"};
+var FAV_SPORTS=[["nfl","NFL",{team:"DET",name:"Lions"}],["nba","NBA",{team:"DET",name:"Pistons"}],["cfb","NCAAF",{team:"MSU",name:"Michigan State"}],["cbb","NCAAB",{team:"MSU",name:"Michigan State"}]];
+function favGet(sp,def){try{var f=JSON.parse(localStorage.getItem("fav_"+sp)||"null");if(f&&f.team)return f}catch(e){}return def}
+function favOpen(){
+  $("favRows").innerHTML=FAV_SPORTS.map(function(x){return'<div class="frow"><label for="fav_'+x[0]+'">'+x[1]+'</label><select id="fav_'+x[0]+'"><option>Loading…</option></select></div>'}).join("");
+  $("favs").hidden=false;
+  FAV_SPORTS.forEach(function(x){var sp=x[0],cur=favGet(sp,x[2]),sel=$("fav_"+sp);
+    var fill=function(map){var list=Object.keys(map).map(function(k){return[k,map[k]]});if(!map[cur.team])list.push([cur.team,cur.name]);
+      list.sort(function(a,b){return a[1].localeCompare(b[1])});
+      sel.innerHTML=list.map(function(t){return'<option value="'+esc(t[0])+'">'+esc(t[1])+(t[0]===x[2].team?" (default)":"")+'</option>'}).join("");sel.value=cur.team};
+    if(sp==="nfl")fill(NFL_T);else if(sp==="nba")fill(NBA_T);
+    else getJSON(sp+"/data.json").then(function(d){var m={};if(d&&d.teams)m=d.teams;else if(d&&d.games)Object.values(d.games).forEach(function(g){m[g.away]=g.away;m[g.home]=g.home});fill(m)});
+  });
+}
+function favSave(){
+  var changedHere=false;
+  FAV_SPORTS.forEach(function(x){var sel=$("fav_"+x[0]);if(!sel||!sel.value||sel.value==="Loading…")return;var nm=(sel.selectedOptions[0]||{}).textContent.replace(/ \(default\)$/,"");
+    var old=favGet(x[0],x[2]);try{localStorage.setItem("fav_"+x[0],JSON.stringify({team:sel.value,name:nm}))}catch(e){}
+    if(x[0]===SPORT&&old.team!==sel.value){changedHere=true;var o=Engine.OPTS[SPORT];o.featured=sel.value;o.featuredName=nm}});
+  $("favs").hidden=true;
+  if(changedHere){TEAM=Engine.OPTS[SPORT].featured;TGAME=null;renderAll()}
+  toast("★ My teams saved.");
+}
+function renderMyTeam(){return;
   var sel=$("myTeam"),o=Engine.OPTS[SPORT]||{},seen={},list=[];if(!sel)return;
   var bare=function(n){return String(n).replace(/^#\d+\s+/,"")};
   GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(!m)return;[[m.away,g.away],[m.home,g.home]].forEach(function(t){if(!seen[t[0]]){seen[t[0]]=1;list.push([t[0],bare(t[1])])}})});
@@ -1505,7 +1541,7 @@ var TOUR=[
  ["⚡","Parlays tab","<b>Parlay generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
  ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks.","Estimates, not guarantees. They hold up over many bets, not one."],
  ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. There's a player-only generator here too.","Tap any line to add it to your slip."],
- ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Pick ★ My team at the top for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
+ ["🔄","Games tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Tap ★ at the top to set your team for each sport. Your team comes first everywhere; when they're off, it's the game of the week."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> shows how our picks did, your saved bets by app, and the past-seasons report card.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
@@ -1533,7 +1569,7 @@ window.addEventListener("hashchange",function(){$("panel").classList.remove("ope
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";renderTeam();renderSlip()});
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
-$("myTeam").addEventListener("change",function(){setMyTeam($("myTeam").value)});
+$("favBtn").onclick=favOpen;$("favCancel").onclick=function(){$("favs").hidden=true};$("favSave").onclick=favSave;
 $("book").value=BOOK;$("placeBook").value=BOOK;
 $("book").addEventListener("change",function(){BOOK=$("book").value;$("placeBook").value=BOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};renderAll()});
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
