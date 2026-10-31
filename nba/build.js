@@ -5,8 +5,9 @@
 const fs = require("fs");
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
 const SEASON_START = "2026-10-01";   // current season (2026-27)
-const BACKFILL_FROM = "2026-03-01";  // late last season, so early-season players have enough games
-const LAST_N = 10, MIN_GAMES = 4, MAX_NEW_BOX = 250;
+const BACKFILL_FROM = "2025-10-20";  // all of last season: player history at each line, vs-opponent records, team records against the spread
+const LAST_N = 10, MIN_GAMES = 4, MAX_NEW_BOX = 400, MAX_NEW_LINES = 300;
+const TH = require("../teamhist.js");
 
 const MARKETS = {
   player_points: "Points", player_points_alternate: "Points",
@@ -70,7 +71,7 @@ function parseInjuries(j) {
 (async () => {
   const odds = readJSON("nba/odds.json", null);
   if (!odds) { console.log("No nba/odds.json yet."); return; }
-  const logs = readJSON("nba/logs.json", { games: {}, box: {}, scanned: {} });
+  const logs = readJSON("nba/logs.json", { games: {}, box: {}, scanned: {} }); logs.lines = logs.lines || {};
 
   // ---------- 1. scoreboards by month (finished months scanned once) ----------
   const months = []; const today = etDate(new Date().toISOString());
@@ -100,8 +101,13 @@ function parseInjuries(j) {
   // ---------- 2. box scores for finished games we don't have ----------
   const need = Object.values(logs.games).filter(g => g.done && !logs.box[g.id]).sort((a, b) => b.t.localeCompare(a.t)).slice(0, MAX_NEW_BOX);
   const boxes = await pool(need, 6, g => getJSON(`${ESPN}/summary?event=${g.id}`));
-  boxes.forEach((j, i) => { if (j) { const rows = parseBox(j); if (rows.length) logs.box[need[i].id] = rows; } });
+  boxes.forEach((j, i) => { if (j) { const rows = parseBox(j); if (rows.length) logs.box[need[i].id] = rows; const L = TH.espnLine(j); logs.lines[need[i].id] = [L.sp, L.tot]; } });
   console.log("new box scores:", boxes.filter(Boolean).length, "of", need.length);
+  // Closing lines (ESPN pick center) for finished games boxed before we saved lines
+  const needL = Object.values(logs.games).filter(g => g.done && logs.box[g.id] && !logs.lines[g.id]).sort((a, b) => b.t.localeCompare(a.t)).slice(0, MAX_NEW_LINES);
+  const ls = await pool(needL, 6, g => getJSON(`${ESPN}/summary?event=${g.id}`));
+  ls.forEach((j, i) => { if (j) { const L = TH.espnLine(j); logs.lines[needL[i].id] = [L.sp, L.tot]; } });
+  console.log("closing lines:", Object.keys(logs.lines).length, "games (", ls.filter(Boolean).length, "new)");
   fs.writeFileSync("nba/logs.json", JSON.stringify(logs));
 
   // ---------- 3. player logs, team records, opponent factors ----------
@@ -188,7 +194,9 @@ function parseInjuries(j) {
         const r = { line, prices: L.rows[line] };
         if (L.un[line]) r.under = L.un[line];
         if (L.lk && L.lk[line]) r.links = L.lk[line];
-        if (vals.length >= MIN_GAMES) { const x = overProb(vals, line, L.label, raw); r.p = +x.p.toFixed(3); r.hits = x.hits; r.n = x.n; r.fair = toAm(x.p); }
+        if (vals.length >= MIN_GAMES) { const x = overProb(vals, line, L.label, raw); r.p = +x.p.toFixed(3); r.hits = x.hits; r.n = x.n; r.fair = toAm(x.p);
+          const allG = (byPlayer[norm(L.player)] || []).map(STAT[L.label]); r.since = [allG.filter(v => v > line).length, allG.length];
+          if (opp) { const vg = (byPlayer[norm(L.player)] || []).filter(z => z.opp === opp).map(STAT[L.label]); if (vg.length) r.vs = [vg.filter(v => v > line).length, vg.length]; } }
         return r;
       });
       props.push({ event: ev.id, player: L.player, team, opp, oppF: f, windF: 1, injury: injury[norm(L.player)] || "", missedLast, label: L.label, td: false, ladder,
@@ -203,6 +211,9 @@ function parseInjuries(j) {
     if (!next[g.h]) next[g.h] = { t: g.t, opp: g.a, home: true, name: g.hn };
     if (!next[g.a]) next[g.a] = { t: g.t, opp: g.h, home: false, name: g.an };
   });
-  fs.writeFileSync("nba/data.json", JSON.stringify({ sport: "nba", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games: out, props, next }));
+  // Team history: records against the spread and on totals from ESPN's closing lines, this season and last
+  const thRows = Object.values(logs.games).filter(g => g.done).map(g => { const L = logs.lines[g.id] || [null, null]; return { d: g.d, cur: g.d >= SEASON_START, h: g.h, a: g.a, hs: g.hs, as: g.as, sp: L[0], tot: L[1] }; });
+  const gl = Object.values(out), th = TH.build(thRows, gl.flatMap(g => [g.away, g.home]), gl.map(g => [g.away, g.home]), { curLabel: "2026–27", prevLabel: "2025–26" });
+  fs.writeFileSync("nba/data.json", JSON.stringify({ sport: "nba", builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games: out, props, next, th }));
   console.log("Saved nba/data.json:", Object.keys(out).length, "games,", props.length, "props (", props.filter(p => p.ladder.some(l => l.p !== undefined)).length, "rated)");
 })();

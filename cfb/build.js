@@ -106,6 +106,32 @@ function parse(j) {
   all.forEach(g => [g.a, g.h].forEach(x => { if (x.conf && confName[x.conf] && !/^(FBS|NCAA|Division)/i.test(confName[x.conf])) conf[x.abbr] = confName[x.conf]; }));
   // Every school we've seen, for the My teams picker
   const teamsAll = {}; all.forEach(g => [g.a, g.h].forEach(x => { if (x.abbr && x.loc) teamsAll[x.abbr] = x.loc; }));
-  fs.writeFileSync(SP + "/data.json", JSON.stringify({ teams: teamsAll, conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
+  // ---------- team history: records against the spread and on totals, this season and last ----------
+  // Scoreboards for both seasons are scanned once (a few dozen days a run), then each finished game's ESPN summary gives
+  // its closing line (pick center). Capped per run so the history fills in over a few refreshes.
+  const TH = require("../teamhist.js"), LH = readJSON(SP + "/lines.json", { scanned: {}, g: {}, l: {} });
+  const SEASONS = SP === "cbb" ? { cur: ["2026-11-02", "2027-04-10"], prev: ["2025-11-03", "2026-04-07"] } : { cur: ["2026-08-22", "2027-01-25"], prev: ["2025-08-23", "2026-01-20"] };
+  const todayET = etDate(Date.now()), dates = [];
+  for (const k of ["cur", "prev"]) for (let d = new Date(SEASONS[k][0] + "T12:00:00Z"); etDate(d) <= SEASONS[k][1] && etDate(d) < todayET; d.setUTCDate(d.getUTCDate() + 1)) {
+    const ds = etDate(d); if (!LH.scanned[ds]) dates.push([ds, k]); }
+  const scanNow = dates.slice(0, +(process.env.SCAN_MAX || 60));
+  for (const [ds, k] of scanNow) {
+    try { parse(await getJSON(`${ESPN}/scoreboard?dates=${ds.replace(/-/g, "")}&groups=${GROUPS}&limit=500`)).forEach(g => { if (g.done) LH.g[g.id] = [g.d, k === "cur" ? 1 : 0, g.h.abbr, g.a.abbr, g.h.score, g.a.score]; });
+      if (Date.now() - new Date(ds + "T12:00:00Z") > 3 * 864e5) LH.scanned[ds] = 1; } catch (e) { console.warn("season scan", ds, e.message); }
+  }
+  // newest finished games in our window too
+  all.filter(g => g.done).forEach(g => { if (!LH.g[g.id]) LH.g[g.id] = [g.d, g.d >= SEASONS.cur[0] ? 1 : 0, g.h.abbr, g.a.abbr, g.h.score, g.a.score]; });
+  const soon = new Set(Object.values(games).flatMap(g => [g.away, g.home]));
+  const needL = Object.keys(LH.g).filter(id => !LH.l[id]).sort((x, y) => { const X = LH.g[x], Y = LH.g[y], px = (X[1] ? 2 : 0) + (soon.has(X[2]) || soon.has(X[3]) ? 1 : 0), py = (Y[1] ? 2 : 0) + (soon.has(Y[2]) || soon.has(Y[3]) ? 1 : 0); return py - px || (Y[0] > X[0] ? 1 : -1); })
+    .slice(0, +(process.env.LINES_MAX || 350));
+  let gotL = 0; const q = needL.slice();
+  await Promise.all(Array.from({ length: 6 }, async () => { while (q.length) { const id = q.shift();
+    try { const L = TH.espnLine(await getJSON(`${ESPN}/summary?event=${id}`)); LH.l[id] = [L.sp, L.tot]; gotL++; } catch (e) { /* try again next run */ } } }));
+  fs.writeFileSync(SP + "/lines.json", JSON.stringify(LH));
+  console.log("Team history:", Object.keys(LH.g).length, "games,", Object.keys(LH.l).length, "with lines (", gotL, "new;", dates.length - scanNow.length, "days left to scan)");
+  const thRows = Object.keys(LH.g).map(id => { const g = LH.g[id], L = LH.l[id] || [null, null]; return { d: g[0], cur: !!g[1], h: g[2], a: g[3], hs: g[4], as: g[5], sp: L[0], tot: L[1] }; });
+  const glist = Object.values(games), th = TH.build(thRows, glist.flatMap(g => [g.away, g.home]), glist.map(g => [g.away, g.home]),
+    { curLabel: SP === "cbb" ? "2026–27" : "2026", prevLabel: SP === "cbb" ? "2025–26" : "2025" });
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ th, teams: teamsAll, conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
   console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();

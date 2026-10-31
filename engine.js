@@ -183,7 +183,7 @@
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
+        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
       });
       if (!rungs.length) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.

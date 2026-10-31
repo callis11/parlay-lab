@@ -251,7 +251,8 @@ async function buildData(odds, ctx) {
         if (vals.length >= MIN_GAMES) {
           const r = L.td ? { p: (raw.filter(v => v > 0).length + 1) / (raw.length + 2), hits: raw.filter(v => v > 0).length, n: raw.length } : overProb(vals, line, L.label, raw);
           out.p = +r.p.toFixed(3); out.hits = r.hits; out.n = r.n; out.fair = toAm(r.p);
-          if (ctx.statsOld) { const all = (longRun[norm(L.player)] || []).map(L.stat); out.since = [all.filter(v => L.td ? v > 0 : v > line).length, all.length]; }
+          if (ctx.statsOld) { const all = (longRun[norm(L.player)] || []).map(L.stat); out.since = [all.filter(v => L.td ? v > 0 : v > line).length, all.length];
+            if (opp) { const vg = (longRun[norm(L.player)] || []).filter(z => z.opponent_team === opp).map(L.stat); if (vg.length) out.vs = [vg.filter(v => L.td ? v > 0 : v > line).length, vg.length]; } }
         }
         return out;
       });
@@ -283,7 +284,11 @@ async function main() {
   // Keep history only for games from the last 3 weeks
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];
   fs.writeFileSync("history.json", JSON.stringify(hist0));
-  fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props }));
+  // Team history (this season + last season, splits, last 5, meetings), same shape as the other sports
+  const rows = sched.filter(g => g.result !== "" && (+g.season === SEASON || +g.season === SEASON - 1)).map(g => ({ d: g.gameday, cur: +g.season === SEASON, h: g.home_team, a: g.away_team,
+    hs: +g.home_score, as: +g.away_score, sp: g.spread_line === "" ? null : -g.spread_line, tot: g.total_line === "" ? null : +g.total_line }));
+  const gl = Object.values(games), th = require("./teamhist.js").build(rows, gl.flatMap(g => [g.away, g.home]), gl.map(g => [g.away, g.home]), { curLabel: String(SEASON), prevLabel: String(SEASON - 1) });
+  fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props, th }));
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");
 }
