@@ -345,6 +345,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .gmulti button[aria-pressed="true"]:before{content:"✓ ";color:var(--flag)}
 .pc summary .nm:after{content:"Tap to open ▾";display:inline-block;margin-left:8px;font-family:"Barlow",sans-serif;font-size:11px;font-weight:700;color:var(--flag);letter-spacing:.02em;vertical-align:1px;white-space:nowrap}
 .pc[open] summary .nm:after{content:"Tap to close ▴"}
+header{position:relative}
+.helpq{position:absolute;right:0;top:calc(8px + env(safe-area-inset-top,0px));width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--flag);font:800 18px/1 "Barlow",sans-serif;cursor:pointer;z-index:2}
+.tour{position:fixed;inset:0;z-index:60;background:rgba(3,10,6,.82);display:flex;align-items:center;justify-content:center;padding:16px}
+.tour[hidden]{display:none}
+.tbox{width:100%;max-width:420px;background:var(--surface);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:14px;padding:20px 18px 14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.tslide{display:none}.tslide.on{display:block}
+.ticon{font-size:34px;line-height:1}
+.tslide h2{margin:8px 0 8px;font-family:"Barlow Condensed",sans-serif;font-size:28px}
+.tslide p{margin:0 0 10px;font-size:15px;line-height:1.5;color:var(--ink)}
+.tslide b{color:var(--flag)}
+.ttip{font-size:13px!important;color:var(--muted)!important;border-left:3px solid var(--flag);padding-left:10px}
+.tnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.tnav .hdots{margin:0}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -355,8 +368,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .empty{color:var(--muted);margin:6px 0}
 .warn{color:var(--red);font-size:13px;margin:6px 0 0}
 [hidden]{display:none!important}
-.sport{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden;margin:4px 0 6px}
-.sport a{padding:6px 18px;font-weight:700;text-decoration:none;color:var(--ink)}
+.sport{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden;margin:4px 0 6px;max-width:calc(100% - 46px)}
+.sport a{padding:6px clamp(7px,3.6vw,18px);font-size:clamp(13px,3.9vw,16px);font-weight:700;text-decoration:none;color:var(--ink);white-space:nowrap}
 .sport a[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .gate{position:fixed;inset:0;background:rgba(10,15,30,.85);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
 .gate .box{background:var(--surface);color:var(--ink);border-radius:6px;border-top:6px solid var(--flag);padding:20px;max-width:420px}
@@ -366,6 +379,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </style>
 </head>
 <body>
+<div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="How to use ParlayLabs"><div class="tbox">
+  <div class="ttrack" id="ttrack"></div>
+  <div class="tnav"><button class="lnk" id="tSkip">Skip</button><div class="hdots" id="tdots"></div><button class="btn flag" id="tNext">Next</button></div>
+</div></div>
 <div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateH"><div class="box">
   <h2 id="gateH">Are you 21 or older?</h2>
   <p>ParlayLabs is for adults 21+ and for entertainment only. Picks and payouts are estimates, not guarantees. We are not responsible for any losses, and you bet at your own risk.</p>
@@ -375,7 +392,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </div></div>
 <div class="wrap">
 <header>
-  <nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav>
+  <button class="helpq" id="helpBtn" aria-label="How to use ParlayLabs">?</button><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav>
   <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><button class="refresh" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻ Refresh</button></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
   <p style="margin-top:10px"><label for="book">Sportsbook </label><select id="book"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select></p>
@@ -1442,10 +1459,28 @@ $("s-"+SPORT).setAttribute("aria-current","page");
 if(SPORT==="cfb"){document.title="ParlayLabs";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="cbb"){document.title="ParlayLabs";$("tagline").textContent="Every Division I men's basketball game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
+// ---------- Quick tour: first visit, and any time from the ? button ----------
+var TOUR=[
+ ["🧪","Welcome to ParlayLabs","Parlays built from live sportsbook odds, every player's recent games, and three past seasons of real results. Every % is our honest chance to hit, checked against how picks like it actually did.","Pick a sport at the top: NFL, NBA, NCAAF or NCAAB."],
+ ["⚡","Parlays tab","<b>Parlay generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games, and it builds the best one it can, explaining every leg. <b>Generate another</b> gives the next best. Your last 3 stay put.<br><br>Below it, <b>slate chips</b> (Sun 1 PM, Best of Week, Lions…) show our top 3 parlays for each. Tap a card to open it.","Green, yellow and red circles show each leg's chance: 70%+, 50–69%, under 50%."],
+ ["ⓘ","Why trust the %?","Tap <b>How we got this %</b> on any parlay and it flips over: each leg's record, the book's price, the math, and how that type of parlay did in past seasons.<br><br><b>Proven</b> means that type made money over 3 seasons. <b>Weak history</b> means it lost a lot, so we keep it out of the top picks.","Estimates, not guarantees. They hold up over many bets, not one."],
+ ["🏈","Players tab","One card per player: anytime TD on top, then each stat with its 3 most likely lines. Each line shows how often he's hit it lately and since 2023, plus his last 5 games as dots (oldest to newest).<br><br>Pick a game, then either team or both. There's a player-only generator here too.","Tap any line to add it to your slip."],
+ ["🔄","Teams tab","Swipe through every game. <b>Tap a card to flip it</b> for the lines, matchup history and weather. Filter by division or conference, or jump to a team.<br><br>Under the card: a generator for that game, and parlays for either team or <b>Both</b>.","Your team (Lions, Pistons, Michigan State) comes first. When they're off, it's the game of the week."],
+ ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to see the payout, send it to FanDuel or DraftKings, and <b>Save to My bets</b> after you place it.<br><br><b>Results</b> shows how our picks did, your saved bets by app, and the past-seasons report card.","Tap ↻ Refresh for the latest odds and updates, and ? to see this tour again."]];
+var TI=0;
+function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
+  $("tdots").innerHTML=TOUR.map(function(_,i){return'<i'+(i===TI?' class="on"':"")+'></i>'}).join("");$("tNext").textContent=TI===TOUR.length-1?"Let's go":"Next";$("tSkip").style.visibility=TI===TOUR.length-1?"hidden":"visible"}
+function tourOpen(){TI=0;tourShow();$("tour").hidden=false}
+function tourClose(){$("tour").hidden=true;try{localStorage.setItem("tour1","seen")}catch(e){}}
+$("tNext").onclick=function(){if(TI<TOUR.length-1){TI++;tourShow()}else tourClose()};
+$("tSkip").onclick=tourClose;$("helpBtn").onclick=tourOpen;
+(function(){var sx=null;$("ttrack").addEventListener("touchstart",function(e){sx=e.touches[0].clientX},{passive:true});
+  $("ttrack").addEventListener("touchend",function(e){if(sx===null)return;var dx=e.changedTouches[0].clientX-sx;sx=null;if(dx<-40&&TI<TOUR.length-1){TI++;tourShow()}else if(dx>40&&TI>0){TI--;tourShow()}},{passive:true})})();
+function tourMaybe(){var seen=false;try{seen=localStorage.getItem("tour1")==="seen"}catch(e){}if(!seen)tourOpen()}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
-  if(ok)return;$("gate").hidden=false;$("gateYes").focus();
-  $("gateYes").onclick=function(){try{localStorage.setItem("age21","yes")}catch(e){}$("gate").hidden=true};
+  if(ok){tourMaybe();return}$("gate").hidden=false;$("gateYes").focus();
+  $("gateYes").onclick=function(){try{localStorage.setItem("age21","yes")}catch(e){}$("gate").hidden=true;tourMaybe()};
   $("gateNo").onclick=function(){$("gateMsg").hidden=false;$("gateYes").hidden=true;$("gateNo").hidden=true}})();
 // Pages: #parlays, #games, #props, #team-DET (shareable links)
 function route(){
