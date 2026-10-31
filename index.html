@@ -1004,8 +1004,9 @@ function genRun(cx){
     order.forEach(function(s2){tries.push([s2,n])});
     for(var m=n-1;m>=2;m--)[G.style].concat(order).forEach(function(s2){tries.push([s2,m])});
     for(var i=0;i<tries.length&&!got;i++){var keep=G.style;G.style=tries[i][0];var P2=genPool(cx),g2=genPick(P2.pool,tries[i][1],avoid,cx);G.style=keep;if(g2&&g2.inRange){got=g2;useSt=tries[i][0];useN=tries[i][1]}}
-    if(!got){toast("Not enough legs in these games to build any parlay. Add more games"+(cx==="tm"?" or pick Both teams.":"."),true);return}
-    auto=st0.name+" couldn't make "+n+" legs here: only "+np+" leg"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices (spreads and over/unders are near 50%). So this one is "+
+    if(!got){toast("Not enough legs in these games to build any parlay. "+(G.side&&G.side!=="both"&&(cx==="tm"||G.games.slice(0,2)==="g:")?"Pick Both teams or add more games.":"Add more games."),true);return}
+    var hasP=P.pool.some(function(x){return x.leg.kind==="p"}),one=cx==="tm"||G.games.slice(0,2)==="g:";
+    auto=st0.name+" couldn't make "+n+" legs here: "+(np<n?"only "+np+" leg"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices"+(hasP?"":" (spreads and over/unders are near 50%)"):"the "+np+" legs that fit "+st0.name+" don't combine into "+n+" (one bet per player, one side and one total per game, and the payout has to stay in "+st0.name+"'s range)")+". So this one is "+
       (useSt!==G.style?STYLE[useSt].name:"")+(useSt!==G.style&&useN!==n?", ":"")+(useN!==n?useN+" legs":"")+".";
     n=useN}
   var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
