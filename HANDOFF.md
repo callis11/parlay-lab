@@ -1,5 +1,7 @@
 # ParlayLabs: handoff notes for a new Claude chat
 
+**Starting a new chat?** Paste: *"Let's keep working on my ParlayLabs site. Read HANDOFF.md in my GitHub repo callis11/parlay-lab first."* Claude should then attach the repo, read this file and ask what's next. Keep each chat to one feature or one evening; start a fresh chat after that.
+
 Read this first, then `README.md`. Everything lives in this repo (github.com/callis11/parlay-lab, branch `main`); the site is GitHub Pages: https://callis11.github.io/parlay-lab/ (`?nba`, `?cfb`, `?cbb` for other sports).
 
 ## Owner and how he likes to work
@@ -53,11 +55,18 @@ Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=t
 4. **College game lines, 5 seasons (~12K):** add sport `americanfootball_ncaaf` to fetch.js (lines only, keyed by kickoff time like NFL), plus a college replay that grades with ESPN scores (fetch scores on GitHub Actions; ESPN is blocked from the Claude container). Lower priority: Andrew mainly cares about NFL.
 5. After pulling: `CALIB=1 node backtest/replay.js` locally (NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt), then `node picks.js` to refresh calibration, commit `backtest/*.json` + `calibration.json`, push, and send Andrew the new report card. Then tell him he can switch back to the $30 plan (set it to change at the next billing date).
 
-## What changed most recently (Oct 30, 2026 evening)
-- Tabs are now Parlays · Build · Players · Games · Results (Games = the old Teams tab: swipeable flip cards per game, division/conference filters, Away | Home | Both team toggle, game generator under the card with "+ Add other games").
-- **Build tab:** compact ranked board of every leg (rank · player · team tag · line · % · +); tap a row for its "why", + adds to the live parlay summary at the top (honest %, payout, warnings, How we got this %). Pick several games, filter by type, sort.
-- **Generators** on Parlays, Players and Games tabs share one code path (GENS/genBox/genUI/genPool/genRank, contexts `par`, `ply`, `tm`): best-chance search within each style's payout range, pick one game (then Away/Home/Both) or several games, last 3 kept per generator, legs show team on its own line and stats two per line.
-- Every parlay card flips to "How we got this %". Parlays tab has no game spotlight anymore (it lives on Games).
-- Header: sport tabs on top; logo row has round gold ↻ (refresh), ★ (My teams page: favorite per sport, saved per phone), ? (6-slide tour, auto-shown once).
-- Leg circle colors = chance to hit (green 70%+, yellow 50–69%, red <50%); game-line icons are letters (ML, S, O, U), TD props show TD.
-- Mowed-field green theme for football, hardwood court for basketball; end-zone header on football.
+## Site layout today (Oct 31, 2026)
+- **Header:** sport tabs (each tap loads the newest version), logo row with ↻ (refreshes all four sports), ★ (teams per sport + My betting apps + Show odds from), ⓘ (8-slide tour). No odds picker in the header.
+- **Tabs:** Parlays · Build · Players · Games · Results (college has no Players tab: game lines only).
+- **Kickoff-time chips** on Parlays, Games, Build and Players: NFL Sun 1 PM / 4 PM / night…, college Sat Noon / 3:30 / Night, basketball each tip-off half hour; dates added past 5 days (`kickWin()`, `winChips()`).
+- **Games tab order:** your ★ team if it plays within 5 days, else the game of the week (`topGame`); then kickoff windows in time order, inside each window college by highest AP ranking, NFL/NBA by best matchup (`gameScore`); started games next; games 5+ days out last (your team first). Cards open on the first card unless a team is picked (`TPICKED`).
+- **Generators** (Parlays, Players, Games tabs; `GENS/genBox/genUI/genPool`): Legs, Style, (Bets: not in college), Game dropdown (All games / Pick several games… tiles / one game + team). Players generator adds All markets checklist and Overs / Unders / Both. Every game picker lists games in kickoff order (`byTimeRank`).
+- **Build tab:** ranked board of every leg; tap a row to add or remove, ⓘ opens its story; live parlay summary at the top. College has no type filter; NBA has no TDs filter.
+- **Slip:** one "Open in …" button per app in My betting apps; prices come from "Show odds from".
+- Leg circle colors = chance to hit (green 70%+, yellow 50–69%, red <50%). Football = mowed-field theme, basketball = hardwood.
+
+## Automations already running (don't duplicate)
+- **Monday 7:35 AM ET email:** "ParlayLabs Monday review" scheduled task. Grades the weekend locally (no push, no credits), breaks results down by market, % bucket, price, situation, tags and closing line, and suggests model and site changes with "change now / watch / leave". Andrew brings the ones he wants to a chat.
+- **Tuesday 1:13 PM ET email:** "ParlayLabs weekly report" scheduled task. Last week, season to date, this week's top parlays.
+- **Nov 1, 2026, 9 AM ET:** reminder back into the Oct 30-31 chat to run the remaining history pull (steps below).
+- **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
