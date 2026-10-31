@@ -706,7 +706,7 @@ var GENCX={par:{key:"gen_",title:"⚡ Parlay generator",sub:"Pick a few things, 
   tm:{key:"gent_",title:"⚡ Build one for this game",sub:"Legs from the game on the card above"}};
 var GENS={};
 ["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
-  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].games="all";GENS[cx].side="both"}}catch(e){}});
+  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi")GENS[cx].games="all"}}catch(e){}});
 var GEN=GENS.par;
 function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}").last||[]}catch(e){return[]}}
 function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
@@ -717,7 +717,7 @@ function genBox(cx){
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'
-      :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx==="par"?'<div class="gmulti" id="gMulti_par" hidden></div>':""))+
+      :'<div class="gen-row"><label>Game</label><select id="'+x("gGames")+'" data-cx="'+cx+'"></select></div><div class="gen-row" id="'+x("gSideRow")+'" hidden><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div>'+(cx!=="tm"?'<div class="gmulti" id="gMulti_'+cx+'" hidden></div>':""))+
     '<button class="btn flag" id="'+x("genGo")+'" data-gengo="'+cx+'" style="width:100%;margin-top:6px">Generate a parlay</button><div id="'+x("genOut")+'"></div>'+
     '<button class="genx" data-genclose="'+cx+'">'+(cx==="tm"?"✕ Close and go back to the game cards":"✕ Close generator")+'</button></div></details>';
 }
@@ -729,7 +729,7 @@ function genUI(cx){
   if(sel){
     // older saves picked a team; switch them to that team's game
     if(G.games.slice(0,2)==="t:"){var tt=G.games.slice(2),gg=GAMES.filter(function(g){var m=DATA.games[g.id]||{};return m.away===tt||m.home===tt})[0];if(gg){var mm=DATA.games[gg.id];G.games="g:"+gg.id;G.side=mm.away===tt?"a":"h"}else G.games="all"}
-    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+(cx==="par"?'<option value="multi">Pick several games…</option>':"");
+    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+'<option value="multi">Pick several games…</option>';
     GAMES.filter(function(g){return+new Date(g.t)>now}).slice().sort(byRankTime).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+'</option>'});
     sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}
     var mb=$("gMulti_"+cx);
