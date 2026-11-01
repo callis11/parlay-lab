@@ -317,6 +317,8 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gwl li.gk{color:var(--ink);opacity:.8;font-weight:600}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gauto{font-size:13px;font-weight:700;color:var(--flag);background:rgba(247,198,0,.1);border-left:3px solid var(--flag);border-radius:6px;padding:7px 9px;margin:8px 0 0;line-height:1.35}
+.seg .glmore{flex:1.2;min-width:0;font:inherit;font-weight:700;border:0;background:transparent;color:inherit;padding:0 4px;text-align:center}
+.seg .glmore.on{background:var(--ink);color:var(--bg);border-radius:6px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
 .flip{flex:0 0 100%;scroll-snap-align:center;perspective:1200px;cursor:pointer}
@@ -630,9 +632,10 @@ var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function dec(a){return a>0?1+a/100:1+100/-a}
 function fmt(a){return a>0?"+"+a:""+a}
-function am(d){return fmt(d>=2?Math.round((d-1)*100):Math.round(-100/(d-1)))}
+function am(d){var a=d>=2?Math.round((d-1)*100):Math.round(-100/(d-1));return a>=10000?"+"+a.toLocaleString("en-US"):fmt(a)}
 function nick(n){return n.split(" ").pop()}
-function pct(p){return Math.round(p*100)+"%"}
+function pct(p){return p>0&&p<0.01?"1 in "+oneIn(p):Math.round(p*100)+"%"}
+function oneIn(p){var n=1/p;return n>=1000?(Math.round(n/100)*100).toLocaleString():n>=100?Math.round(n/10)*10:Math.round(n)}
 function when(iso){return new Date(iso).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}
 
 // ---------- games (logic lives in engine.js, shared with the grader) ----------
@@ -874,7 +877,7 @@ function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stri
 function genBox(cx){
   var C=GENCX[cx],x=function(id){return id+"_"+cx};
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
-    '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'</div></div>'+
+    '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="More legs"><option value="">6+</option>'+[6,7,8,9,10,11,12,13,14,15].map(function(n){return'<option value="'+n+'">'+n+' legs</option>'}).join("")+'</select></div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"||COL?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
@@ -889,6 +892,7 @@ function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+
 function genUI(cx){
   cx=cx||"par";genMount();var G=GENS[cx],x=function(id){return id+"_"+cx};
   [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"],["gSide","gt","side"]].forEach(function(a){document.querySelectorAll("#"+x(a[0])+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(G[a[2]]))})});
+  var lm=$(x("gLegMore"));if(lm){lm.value=G.legs>5?String(G.legs):"";lm.classList.toggle("on",G.legs>5)}
   if(cx==="ply")plyMarkets(G);
   var sel=$(x("gGames"));
   if(sel){
@@ -959,7 +963,9 @@ function genPool(cx){
 // "Generate another" walks down this list, so each spin is the next-best one you haven't seen.
 function genRank(pool,n,cx){
   cx=cx||"par";var G=GENS[cx],st=Object.assign({},STYLE[G.style]),team=(cx==="tm"&&!(G.multi||[]).length)||G.games.slice(0,2)==="g:";
-  if(n>=4){st.dmax*=G.style==="long"?1.7:1.4}
+  if(n>=4&&n<=5){st.dmax*=G.style==="long"?1.7:1.4}
+  // 6+ legs: each leg's price range raised to the number of legs (Safe = short favorites, Long shot = plus-money-ish)
+  if(n>5){var PER={safe:[1.12,1.5],bal:[1.25,1.95],long:[1.45,2.7]}[G.style];st.dmin=Math.pow(PER[0],n);st.dmax=Math.pow(PER[1],n)}
   // keep legs whose price fits the style's per-leg share of the payout target
   var lo=Math.pow(st.dmin,1/n)/1.8,hi=Math.pow(st.dmax,1/n)*1.8;
   var fit=pool.filter(function(x){var d=dec(x.leg.a);return d>=lo&&d<=hi}),seenC={},c=[];
@@ -981,7 +987,7 @@ function genRank(pool,n,cx){
       next.push({ix:i,legs:b.legs.concat([x]),pr:b.pr*x.pe*cm*same,d:d,who:w,gev:g,evs:e})}});
     // rank by chance, but steer toward the payout target so long shots actually reach their range
     var kk=k+1,score=function(b){var need=Math.pow(st.dmin,kk/n),r=Math.min(1,b.d/need);return b.pr*r*r*r};
-    next.sort(function(a,b){return score(b)-score(a)});beam=next.slice(0,500);
+    next.sort(function(a,b){return score(b)-score(a)});beam=next.slice(0,n>6?200:500);
   }
   var full=beam.filter(function(b){return b.legs.length===n});
   var inRange=full.filter(function(b){return b.d>=st.dmin&&b.d<=st.dmax*1.15});
@@ -1012,7 +1018,9 @@ function genRun(cx){
     // Can't build what was asked: try the other styles at the same legs, then fewer legs, and say what changed and why
     var st0=STYLE[G.style],np=P.pool.length,order={safe:["bal","long"],bal:["long","safe"],long:["bal","safe"]}[G.style]||[],tries=[];
     order.forEach(function(s2){tries.push([s2,n])});
-    for(var m=n-1;m>=2;m--)[G.style].concat(order).forEach(function(s2){tries.push([s2,m])});
+    var grp={};P.pool.forEach(function(x){grp[x.who]=1});var most=Object.keys(grp).length,sizes=[];
+    for(var m=n-1;m>=2;m--)if(n<=5||m<=Math.min(most,n-1)&&(sizes.length<4||m<=5))sizes.push(m);
+    sizes.forEach(function(m){[G.style].concat(order).forEach(function(s2){tries.push([s2,m])})});
     for(var i=0;i<tries.length&&!got;i++){var keep=G.style;G.style=tries[i][0];var P2=genPool(cx),g2=genPick(P2.pool,tries[i][1],avoid,cx);G.style=keep;if(g2&&g2.inRange){got=g2;useSt=tries[i][0];useN=tries[i][1]}}
     if(!got){toast("Not enough legs in these games to build any parlay. "+(G.side&&G.side!=="both"&&(cx==="tm"||G.games.slice(0,2)==="g:")?"Pick Both teams or add more games.":"Add more games."),true);return}
     var hasP=P.pool.some(function(x){return x.leg.kind==="p"}),one=cx==="tm"||G.games.slice(0,2)==="g:";
@@ -1027,6 +1035,7 @@ function genRun(cx){
     note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
       (C.cf.pairs.length?"Same-game legs here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
       (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for same-game pairs and how "+n+"-leg slips really hit. ":"")+
+      (n>=6?"Big parlays are long shots: every leg has to hit, so even likely legs multiply down fast. Missing by one or two legs is common. ":"")+
       (sg?"Some legs are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every leg is from a different game.")};
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
@@ -1038,7 +1047,7 @@ function renderGenOut(cx){
   el.innerHTML=last.map(function(it,i){
     var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return+new Date(l.time)>now}).length?LL:[]);
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
-    return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(it.ch*100)+'%<small>to hit</small></span><span class="od">'+am(it.d)+'</span></div>'+
+    return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+
       '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
@@ -1063,8 +1072,8 @@ function corrOf(legs){if(!CORR||legs.length<2)return{f:1,pairs:[]};return Engine
 // then for how this kind of parlay really hit in past seasons (named types) or how parlays this long hit (your own and generated ones)
 function slipChance(legs,name){
   var raw=Engine.chance(legs);if(raw===null)return{raw:null,ch:null,c1:null,cf:{f:1,pairs:[]},h:null,f:1};
-  var cf=corrOf(legs),c1=Math.max(0.001,Math.min(0.99,raw*cf.f)),h=name?slipHist(name):null,f=h?h.fac:(!name&&legs.length>1?genFactor(legs.length):1);
-  return{raw:raw,cf:cf,c1:c1,h:h,f:f,ch:Math.max(0.001,Math.min(0.99,c1*f))};
+  var cf=corrOf(legs),c1=Math.max(1e-6,Math.min(0.99,raw*cf.f)),h=name?slipHist(name):null,f=h?h.fac:(!name&&legs.length>1?genFactor(legs.length):1);
+  return{raw:raw,cf:cf,c1:c1,h:h,f:f,ch:Math.max(1e-6,Math.min(0.99,c1*f))};
 }
 // ---------- tags: All green, Spread out, Red flag ----------
 // How far the market moved against a game-line pick since the line opened (points; negative = against)
@@ -1895,7 +1904,7 @@ async function shotPasteBtn(mode){
   catch(e){toast("Couldn't read the clipboard here. Open \"Or paste\" below and paste into the box, or use Pick screenshots.",true)}}
 document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
   var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
-document.addEventListener("change",function(e){if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
+document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
