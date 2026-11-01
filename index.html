@@ -466,6 +466,17 @@ select,input,textarea{font-size:max(16px,1em)}
 .oddsw input{font:inherit;border:0;background:transparent;color:var(--ink);padding:8px;min-width:0;flex:1;outline:none}
 .stsum{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--ink)}
 .cfbgeo{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}
+.bmode{margin:10px 0 6px}
+.tl{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tl .b2{border-bottom:1px solid var(--line)}.tl .b2:last-child{border-bottom:0}
+.tl .b2r{display:grid;grid-template-columns:18px minmax(0,1fr) auto 36px 38px;align-items:center;gap:6px;padding:5px 8px;min-height:38px;cursor:pointer;font-size:13.5px}
+.tl .b2.on .b2r{background:rgba(54,211,153,.12)}
+.tl .bi{font-size:11px;color:var(--muted);text-align:right}
+.tl .tn2{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tl .tn2 .tag2{font-size:9.5px;padding:0 3px;border:0;color:var(--muted);font-weight:600}
+.tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
+.tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
+.tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
+.tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -528,8 +539,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <h2>Build your own</h2>
   <p class="sub">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
+  <div class="seg bmode" id="bMode"><button data-bmode="top">Top list</button><button data-bmode="full">Full board</button></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
-  <div class="filters">
+  <div class="filters" id="bFilt">
     <select id="bGame" aria-label="Game"></select>
     <select id="bSort" aria-label="Sort"><option value="p">Most likely first</option><option value="a">Biggest payout first</option></select>
   </div>
@@ -1430,7 +1442,7 @@ function renderParlays(){
 // "How to read these cards", per sport: only what that sport actually uses, plus where its numbers come from
 function legendHTML(){
   var nfl=SPORT==="nfl",props=SPORT==="nfl"||SPORT==="nba",P=[];
-  var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 154,000 picks graded in a replay of the 2023–25 seasons, and every pick we've graded live this season.",
+  var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 328,000 picks graded in a replay of the 2023–25 seasons (playoffs and alt lines included), and every pick we've graded live this season.",
     nba:"Every player's box scores from last season and this one (ESPN), every team's closing lines over the same games (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), and every pick we've graded live so far.",
     cfb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far.",
     cbb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far."}[SPORT];
@@ -1581,7 +1593,7 @@ function renderTeamLower(){
 // College is game lines only (no type filters); NBA has no TDs
 if(NOPROPS){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
 else if(SPORT==="nba"){var _td=document.querySelector('#bKind [data-bk="td"]');if(_td)_td.hidden=true}
-var BLD={win:"",kind:"",game:"",sort:"p",n:50,multi:[]};
+var BLD={win:"",kind:"",game:"",sort:"p",n:50,multi:[],mode:"top"};
 function bGameOk(id){if(BLD.win){var gw=GAMES.filter(function(x){return x.id===id})[0];if(!gw||kickWin(gw)!==BLD.win)return false}return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BLD.multi.indexOf(id)>=0):id===BLD.game)}
 function buildRows(){
   var now=Date.now(),rows=[];
@@ -1593,6 +1605,36 @@ function buildRows(){
   return rows;
 }
 function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===L.line))}
+// ---------- Top list (Build tab): everything worth picking on one scrolling screen ----------
+// Most likely player picks (best line per player that still pays), best single bets (main lines, either side),
+// anytime TDs, and teams to win. All games or one kickoff window (the chips above). Tap a row to add it to the slip.
+function topListHTML(){
+  var now=Date.now(),okG=function(g){return g&&+new Date(g.t)>now&&(!BLD.win||kickWin(g)===BLD.win)};
+  var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
+  PROPS.forEach(function(p){if(!okG(p.g)||!p.healthy)return;
+    p.rungs.forEach(function(r){if(r.p==null||!(r.n>=4))return;
+      if(p.td){T.push({p:p,r:r,P:r.p,a:r.a});return}
+      if(r.a>=-800){var k=p.player;if(!bestA[k]||r.p>bestA[k].P)bestA[k]={p:p,r:r,P:r.p,a:r.a}}
+      if(r.under!==undefined){var cand=[{p:p,r:r,P:r.p,a:r.a,u:false}];if(r.pu!=null)cand.push({p:p,r:r,P:r.pu,a:r.under,u:true});
+        cand.forEach(function(c){if(c.a<-250||c.a>150)return;var k2=p.player;if(!bestB[k2]||c.P>bestB[k2].P)bestB[k2]=c})}})});
+  A=Object.keys(bestA).map(function(k){return bestA[k]});B=Object.keys(bestB).map(function(k){return bestB[k]});
+  GAMES.forEach(function(g){if(!okG(g))return;["ml-a","ml-h"].forEach(function(t){if(!g.legs[t])return;var L=gameLeg(g,t);if(L&&L.p!=null&&L.a>=-1000)M.push({g:g,t:t,P:L.p,a:L.a})});
+    if(NOPROPS)["sp-a","sp-h"].forEach(function(t){if(!g.legs[t])return;var L=gameLeg(g,t);if(L&&L.p!=null)SP.push({g:g,t:t,P:L.p,a:L.a})})});
+  var by=function(a,b){return b.P-a.P||a.a-b.a};A.sort(by);B.sort(by);T.sort(by);M.sort(by);SP.sort(by);
+  function row(x,i){var L,attrs,nm,line;
+    if(x.g){L=gameLeg(x.g,x.t);attrs='data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"';var m=DATA.games[x.g.id]||{},tm=legTeam(L);nm=tm?teamName(tm):L.n;line=(/^ml/.test(x.t)?"ML":L.n.replace(/^.*?([+-][\d.]+)$/,"$1"))+" vs "+(tm===m.home?m.away:m.home)}
+    else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
+    var tm2=x.g?"":legTeam(L),on=inSlip(L);
+    return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
+      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
+      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%</span></div></div>'}
+  function sec(title,sub,list,n){if(!list.length)return"";return'<h3 class="tlh">'+title+' <small>top '+Math.min(n,list.length)+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl">'+list.slice(0,n).map(row).join("")+'</div>'}
+  var out=sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30)+
+    sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10)+
+    sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
+    sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10)+
+    (NOPROPS?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
+  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full board has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try All games.</p>'}
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
@@ -1603,9 +1645,12 @@ function renderBuild(){
   $("bSort").value=BLD.sort;
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   BLD.win=winChips($("bWin"),GAMES.filter(function(g){return+new Date(g.t)>Date.now()}),BLD.win,"bwin");
-  var rows=buildRows(),shown=rows.slice(0,BLD.n);
+  var top=BLD.mode==="top";document.querySelectorAll("#bMode button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bmode===BLD.mode)});
+  $("bFilt").hidden=top;$("bKind").hidden=top||NOPROPS;if(top)$("bMulti").hidden=true;
+  if(top)$("bList").innerHTML=topListHTML();
+  var rows=top?[]:buildRows(),shown=rows.slice(0,BLD.n);
   var why=function(x){return'<div class="bwhy">'+storyHTML(legStory(x.leg))+'</div>'};
-  $("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
+  if(!top)$("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
     var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
     var nm=x.p?x.p.player:L.n,line=x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:"");
     return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
@@ -2396,8 +2441,10 @@ $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,
 $("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
   if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
   if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
-  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=propLeg(p,q);if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
+  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
   renderSlip();renderBuild()});
+$("bMode").addEventListener("click",function(e){var b=e.target.closest("[data-bmode]");if(!b)return;BLD.mode=b.dataset.bmode;try{localStorage.setItem("bmode",BLD.mode)}catch(x){}renderBuild()});
+try{var _bm=localStorage.getItem("bmode");if(_bm)BLD.mode=_bm}catch(e){}
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
 $("favBtn").onclick=function(){favOpen()};

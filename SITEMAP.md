@@ -62,6 +62,7 @@ College (NCAAF, NCAAB) has no **Players** tab: game lines only (ML, spread, tota
 - **How to read these cards:** Reading the numbers, % to hit, where the % comes from, tags, same-game adjustment, circle colors.
 
 ### Build
+**Top list** (default): one scrolling screen, one line per pick (name, team, line, price, %), by kickoff window: Most likely player picks (top 30), Best single bets (top 10), Anytime TD (top 10), Teams to win (ML) (top 10); college without props shows Teams to win + Spreads. **Full board**: the old ranked list with filters.
 Every available pick ranked (Most likely first / Biggest payout first), filters by kickoff window and game, type **All / Players / TDs / Game lines** (NBA no TDs; college no type filter). Tap a row to add or remove; **ⓘ** opens the pick's story: The price · Recent form · Past seasons · Matchup · How we got the %. A live parlay summary sits at the top.
 
 ### Players (NFL, NBA)
