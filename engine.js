@@ -351,7 +351,15 @@
       for (var i = 0; i < sorted.length && legs.length < n; i++) { var x = sorted[i]; if (who[x.who] || (!sameGame && evs[x.ev])) continue; who[x.who] = 1; evs[x.ev] = 1; legs.push(x.leg); }
       return legs.length === n ? legs : null;
     }
-    function likelySlips(ids) {
+    // Big weekly parlays: one pick per game first, then a second (different player) from the likeliest games if there aren't enough games
+    function topBig(c, n) {
+      var sorted = c.filter(function (x) { return x.a >= -300; }).sort(function (x, y) { return y.p - x.p; });
+      var who = {}, evs = {}, legs = [];
+      sorted.forEach(function (x) { if (legs.length < n && !who[x.who] && !evs[x.ev]) { who[x.who] = 1; evs[x.ev] = 1; legs.push(x.leg); } });
+      sorted.forEach(function (x) { if (legs.length < n && !who[x.who] && x.who.indexOf("G|") !== 0) { who[x.who] = 1; legs.push(x.leg); } });
+      return legs.length === n ? legs : null;
+    }
+    function likelySlips(ids, week) {
       var set = {}; ids.forEach(function (i) { set[i] = 1; });
       var c = likelyPool().filter(function (x) { return set[x.ev]; }), out = [], sg = ids.length === 1;
       var seen = {};
@@ -361,12 +369,16 @@
       add("Best Shot at +100", "Highest chance to double your money", bestCombo(c, 2, 4, sg));
       add("Best Shot at +300", "Highest chance to pay 3 to 1 or better", bestCombo(c, 4, 4, sg));
       if (!sg) add("Best Shot at +600", "Highest chance to pay 6 to 1 or better", bestCombo(c, 7, 5, sg));
+      if (week) {
+        add("Best 10-Leg of the Week", "The ten likeliest picks on the board, one per game where possible", topBig(c, 10));
+        add("Best 15-Leg of the Week", "The fifteen likeliest picks on the board, one per game where possible", topBig(c, 15));
+      }
       return out;
     }
 
     // Every auto-built slip on the Parlays page, grouped
     function allParlays() {
-      var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; })) }];
+      var out = [{ group: "Most likely to hit", slips: likelySlips(G.map(function (g) { return g.id; }), !opts.noWeek) }];
       if (!opts.noWeek) out.push({ group: "Best of the week", slips: slateSlips(G.map(function (g) { return g.id; })) });
       slates().forEach(function (s) { var ids = s.g.map(function (g) { return g.id; }); out.push({ group: s.k, slips: likelySlips(ids).concat(slateSlips(ids)) }); });
       if (opts.featured) { var ft = teamSlips(opts.featured); if (ft.g && ft.l.length) out.push({ group: opts.featuredName + " parlays", slips: ft.l }); }

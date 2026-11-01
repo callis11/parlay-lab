@@ -86,6 +86,12 @@ Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=t
 ## Oct 31 fixes
 - **Generator auto-switch** (`genRun`, all three generators, every sport): if the chosen style can't build, it tries the other styles at the same legs (Safe → Balanced → Long shot), then fewer legs, and the card shows a yellow ↪ note (`it.auto`, `.gauto`) saying what changed and why (too few legs pass the style's bar, or the ones that pass can't combine: one bet per player, one side + one total per game, payout range). The card's style label is the style actually used. A toast appears only if nothing at all can be built. Long toasts (>70 chars) get a wider box and stay up longer. With a Team picked on the Games generator, that game's over/under is left out (it isn't either team's leg); added games' totals can be used. Possible next step: Bets: Sides / Totals / Both on the Games generator.
 
+## 10/15-pick parlays + centered cards (Nov 1, evening)
+- Generators: Picks row is 2 3 4 5 **10 15** + "More" (6–9, 11–14).
+- Weekly big parlays: `likelySlips(ids, week)` adds "Best 10-Leg of the Week" / "Best 15-Leg of the Week" (`topBig`: likeliest picks, one per game first, then a second player from a game if needed). Shown on Best of Week always (tag "Big parlay", purple), recorded and graded by picks.js in "Most likely to hit". Shows as "10-Pick" on screen.
+- Opening a parlay card scrolls it to the middle of the screen (top if taller than the screen).
+- Long shots under 5% never say "in your favor" (say "long shot, close to a fair price").
+
 ## Second outside-AI review (Nov 1, generic; likely couldn't load the page)
 - Added the **"New here? Start in 3 taps"** card at the top of Parlays (`#start1`; hidden once ✕ is tapped or a bet is saved).
 - Already covered elsewhere: glossary (tour slide 2 + Reading the numbers), odds in dollars, How to place it, How we got this %.

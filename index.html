@@ -132,6 +132,7 @@ th{color:var(--muted);font-weight:600}
 .pc[data-tag="safe"]{border-top-color:var(--green)}
 .pc[data-tag="value"]{border-top-color:var(--blue)}
 .pc[data-tag="big"]{border-top-color:var(--flag)}
+.pc[data-tag="wk"]{border-top-color:#B47CFF}
 .pc[open]{grid-column:1/-1}
 .pc summary{list-style:none;cursor:pointer;padding:10px 12px}
 .pc summary::-webkit-details-marker{display:none}
@@ -321,7 +322,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .gwl li.gk{color:var(--ink);opacity:.8;font-weight:600}
 .gw{font-size:12px;color:var(--muted);margin-top:2px}
 .gauto{font-size:13px;font-weight:700;color:var(--flag);background:rgba(247,198,0,.1);border-left:3px solid var(--flag);border-radius:6px;padding:7px 9px;margin:8px 0 0;line-height:1.35}
-.seg .glmore{flex:1.2;min-width:0;font:inherit;font-weight:700;border:0;background:transparent;color:inherit;padding:0 4px;text-align:center}
+.seg .glmore{flex:1.6;min-width:58px;font:inherit;font-weight:700;border:0;background:transparent;color:inherit;padding:0 4px;text-align:center}
 .seg .glmore.on{background:var(--ink);color:var(--bg);border-radius:6px}
 .gnote{font-size:12px;color:var(--muted);margin:8px 0 10px;line-height:1.4}
 .beta{font-family:"Barlow",sans-serif;font-style:normal;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--flag);border:1px solid var(--flag);border-radius:3px;padding:0 4px;margin-left:4px;vertical-align:top;position:relative;top:2px;opacity:.9}
@@ -679,7 +680,7 @@ function pctColor(p){return p>=0.45?"var(--green)":p>=0.2?"var(--flag)":"var(--r
 function pctWord(p){if(p==null)return"";if(p>=0.55)return p>=0.95?"hits almost every time":"hits about "+Math.round(p*10)+" times in 10";if(p>=0.45)return"about a coin flip";if(p>=0.38)return"a bit worse than a coin flip";return"hits about 1 time in "+oneIn(p)}
 // Is the price fair for the chance? Break-even = 1 ÷ payout. Most parlays lose a little over time (the book's cut stacks up).
 function priceVerdict(ch,d){if(ch==null||!d||d<=1)return null;var be=1/d,r=ch/be;
-  var same=pct(ch)===pct(be);return!same&&r>=1.05?{k:"good",short:"in your favor",be:be}:same||r>=0.95?{k:"fair",short:"about a fair price",be:be}:{k:"bad",short:"loses money over time",be:be}}
+  var same=pct(ch)===pct(be);if(ch<0.05&&r>=0.95)return{k:"fair",short:"long shot, close to a fair price",be:be};return!same&&r>=1.05?{k:"good",short:"in your favor",be:be}:same||r>=0.95?{k:"fair",short:"about a fair price",be:be}:{k:"bad",short:"loses money over time",be:be}}
 function verdictLine(ch,d){var v=priceVerdict(ch,d);if(!v)return"";return'<span class="vd vd-'+v.k+'">Break-even '+pct(v.be)+' · '+v.short+'</span>'}
 function pct(p){return p>0&&p<0.01?"1 in "+oneIn(p):Math.round(p*100)+"%"}
 function oneIn(p){var n=1/p;return n>=1000?(Math.round(n/100)*100).toLocaleString():n>=100?Math.round(n/10)*10:Math.round(n)}
@@ -933,7 +934,7 @@ function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stri
 function genBox(cx){
   var C=GENCX[cx],x=function(id){return id+"_"+cx};
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
-    '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="More picks"><option value="">6+</option>'+[6,7,8,9,10,11,12,13,14,15].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
+    '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5,10,15].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="Other number of picks"><option value="">More</option>'+[6,7,8,9,11,12,13,14].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"||NOPROPS?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
@@ -948,7 +949,7 @@ function genMount(){["par","ply","tm"].forEach(function(cx){var m=$("genMount_"+
 function genUI(cx){
   cx=cx||"par";genMount();var G=GENS[cx],x=function(id){return id+"_"+cx};
   [["gLegs","gl","legs"],["gStyle","gs","style"],["gKind","gk","kind"],["gSide","gt","side"]].forEach(function(a){document.querySelectorAll("#"+x(a[0])+" button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset[a[1]])===String(G[a[2]]))})});
-  var lm=$(x("gLegMore"));if(lm){lm.value=G.legs>5?String(G.legs):"";lm.classList.toggle("on",G.legs>5)}
+  var lm=$(x("gLegMore"));if(lm){var oth=G.legs>5&&G.legs!==10&&G.legs!==15;lm.value=oth?String(G.legs):"";lm.classList.toggle("on",oth)}
   if(cx==="ply")plyMarkets(G);
   var sel=$(x("gGames"));
   if(sel){
@@ -1167,7 +1168,7 @@ function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(f
 function slateList(){
   var o=Engine.OPTS[SPORT]||{},ids=GAMES.map(function(g){return g.id}),out=[];
   out.push({id:"best",label:o.noWeek?"Best overall":"Best of Week",note:o.noWeek?"Across every game on the board.":"Across the whole week, one pick per game.",
-    list:function(){return ENG.likelySlips(ids).concat(o.noWeek?[]:ENG.slateSlips(ids)).concat(ENG.playerPresets()).concat(ENG.gamePresets())}});
+    list:function(){return ENG.likelySlips(ids,!o.noWeek).concat(o.noWeek?[]:ENG.slateSlips(ids)).concat(ENG.playerPresets()).concat(ENG.gamePresets())}});
   var nowS=Date.now();ids=ids.filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>nowS})});
   ENG.slates().forEach(function(sl0){
     var sl={k:sl0.k,g:sl0.g.filter(function(g){return+new Date(g.t)>nowS})};if(!sl.g.length)return;
@@ -1207,9 +1208,12 @@ function rankSlips(raw){
   pick("value",function(x){return x.ev},function(x){return x.ev!==null&&x.ch>=0.15});
   pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
   var rest=L.filter(function(x){return!x.tag}).sort(function(a,b){return(b.ch||0)-(a.ch||0)});
-  return PST.mode==="top"?top:top.concat(rest);
+  // The weekly 10- and 15-pick parlays always show (Andrew, Nov 1), tagged Big parlay
+  var bigW=rest.filter(function(x){return/-Leg of the Week$/.test(x.s.n)});bigW.forEach(function(x){x.tag="wk"});
+  if(PST.legs==="s")bigW=[];
+  return PST.mode==="top"?top.concat(bigW):top.concat(bigW).concat(rest.filter(function(x){return bigW.indexOf(x)<0}));
 }
-var TAGS={safe:"Most likely",value:"Best value",big:"Big payout"};
+var TAGS={safe:"Most likely",value:"Best value",big:"Big payout",wk:"Big parlay"};
 // Track record for a slip type (by name), from graded results at $10 a slip
 function recLine(name){
   var r=CALIB&&CALIB.byStrategy&&CALIB.byStrategy[name],b=BTR&&BTR.slips&&BTR.slips[name];
@@ -2437,6 +2441,10 @@ function route(){
   if(v==="results"&&DATA&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},300);else setTimeout(scAuto,0);
 }
 $("scBtn").addEventListener("click",function(){checkScores(false)});
+// Opening a parlay card: bring it to the middle of the screen (top of the screen if it's taller than the screen)
+document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open)return;
+  setTimeout(function(){var r=d.getBoundingClientRect(),vh=window.innerHeight,bar=($("sum")&&$("sum").offsetHeight)||60,room=vh-bar;
+    var y=r.height<room-40?window.scrollY+r.top-(room-r.height)/2:window.scrollY+r.top-12;window.scrollTo({top:Math.max(0,y),behavior:"smooth"})},60)},true);
 // "New here?" card: first few visits until hidden or a bet is saved
 (function(){var hide=false;try{hide=localStorage.getItem("start1")==="hide"||JSON.parse(localStorage.getItem("mybets")||"[]").length>0}catch(e){}
   if(!hide)$("start1").hidden=false;$("start1x").onclick=function(){$("start1").hidden=true;try{localStorage.setItem("start1","hide")}catch(e){}}})();
