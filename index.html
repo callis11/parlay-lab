@@ -1760,9 +1760,11 @@ function shotMoney(s){var m=String(s).replace(/[,\s]/g,"").match(/\$(\d+)(\.\d{1
 function shotOdds(s){var m=String(s).replace(/[−–—]/g,"-").match(/(^|[^\d.$])([+-]\d{3,5})(?!\d)/);return m?+m[2]:null}
 function shotParse(text){
   var L=String(text||"").replace(/[−–—]/g,"-").split(/\r?\n/).map(function(x){return x.replace(/\s+/g," ").trim()}).filter(Boolean);
+  // FanDuel with Bet Protect+: "TOTAL CHARGED: $20.60 TOTAL PAYOUT" sits where "TOTAL WAGER TOTAL PAYOUT" usually is (the wager is the amount above)
+  L=L.map(function(x){return x.replace(/total charged:?\s*\$[\d,.]+/i,"TOTAL WAGER")});
   var all=L.join("\n"),book=/draft ?kings|\bdk\b|\bDK\d{10,}|pick parlay|keep picks in betslip/i.test(all)?"draftkings":/betmgm/i.test(all)?"betmgm":/betrivers/i.test(all)?"betrivers":/fanduel|same game parlay|reuse selections|us-[a-z]{2}:/i.test(all)?"fanduel":"";
   // a bet starts at its header ("2 leg parlay", "4 Leg Same Game Parlay+", "Single", "Straight")
-  var heads=[];L.forEach(function(x,i){if(/\b\d+\s*-?\s*(leg|pick)\b.*parlay|^(single|straight)\b/i.test(x))heads.push(i)});
+  var heads=[];L.forEach(function(x,i){if(/\b\d+\s*-?\s*(leg|pick)\b.*parlay|same game parlay|^(single|straight)\b/i.test(x))heads.push(i)});
   if(!heads.length)heads=[0];
   return heads.map(function(h,j){
     var seg=L.slice(h,j+1<heads.length?heads[j+1]:L.length),hd=seg[0],b={book:book,legs:[],raw:seg};
@@ -1782,8 +1784,10 @@ function shotParse(text){
       if(/cash ?out|\blive\b/i.test(x)&&!b.status)b.open=true;
       // a leg: the selection line, then its market line underneath (MONEYLINE, SPREAD, TOTAL POINTS, PASSING YDS ...)
       var mk=x.replace(/[^A-Za-z +]/g," ").replace(/\s+/g," ").trim();
-      if(i>0&&/^(moneyline|spread( betting)?|run line|puck line|total( points| goals| runs)?|alternate .*|[a-z +]*\b(yds|yards|receptions|tds?|touchdowns?|scorer|points|rebounds|assists|threes|made|attempts|completions|interceptions)\b[a-z +]*)( \d+)?$/i.test(mk)&&!/wager|payout/i.test(mk)){
-        var sel=seg[i-1].replace(/^[^A-Za-z0-9#]+/,"").replace(/^[@&>©®"'“‘a-z]{1,2} (?=[A-Z])/,"").replace(/\s+[+-]?\d{3,5}\s*[.:i]*$/,"").replace(/\s+[.:i»]+$/,"").trim();
+      if(i>0&&/^(moneyline|spread( betting)?|run line|puck line|total( points| goals| runs)?|alternate .*|[a-z +]*\b(yds|yards|receptions|tds?|touchdowns?|scorer|points|rebounds|assists|threes|made|attempts|completions|interceptions)\b[a-z +]*)( \d+)?$/i.test(mk)&&!/wager|payout/i.test(mk)&&!/\d\s*\+|\b(over|under)\s*\d/i.test(x)){
+        // the selection is the nearest line above with real words (skips logo bits the reader turns into "G")
+        var si=i-1;while(si>0&&!/[A-Za-z]{3}/.test(seg[si]))si--;
+        var sel=seg[si].replace(/^[^A-Za-z0-9#]+/,"").replace(/^[@&>©®"'“‘a-z]{1,2} (?=[A-Z])/,"").replace(/\s+[+-]?\d{3,5}\s*[.:i]*$/,"").replace(/\s+[.:i»]+$/,"").trim();
         var near=null;for(var q=i+1;q<=i+2&&q<seg.length;q++)if(/ @ /.test(seg[q])){near=seg[q];break}
         if(!near)for(var q2=i-2;q2>=0;q2--)if(/ @ /.test(seg[q2])){near=seg[q2];break}
         var tmm=near&&near.match(/(\d{1,2}):(\d{2})\s*([AP])M/i);b.legs.push({sel:sel,mkt:mk,mu:near?near.replace(/\s*[-•·]?\s*(?:(?:today|tomorrow|mon|tue|wed|thu|fri|sat|sun)[a-z]*\s+)?\d{1,2}:\d{2}\s*[AP]M.*$/i,"").trim():null,tm:tmm?((+tmm[1])%12+(/p/i.test(tmm[3])?12:0))*60+(+tmm[2]):null})}
@@ -1814,7 +1818,7 @@ function shotGame(abs,mu,T,when,kick){
   if(abs&&abs.length)c=(c.length?c:ids).filter(function(id){var m=DATA.games[id];return abs.indexOf(m.away)>=0||abs.indexOf(m.home)>=0});
   var tm=function(id){var g=GAMES.filter(function(x){return x.id===id})[0];return g?+new Date(g.t):DATA.games[id].date?+new Date(DATA.games[id].date+"T17:00:00Z"):0};
   c=c.filter(function(id){var t=tm(id);return!t||(t>when-12*36e5&&t<when+9*864e5)});
-  if(kick!=null)c=c.filter(function(id){var g=GAMES.filter(function(x){return x.id===id})[0];if(!g)return true;var et=new Date(g.t).toLocaleString("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit",hour12:false}).split(":");return((+et[0])%24)*60+(+et[1])===kick});
+  if(kick!=null)c=c.filter(function(id){var g=GAMES.filter(function(x){return x.id===id})[0];if(!g)return true;var et=new Date(g.t).toLocaleString("en-US",{timeZone:"America/New_York",hour:"numeric",minute:"2-digit",hour12:false}).split(":");return Math.abs(((+et[0])%24)*60+(+et[1])-kick)<=15});
   c.sort(function(a,b){return Math.abs(tm(a)-when)-Math.abs(tm(b)-when)});return c[0]||null}
 function shotLeg(raw,T,when,mus){
   var sel=raw.sel,mk=raw.mkt.toLowerCase(),gid,g,m,t=null,line=null,side;
@@ -1826,8 +1830,9 @@ function shotLeg(raw,T,when,mus){
     if(!pn)return{n:sel+" "+raw.mkt.toLowerCase(),a:null,time:null,ok:false};
     var words=mk.replace(/yds/g,"yards").replace(/\btds?\b/g,"td").split(" "),cands=PROPS.filter(function(p){return p.player===pn.player}),bestP=null,bs=-1;
     cands.forEach(function(p){var lw=p.label.toLowerCase().replace(/\btds?\b/g,"td"),s=0;words.forEach(function(w){if(w.length>1&&lw.indexOf(w.replace(/s$/,""))>=0)s++});if(/\+/.test(mk)!==/\+/.test(lw))s-=0.5;if(s>bs){bs=s;bestP=p}});
-    var p=bestP,num=(sel.match(/(\d+(?:\.\d)?)\+?\s*$/)||[])[1],under=/under/i.test(sel);
-    var lv=num?(/\+\s*$/.test(sel)?+num-0.5:+num):p.td?0.5:null,r=p.rungs.filter(function(r){return r.line===lv})[0];
+    // "25+ Yards" (FanDuel alt lines) = over 24.5; "Over 45.5" / "45.5" = that line
+    var p=bestP,s2=sel.replace(/[^A-Za-z0-9+.)]+$/,""),plus=s2.match(/(\d+(?:\.\d)?)\s*\+/),num=plus?plus[1]:(s2.match(/(\d+(?:\.\d)?)\s*$/)||[])[1],under=/under/i.test(sel);
+    var lv=num?(plus?+num-0.5:+num):p.td?0.5:null,r=p.rungs.filter(function(r){return r.line===lv})[0];
     if(r&&!under){var PL=propLeg(p,r);return Object.assign(legKeep(PL),{ok:true})}
     return{n:p.player+" "+(under?"under":"over")+" "+(lv!=null?lv:"")+" "+p.label.toLowerCase(),a:null,time:p.g&&p.g.t||null,ok:true,kind:"p",ev:p.ev,player:p.player,label:p.label,line:lv,td:!!p.td,side:under?"under":"over"}}
   if(ou){gid=shotGame(null,raw.mu||mus[0],T,when,raw.mu?raw.tm:null);t=/^o/i.test(ou[1])?"ov":"un";line=+ou[2]}
