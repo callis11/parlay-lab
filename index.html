@@ -720,6 +720,10 @@ function spWin(pt){return Math.floor(Math.abs(pt))+1}
 function spreadNote(fav,dog,line,total){if(line==null||!isFinite(line)||line===0)return"";var a=Math.abs(line),whole=a===Math.floor(a);
   return'<div class="sphint">'+esc(fav)+' must win by '+spWin(a)+'+ · '+esc(dog)+' can lose by '+(Math.ceil(a)-1)+' or less (or win)'+(whole?' · by exactly '+a+' = bet refunded':'')+(total?' · O/U = both teams\' points added up':'')+'</div>'}
 function spHintShort(pt){if(pt==null||pt===0)return"";return pt<0?"win by "+spWin(pt)+"+":"lose by "+(Math.ceil(pt)-1)+" or less"}
+// Top rule: nothing from a game that has started goes on the slip (pre-game prices are gone once it kicks off)
+function legT(L){if(!L)return null;if(L.time)return+new Date(L.time);var g=GAMES.filter(function(x){return x.id===L.ev})[0];return g?+new Date(g.t):null}
+function legStarted(L){var t=legT(L);return t!=null&&t<=Date.now()}
+var STARTED_MSG="That game has already started, so its pre-game price is gone. Pick from a game that hasn't started.";
 function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
   return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:t==="1ov"?"Over "+L.pt:t==="1un"?"Under "+L.pt:L.n.replace(" 1H",""))+(/sp-/.test(t)&&L.pt!=null?'<small class="sph">'+spHintShort(L.pt)+'</small>':"")+'</span><small>'+fmt(L.a)+'</small></button>'}
 // Game-line types on the board for a game: full game, plus first half when the books have it (college basketball)
@@ -843,7 +847,7 @@ function renderProps(){
   $("pSide").hidden=!g1;if(g1)$("pSide").innerHTML=[["a",g1.away],["h",g1.home],["both","Both"]].map(function(b){return'<button data-pside="'+b[0]+'" aria-pressed="'+(PSIDE===b[0])+'">'+esc(b[1])+'</button>'}).join("");
   var onlyT=g1&&PSIDE!=="both"?m1[PSIDE==="a"?"away":"home"]:null;
   var pg={};PROPS.forEach(function(p){pg[p.ev]=p.g});PWIN=winChips($("pWin"),Object.keys(pg).map(function(k){return pg[k]}).filter(function(g){return+new Date(g.t)>Date.now()}),PWIN,"pwin");
-  var list=playerGroups(PROPS.filter(function(p){return(!PWIN||kickWin(p.g)===PWIN)&&(!fg||p.ev===fg)&&(!fm||p.label===fm)&&(!onlyT||p.team===onlyT)}));
+  var nowP=Date.now(),list=playerGroups(PROPS.filter(function(p){return+new Date(p.g.t)>nowP&&(!PWIN||kickWin(p.g)===PWIN)&&(!fg||p.ev===fg)&&(!fm||p.label===fm)&&(!onlyT||p.team===onlyT)}));
   list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="value"?function(a,b){return b.best-a.best}:function(a,b){return b.top-a.top});
   if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
   $("props").innerHTML=list.slice(0,SHOWN).map(playerCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
@@ -2137,7 +2141,7 @@ function renderSlip(){
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
   if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
-  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small></span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':"")+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs)+
     (function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}if(c===null)return"";
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':'The app\'s price says about '+pct(1/d)+', with its cut built in. When ours is higher, the price is in your favor.')+'</p>'})()+
@@ -2189,15 +2193,15 @@ function renderAll(){
   renderParlays();renderTeam();renderResults();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
-  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.slice().sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+"</option>"}).join("");fg.value=v;
+  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>Date.now()}).sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+"</option>"}).join("");fg.value=v;
   var b=(ODDS&&ODDS.lines||[]).length;
   $("src").textContent=b?"Lines: "+Engine.BOOK_NAMES[BOOK]+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
   renderSlip();
 }
 document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
-  if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L;renderSlip()}
-  else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else SLIP[L2.k]=L2;renderSlip()}
+  if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L;renderSlip()}
+  else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
@@ -2217,7 +2221,8 @@ document.addEventListener("click",function(e){
     // Teams tab: go back up to the game cards; elsewhere: back to the generator's header
     var tgt=gcx==="tm"?$("teamCar"):gd,r=tgt.getBoundingClientRect();if(gcx==="tm"||r.top<70)window.scrollTo({top:r.top+window.scrollY-120,behavior:"smooth"})}}
   else if(t.dataset.pre){
-    try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
+    try{var pl=PRE[t.dataset.pre],ok=pl.filter(function(l){return!legStarted(l)});if(!ok.length){toast("Every game in this parlay has started. Tap ↻ for parlays on games still to come.",true);return}
+      SLIP={};ok.forEach(function(l){SLIP[l.k]=l});if(ok.length<pl.length)toast((pl.length-ok.length)+" pick"+(pl.length-ok.length>1?"s were":" was")+" left out because "+(pl.length-ok.length>1?"those games have":"that game has")+" started.",true);renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
     $("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
     var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" picks. It's at the bottom of the screen.");
@@ -2340,8 +2345,8 @@ $("winChips").addEventListener("click",function(e){var b=e.target.closest("[data
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
 $("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
   if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
-  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else SLIP[L.k]=L}
-  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=propLeg(p,q);if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else SLIP[L.k]=L}
+  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
+  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=propLeg(p,q);if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
   renderSlip();renderBuild()});
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
