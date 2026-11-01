@@ -2004,7 +2004,7 @@ function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
   document.querySelectorAll(".rung").forEach(function(b){var s=SLIP["P|"+b.dataset.p];b.setAttribute("aria-pressed",!!(s&&String(s.line)===b.dataset.l))});
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
-  if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty";$("sumR").textContent="";return}
+  if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":"");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
   $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs)+
