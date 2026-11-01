@@ -40,6 +40,8 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 - **PROVEN** (NFL) this parlay type made money over 40+ replayed slips (2023–25). **WEAK HISTORY** lost 20%+; kept out of the top 3.
 - **Safest · Best value · Big payout** = the top 3 cards per slate.
 - Pick circles: green 70%+, yellow 50–69%, red under 50%.
+- Parlay % (cards, generator, Build, slip): green 45%+, yellow 20–44%, red under 20%, with words underneath ("about a coin flip", "hits about 1 time in 5").
+- Under each game card's spread: "DET must win by 4+ · MIN can lose by 3 or less (or win)". Every pick story starts with a one-line "Why 77%: …" summary.
 - Theme: football = mowed-field green, basketball = hardwood brown.
 
 ## Header (every sport)
