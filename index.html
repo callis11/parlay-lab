@@ -457,6 +457,9 @@ select,input,textarea{font-size:max(16px,1em)}
 .gate h2{margin:0 0 8px}
 .gate p{margin:0 0 12px;font-size:15px}
 .gate .row{display:flex;gap:8px;flex-wrap:wrap}
+.oddsw{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:4px;background:var(--bg);overflow:hidden;vertical-align:middle}
+.oddsw .sgn{font:inherit;font-weight:800;font-size:20px;min-width:44px;border:0;border-right:1px solid var(--line);background:var(--surface,#1b2a1e);color:var(--ink);cursor:pointer;padding:0 10px}
+.oddsw input{font:inherit;border:0;background:transparent;color:var(--ink);padding:8px;min-width:0;flex:1;outline:none}
 </style>
 </head>
 <body>
@@ -609,7 +612,7 @@ select,input,textarea{font-size:max(16px,1em)}
       <p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="placePaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="placeIn" accept="image/*" hidden></label></p>
       <div class="sub" id="placeStat" style="margin:6px 0 0"></div>
       <div class="filters" style="margin:6px 0 0"><select id="placeBook" aria-label="Betting app"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select>
-      <input id="placeOdds" type="text" inputmode="text" placeholder="Odds in app, e.g. +250" aria-label="Odds the app gave you" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);flex:1;min-width:120px"></div>
+      <span class="oddsw" style="flex:1;min-width:140px"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch">+</button><input id="placeOdds" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Odds in app, e.g. 250" aria-label="Odds the app gave you (number only)"></span></div>
       <button class="btn flag" id="placeSave" style="margin-top:8px">Save to My bets</button>
       <p class="sub" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
     <button class="btn" id="slipClose" style="width:100%;margin:10px 0 4px">✕ Close slip</button>
@@ -1699,6 +1702,15 @@ function profit(s){return s.status==="won"?10*(s.dec-1):s.status==="lost"?-10:0}
 // ---------- My bets (private, saved in this browser only) ----------
 function myLoad(){try{return JSON.parse(localStorage.getItem("mybets")||"[]")}catch(e){return []}}
 function mySave(a){try{localStorage.setItem("mybets",JSON.stringify(a));return true}catch(e){return false}}
+// Odds boxes: a +/− switch in front, the box takes only the number (no hunting for the minus key)
+function oddsSgn(inp){return inp&&inp.parentNode&&inp.parentNode.querySelector(".sgn")}
+function oddsRead(inp){if(!inp)return null;var v=String(inp.value||"").replace(/[−–—]/g,"-").replace(/\s/g,""),b=oddsSgn(inp);
+  if(/^[+-]/.test(v))return parseOdds(v);var n=v.replace(/\D/g,"");if(!n)return null;return parseOdds((b&&b.textContent==="−"?"-":"+")+n)}
+function oddsSet(inp,a){if(!inp)return;var b=oddsSgn(inp);if(a==null){inp.value="";if(b)b.textContent="+";return}inp.value=Math.abs(a);if(b)b.textContent=a<0?"−":"+"}
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".sgn[data-sgn]");if(!b)return;e.preventDefault();b.textContent=b.textContent==="−"?"+":"−";var i=b.parentNode.querySelector("input");if(i)i.focus()});
+// typing or pasting a sign moves it to the switch
+document.addEventListener("input",function(e){var i=e.target;if(!i||!i.parentNode||!i.parentNode.classList||!i.parentNode.classList.contains("oddsw"))return;var v=i.value.replace(/[−–—]/g,"-"),b=oddsSgn(i);
+  if(/[+-]/.test(v)&&b){b.textContent=v.lastIndexOf("-")>v.lastIndexOf("+")?"−":"+"}var d=v.replace(/\D/g,"");if(d!==i.value)i.value=d});
 function parseOdds(v){v=String(v||"").replace(/\s/g,"");if(!/^[+-]?\d{3,6}$/.test(v))return null;var n=+v;return Math.abs(n)>=100?n:null}
 // Find a graded result for a leg by matching it to our graded slips and report cards
 function legResult(l){
@@ -1948,14 +1960,14 @@ function renderShot(){
       (miss?'<p class="sub" style="margin:4px 0 0">? = not found on this '+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT]+' page. It still saves, but you\'ll mark its result yourself. If it\'s another sport, open that tab and add it there.</p>':"")+
       '<div class="filters" style="margin:8px 0 0;gap:6px"><select data-shotf="book" data-i="'+i+'" aria-label="Betting app">'+["fanduel","draftkings","betmgm","betrivers"].map(function(k){return'<option value="'+k+'"'+((b.book||"fanduel")===k?" selected":"")+'>'+(B[k]||k)+'</option>'}).join("")+'</select>'+
       '<label class="sub">Wager $<input data-shotf="stake" data-i="'+i+'" inputmode="decimal" value="'+(b.stake!=null?b.stake.toFixed(2):"")+'" style="width:70px"></label>'+
-      '<label class="sub">Odds <input data-shotf="odds" data-i="'+i+'" inputmode="text" value="'+(b.odds!=null?fmt(b.odds):"")+'" style="width:64px"></label>'+
+      '<label class="sub">Odds <span class="oddsw"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch">'+(b.odds!=null&&b.odds<0?"−":"+")+'</button><input data-shotf="odds" data-i="'+i+'" inputmode="numeric" pattern="[0-9]*" value="'+(b.odds!=null?Math.abs(b.odds):"")+'" style="width:58px"></span></label>'+
       '<select data-shotf="status" data-i="'+i+'" aria-label="Result"><option value="">Open</option><option value="won"'+(b.status==="won"?" selected":"")+'>Won</option><option value="lost"'+(b.status==="lost"?" selected":"")+'>Lost</option><option value="push"'+(b.status==="push"?" selected":"")+'>Push</option></select></div>'+
       '<p class="sub" style="margin:6px 0 0">'+(b.pay!=null?"Payout read: $"+b.pay.toFixed(2)+". ":"")+(b.oddsGuess?"Odds weren't readable, so they're worked out from the picks; check them against your app. ":"")+(b.placed?"Placed "+new Date(b.placed).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+". ":"")+'Check the numbers, then save.</p>'+
       '<p style="margin:8px 0 0;display:flex;gap:6px"><button class="btn flag" data-shotsave="'+i+'"'+(b.dup?" disabled":"")+'>Save to My bets</button><button class="btn rm" data-shotskip="'+i+'">Skip</button></p></div>'}).join("");
 }
 function shotSave(i){
   var b=SHOT.bets[i];if(!b)return;var q=function(f){return document.querySelector('[data-shotf="'+f+'"][data-i="'+i+'"]')};
-  var stake=parseFloat(String(q("stake").value).replace(/[$,]/g,"")),od=parseOdds(String(q("odds").value).replace(/[−–]/g,"-")),st=q("status").value||null;
+  var stake=parseFloat(String(q("stake").value).replace(/[$,]/g,"")),od=oddsRead(q("odds")),st=q("status").value||null;
   if(!(stake>0)){toast("Enter the wager first.",true);return}if(!od){toast("Enter the odds from your app, like +282 or -129.",true);return}
   var times=b.match.map(function(x){return+new Date(x.time)||0}).filter(Boolean);
   var bet={id:(b.id||Date.now().toString(36)).replace(/[^\w]/g,"").slice(-16),betId:b.id||null,sport:SPORT,book:q("book").value,stake:stake,odds:od,saved:b.placed||Date.now(),
@@ -1978,7 +1990,7 @@ async function shotFiles(files,mode){
 function slipFromText(text){
   var b=shotParse(text)[0],st=$("placeStat");
   if(!b||(b.odds==null&&b.stake==null)){toast("Couldn't find the odds or wager in that. Screenshot the receipt or the bet in My Bets and try again, or type them in.",true);return}
-  if(b.book)$("placeBook").value=b.book;if(b.odds!=null)$("placeOdds").value=fmt(b.odds);
+  if(b.book)$("placeBook").value=b.book;if(b.odds!=null)oddsSet($("placeOdds"),b.odds);
   if(b.stake!=null){$("stake").value=b.stake.toFixed(2);$("stake").dispatchEvent(new Event("input",{bubbles:true}))}
   SHOT.slipMeta={betId:b.id||null,pay:b.pay,placed:b.placed||null};
   var n=Object.keys(SLIP).length,cnt=b.n||b.legs.length,dup=b.id&&myLoad().some(function(x){return x.betId===b.id});
@@ -2204,13 +2216,13 @@ document.addEventListener("click",function(e){
   else if(t.id==="impBtn"){importBets($("impCode").value);$("impCode").value=""}
   else if(t.id==="placeSave"){
     var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some picks to the slip first.",true);return}
-    var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=parseOdds($("placeOdds").value);
+    var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=oddsRead($("placeOdds"));
     var bet={id:Date.now().toString(36),sport:SPORT,book:$("placeBook").value,stake:parseFloat($("stake").value)||0,odds:od||Engine.amFromDec(d),saved:Date.now(),
       last:Math.max.apply(null,legs.map(function(l){return +new Date(l.time)||Date.now()})),legs:legs.map(legKeep)};
     var M=SHOT.slipMeta;if(M){if(M.betId)bet.betId=M.betId;if(M.pay)bet.pay=M.pay;if(M.placed)bet.saved=M.placed}
     var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
     all.push(bet);
-    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");$("placeOdds").value="";$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
+    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");oddsSet($("placeOdds"),null);$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
     else toast("This browser won't save it (private mode?).",true)}
   else if(t.dataset.mydel){
     // two taps so a bet isn't removed by accident
