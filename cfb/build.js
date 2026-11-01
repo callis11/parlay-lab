@@ -130,8 +130,27 @@ function parse(j) {
   fs.writeFileSync(SP + "/lines.json", JSON.stringify(LH));
   console.log("Team history:", Object.keys(LH.g).length, "games,", Object.keys(LH.l).length, "with lines (", gotL, "new;", dates.length - scanNow.length, "days left to scan)");
   const thRows = Object.keys(LH.g).map(id => { const g = LH.g[id], L = LH.l[id] || [null, null]; return { d: g[0], cur: !!g[1], h: g[2], a: g[3], hs: g[4], as: g[5], sp: L[0], tot: L[1] }; });
+  // ---------- college football player props: box scores for every team with props, then ratings ----------
+  let cprops = [];
+  if (SP === "cfb" && (odds.props || []).length) {
+    const CP = require("./props.js"), box = readJSON("cfb/box.json", { games: {}, teams: {} });
+    const now = Date.now();
+    (odds.props || []).forEach(p => { const G = games[p.id]; if (G) [G.away, G.home].forEach(t => { box.teams[t] = now; }); });
+    for (const t in box.teams) if (box.teams[t] < now - 4 * 864e5) delete box.teams[t];
+    const teams = new Set(Object.keys(box.teams));
+    const needB = Object.keys(LH.g).filter(id => { const g = LH.g[id]; return g[1] && (teams.has(g[2]) || teams.has(g[3])) && !box.games[id]; })
+      .sort((x, y) => LH.g[y][0].localeCompare(LH.g[x][0])).slice(0, +(process.env.BOX_MAX || 200));
+    let gotB = 0; const qb = needB.slice();
+    await Promise.all(Array.from({ length: 6 }, async () => { while (qb.length) { const id = qb.shift();
+      try { const sum = await getJSON(`${ESPN}/summary?event=${id}`); const rows = CP.boxRows(sum);
+        if (rows.length) { const lg = logs.games[id]; box.games[id] = { t: (lg && lg.t) || LH.g[id][0] + "T20:00Z", rows }; gotB++; } } catch (e) { /* next run */ } } }));
+    for (const id in box.games) if (new Date(box.games[id].t) < now - 200 * 864e5) delete box.games[id];
+    fs.writeFileSync("cfb/box.json", JSON.stringify(box));
+    cprops = CP.rateProps(odds.props, games, box);
+    console.log("College props:", cprops.length, "player lines (", cprops.filter(p => p.ladder.some(l => l.p !== undefined)).length, "rated from history);", gotB, "new box scores,", Object.keys(box.games).length, "cached");
+  }
   const glist = Object.values(games), th = TH.build(thRows, glist.flatMap(g => [g.away, g.home]), glist.map(g => [g.away, g.home]),
     { curLabel: SP === "cbb" ? "2026–27" : "2026", prevLabel: SP === "cbb" ? "2025–26" : "2025" });
-  fs.writeFileSync(SP + "/data.json", JSON.stringify({ th, teams: teamsAll, conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: [], next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
+  fs.writeFileSync(SP + "/data.json", JSON.stringify({ th, teams: teamsAll, conf, sport: SP, builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, names, props: cprops, next, places: Object.fromEntries(Object.values(games).flatMap(g => [g.away, g.home]).map(a => [a, places[a] || ""])) }));
   console.log("Saved " + SP + "/data.json:", matched, "of", (odds.lines || []).length, "odds games matched to ESPN");
 })();

@@ -125,7 +125,8 @@ function buildCards(cards, book) {
   for (const g of E.G) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
-    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] })) }; made++; continue; } // no props: grade game lines only
+    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] }))
+      .concat(SPORT === "cfb" ? E.P.filter(p => p.ev === g.id).flatMap(p => p.rungs.filter(r => r.p !== undefined).map(r => ({ kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line, side: "over", a: r.a, p0: r.p0 }))) : []) }; made++; continue; } // no props: grade game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -210,6 +211,7 @@ function gradeLeg(l, games, stats) {
     if (SPORT === "cfb" || SPORT === "cbb") {
       const logs = readJSON(SPORT + "/logs.json", { games: {} });
       for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.h.score, away_score: g.a.score, h1_home: g.h.h1, h1_away: g.a.h1 }; }
+      if (SPORT === "cfb") { const box = readJSON("cfb/box.json", { games: {} }); for (const id in box.games) stats[id] = box.games[id].rows; } // college player props
     } else if (SPORT === "nba") {
       const logs = readJSON("nba/logs.json", { games: {}, box: {} });
       for (const id in logs.games) { const g = logs.games[id]; games[id] = { result: g.done ? "final" : "", home_score: g.hs, away_score: g.as }; }

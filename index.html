@@ -463,6 +463,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .oddsw .sgn{font:inherit;font-weight:800;font-size:20px;min-width:44px;border:0;border-right:1px solid var(--line);background:var(--surface,#1b2a1e);color:var(--ink);cursor:pointer;padding:0 10px}
 .oddsw input{font:inherit;border:0;background:transparent;color:var(--ink);padding:8px;min-width:0;flex:1;outline:none}
 .stsum{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--ink)}
+.cfbgeo{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}
 </style>
 </head>
 <body>
@@ -628,6 +629,13 @@ select,input,textarea{font-size:max(16px,1em)}
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 if(/[?&](nba|cbb|sport=nba|sport=cbb)\b/.test(location.search))document.documentElement.classList.add("nba");
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":/[?&](cbb|sport=cbb)\b/.test(location.search)?"cbb":"nfl",COL=SPORT==="cfb"||SPORT==="cbb",DIR=SPORT==="nfl"?"":SPORT+"/";
+// College football player props: shown only where they're legal (FanDuel's college rules, checked Oct 31, 2026), using the
+// phone's location (asked only when the user taps "Check my location"; the state is kept on the phone for 12 hours).
+var CFB_NO={AZ:1,CO:1,LA:1,MA:1,MD:1,MS:1,NY:1,OH:1,PA:1,TN:1,VA:1,VT:1,WY:1},CFB_INSTATE={CT:1,DC:1,IA:1,IL:1,MO:1,NJ:1,WA:1};
+var STNAME={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"Washington, D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",XX:"outside the U.S."};
+var CPR={st:null,at:0,on:false,all:[]};try{var _geo=JSON.parse(localStorage.getItem("geo")||"null");if(_geo&&Date.now()-_geo.at<12*36e5){CPR.st=_geo.st;CPR.at=_geo.at}}catch(e){}
+CPR.on=SPORT==="cfb"&&!!CPR.st&&CPR.st!=="XX"&&!CFB_NO[CPR.st];
+var NOPROPS=COL&&!CPR.on;
 var BUILT=0,FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 // Betting apps you use (★ page): the odds picker and "send to app" buttons only show these
@@ -894,7 +902,7 @@ var GENCX={par:{key:"gen_",title:"⚡ ParlayLabs Generator",sub:"Pick a few thin
   tm:{key:"gent_",title:"⚡ ParlayLabs Generator",sub:"Builds one from the game on the card above"}};
 var GENS={};
 ["par","ply","tm"].forEach(function(cx){GENS[cx]={legs:3,style:"bal",kind:cx==="ply"?"p":"mix",games:"all",side:"both"};
-  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi"&&GENS[cx].games.slice(0,2)!=="g:")GENS[cx].games="all"}}catch(e){};if(COL)GENS[cx].kind="g"});
+  try{var _g=JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}");if(_g.set)Object.assign(GENS[cx],_g.set);if(cx==="par"&&!_g.v2)GENS[cx].games="all";if(cx==="ply"){GENS[cx].kind="p";GENS[cx].side="both";if(GENS[cx].games!=="multi"&&GENS[cx].games.slice(0,2)!=="g:")GENS[cx].games="all"}}catch(e){};if(NOPROPS)GENS[cx].kind="g"});
 var GEN=GENS.par;
 function genSaved(cx){cx=cx||"par";try{return JSON.parse(localStorage.getItem(GENCX[cx].key+SPORT)||"{}").last||[]}catch(e){return[]}}
 function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stringify({set:GENS[cx],last:last,v2:1}))}catch(e){}}
@@ -903,7 +911,7 @@ function genBox(cx){
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
     '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="More picks"><option value="">6+</option>'+[6,7,8,9,10,11,12,13,14,15].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
-    (cx==="ply"||COL?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
+    (cx==="ply"||NOPROPS?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
       :cx==="ply"?'<div class="gen-row"><label>Markets</label><button class="mksel" id="gMktBtn_ply" data-gmkopen="1" aria-expanded="false"><span id="gMktTxt_ply">All markets</span><svg viewBox="0 0 12 18" width="11" height="17" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="mkpanel" id="gMkt_ply" hidden></div>'+
       '<div class="gen-row"><label>Side</label><div class="seg" id="gOU_ply"><button data-cx="ply" data-gou="both">Both</button><button data-cx="ply" data-gou="over">Overs</button><button data-cx="ply" data-gou="under">Unders</button></div></div>'+
@@ -1168,7 +1176,7 @@ function teamNote(){
 }
 // Tag the three standouts: Safest (highest chance), Best value (estimate beats price most), Big payout (biggest odds that still has a real chance)
 function rankSlips(raw){
-  var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||COL||x.kind===PST.kind)});
+  var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||NOPROPS||x.kind===PST.kind)});
   var used={},top=[];
   function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||x.weak||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
   pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null&&!x.F.red.length});
@@ -1565,7 +1573,7 @@ function renderTeamLower(){
 
 // ---------- Build tab: pick your own legs from a ranked list ----------
 // College is game lines only (no type filters); NBA has no TDs
-if(COL){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
+if(NOPROPS){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
 else if(SPORT==="nba"){var _td=document.querySelector('#bKind [data-bk="td"]');if(_td)_td.hidden=true}
 var BLD={win:"",kind:"",game:"",sort:"p",n:50,multi:[]};
 function bGameOk(id){if(BLD.win){var gw=GAMES.filter(function(x){return x.id===id})[0];if(!gw||kickWin(gw)!==BLD.win)return false}return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BLD.multi.indexOf(id)>=0):id===BLD.game)}
@@ -1794,6 +1802,31 @@ function renderMyBets(){
         '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+(l.res?{won:"✓",lost:"✗"}[l.res]:m)+'</span>'+esc(l.n)+(r?"":scLine(l))+'</span><span>'+(l.a?fmt(l.a):"")+'</span></li>'}).join("")+'</ul>'+(b.fee?'<p class="sub" style="margin:4px 0 0">Includes $'+b.fee.toFixed(2)+' add-on fee'+(b.ret!=null?", app paid $"+b.ret.toFixed(2):"")+'</p>':"")+
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="btn rm" data-mydel="'+b.id+'">✕ Remove</button></p></div>'}).join("");
 }
+// ---------- College player props: location check ----------
+function cfbGate(){if(SPORT!=="cfb"||!DATA)return;if((DATA.props||[]).length)CPR.all=DATA.props;
+  if(!CPR.on){DATA.props=[];}
+  else if(CFB_INSTATE[CPR.st]){var PL=DATA.places||{},re=new RegExp(", "+CPR.st+"$");DATA.props=CPR.all.filter(function(p){return!p.team||!re.test(PL[p.team]||"")})}
+  else DATA.props=CPR.all;
+  try{if($("t-props"))$("t-props").hidden=!DATA.props.length}catch(e){}
+  setTimeout(cfbBanner,0)}
+function cfbBanner(){if(SPORT!=="cfb")return;["v-parlays","v-build"].forEach(function(v){var sec=$(v);if(!sec)return;var el=sec.querySelector(".cfbgeo");
+  if(!CPR.all.length){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.className="cfbgeo";sec.insertBefore(el,sec.firstChild)}
+  var nm=STNAME[CPR.st]||CPR.st,games={};CPR.all.forEach(function(p){games[p.event]=1});var ng=Object.keys(games).length;
+  el.innerHTML=!CPR.st?'<b>🏈 College player props are here</b> (passing, rushing and receiving yards, catches, TDs) for '+ng+' game'+(ng>1?"s":"")+', Michigan State and ranked teams. They\'re only legal in some states, so we check where you are first.<div style="margin-top:8px"><button class="btn flag" data-geo="1">📍 Check my location</button></div><small class="sub">Your location stays on this phone. It\'s checked again after 12 hours.</small>'
+    :!CPR.on?'College player props aren\'t allowed '+(CPR.st==="XX"?"outside the U.S.":"in "+esc(nm))+', so they\'re hidden. Game lines work as normal. <button class="btn" data-geo="1" style="margin-left:4px">Recheck</button>'
+    :'<b>College player props are on</b> · checked in '+esc(nm)+(CFB_INSTATE[CPR.st]?'. '+esc(nm)+' doesn\'t allow props on its own schools, so those players are hidden':"")+'. <button class="btn" data-geo="1" style="margin-left:4px">Recheck</button>'})}
+// point in polygon on states.json (state → polygons → rings of [lon,lat,...])
+function inRing(x,y,r){var c=false;for(var i=0,j=r.length-2;i<r.length;j=i,i+=2){var xi=r[i],yi=r[i+1],xj=r[j],yj=r[j+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c}return c}
+function stateAt(lon,lat,S){for(var k in S){var polys=S[k];for(var p=0;p<polys.length;p++){var inside=false;polys[p].forEach(function(r){if(inRing(lon,lat,r))inside=!inside});if(inside)return k}}return"XX"}
+function checkGeo(){if(!navigator.geolocation){toast("This phone can't share its location with the site.",true);return}
+  toast("Checking your location…");
+  navigator.geolocation.getCurrentPosition(function(pos){getJSON("states.json").then(function(S){if(!S){toast("Couldn't load the state map. Try again.",true);return}
+      var st=stateAt(pos.coords.longitude,pos.coords.latitude,S);try{localStorage.setItem("geo",JSON.stringify({st:st,at:Date.now()}))}catch(e){}
+      toast(st==="XX"?"You're outside the U.S.":"You're in "+(STNAME[st]||st)+".");setTimeout(function(){location.reload()},700)})},
+    function(err){toast(err&&err.code===1?"Location is off for this site. On iPhone: Settings › Privacy & Security › Location Services › Safari Websites (or the home-screen app) › While Using.":"Couldn't get your location. Try again outside or with Wi-Fi on.",true)},
+    {enableHighAccuracy:false,timeout:15000,maximumAge:10*6e4})}
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-geo]");if(b){e.preventDefault();checkGeo()}});
 // ---------- Check scores: live and final scores straight from ESPN, on this phone (no credits) ----------
 // Tap 🔄 Check scores, or leave Results open while a game is on (checks every 2 min). Final games are saved on the
 // phone (SC.fin) and grade My bets right away; finals.json from the server still wins when it has the game.
@@ -2291,11 +2324,11 @@ setInterval(function(){if(document.visibilityState==="visible"&&!$("panel").clas
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&kickedSinceBuild())renderAll()});
 document.addEventListener("visibilitychange",function(){
   if(document.visibilityState!=="visible"||Date.now()-lastLoad<5*60e3)return;lastLoad=Date.now();
-  Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON(DIR+"finals.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;PICKS=r[2]||PICKS;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;FINALS=r[5]||FINALS;renderAll();renderSync()}});
+  Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON(DIR+"finals.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;cfbGate();PICKS=r[2]||PICKS;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;FINALS=r[5]||FINALS;renderAll();renderSync()}});
 });
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
-if(SPORT==="cfb"){document.title="ParlayLabs";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
+if(SPORT==="cfb"){document.title="ParlayLabs";$("tagline").textContent="Every FBS game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=NOPROPS}
 if(SPORT==="cbb"){document.title="ParlayLabs";$("tagline").textContent="Every Division I men's basketball game's spread, moneyline and total, with AP ranks and records. Tap picks to build a parlay.";$("t-props").hidden=true}
 if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight's NBA lines, player prop hit rates, injuries and matchups. Tap picks to build a parlay.";}
 // ---------- Quick tour: first visit, and any time from the ⓘ button ----------
@@ -2355,7 +2388,7 @@ $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data
 $("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-favapp]");if(!b)return;var a=b.dataset.favapp,i=FAVAPPS.indexOf(a);if(i>=0)FAVAPPS.splice(i,1);else FAVAPPS.push(a);favApps()});$("favCancel").onclick=function(){$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
 renderBookSel();
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 </body>
 </html>

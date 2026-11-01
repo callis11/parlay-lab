@@ -52,7 +52,37 @@ function readOld() { try { return JSON.parse(fs.readFileSync(SP + "/odds.json", 
     for (const e of lines) { const x = h1.games[e.id]; if (!x) continue;
       for (const hb of x.bookmakers) { const b = e.bookmakers.find(y => y.key === hb.key); if (b) b.markets = b.markets.concat(hb.markets.filter(m => /_h1$/.test(m.key))); } }
   }
-  fs.writeFileSync(SP + "/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), creditsRemaining: left, lines, props: [], h1: SP === "cbb" ? h1 : undefined }));
+  // ---------- College football player props (Nov 1, 2026) ----------
+  // Michigan State + ranked games in the next 60 hours, at most PROPS_MAX games, once every PROPS_HOURS (10), only above
+  // PROPS_MIN credits (4,000). About 5 credits a game (only markets that come back with prices are charged).
+  // Turn off with CFB_PROPS=false, force with CFB_PROPS=true. Started games keep their last pre-game pull.
+  let props = (old0 && old0.props) || [], propsAt = (old0 && old0.propsAt) || null;
+  if (SP === "cfb" && process.env.CFB_PROPS !== "false") {
+    const now = Date.now(), MAX = +(process.env.PROPS_MAX || 12), MIN = +(process.env.PROPS_MIN || 4000), HRS = +(process.env.PROPS_HOURS || 10);
+    props = props.filter(p => +new Date(p.commence_time) > now - 12 * 36e5);
+    const due = !propsAt || now - new Date(propsAt) > HRS * 36e5 || process.env.CFB_PROPS === "true";
+    if (due && (left === null || left > MIN)) {
+      const data = (() => { try { return JSON.parse(fs.readFileSync("cfb/data.json", "utf8")); } catch (e) { return {}; } })();
+      const nm = t => (data.names && data.names[t]) || t, rank = t => { const m = /^#(\d+)/.exec(nm(t)); return m ? +m[1] : 99; };
+      const msu = t => /^Michigan St/.test(t);
+      const want = lines.filter(e => { const t = +new Date(e.commence_time); return t > now + 10 * 6e4 && t < now + 60 * 36e5 && (msu(e.home_team) || msu(e.away_team) || rank(e.home_team) <= 25 || rank(e.away_team) <= 25); })
+        .sort((a, b) => ((msu(a.home_team) || msu(a.away_team)) ? -100 : 0) + Math.min(rank(a.home_team), rank(a.away_team)) - (((msu(b.home_team) || msu(b.away_team)) ? -100 : 0) + Math.min(rank(b.home_team), rank(b.away_team))))
+        .slice(0, MAX);
+      const MK = "player_pass_yds,player_rush_yds,player_reception_yds,player_receptions,player_anytime_td";
+      let got = 0;
+      for (const e of want) {
+        try {
+          const r = await fetch(`${BASE}/events/${e.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${MK}&oddsFormat=american&includeLinks=true&includeSids=true`);
+          const rr = r.headers.get("x-requests-remaining"); if (rr !== null) left = +rr;
+          if (!r.ok) { console.warn("college props", e.id, r.status); continue; }
+          const j = await r.json(); props = props.filter(p => p.id !== e.id); props.push(j); got++;
+        } catch (err) { console.warn("college props", e.id, err.message); }
+      }
+      if (got) propsAt = new Date().toISOString();
+      console.log("College player props pulled for", got, "of", want.length, "games (Michigan State + ranked). Credits remaining:", left);
+    } else console.log("College player props: reusing the pull from", propsAt);
+  }
+  fs.writeFileSync(SP + "/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), creditsRemaining: left, lines, props: SP === "cfb" ? props : [], propsAt: SP === "cfb" ? propsAt : undefined, h1: SP === "cbb" ? h1 : undefined }));
   console.log("Saved", SP + "/odds.json:", lines.length, "games. Credits remaining:", left);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "fetched=true\n");
 })();

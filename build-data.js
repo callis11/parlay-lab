@@ -292,5 +292,5 @@ async function main() {
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");
 }
-module.exports = { buildData, getCSV, norm, TEAM, NFLVERSE };
+module.exports = { buildData, getCSV, norm, TEAM, NFLVERSE, overProb, MARKETS };
 if (require.main === module) main();
