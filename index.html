@@ -618,7 +618,7 @@ select,input,textarea{font-size:max(16px,1em)}
 // Sport: the NBA page is the same page opened as ./?nba, reading the nba/ data files
 if(/[?&](nba|cbb|sport=nba|sport=cbb)\b/.test(location.search))document.documentElement.classList.add("nba");
 var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cfb)\b/.test(location.search)?"cfb":/[?&](cbb|sport=cbb)\b/.test(location.search)?"cbb":"nfl",COL=SPORT==="cfb"||SPORT==="cbb",DIR=SPORT==="nfl"?"":SPORT+"/";
-var FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
+var BUILT=0,FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 // Betting apps you use (★ page): the odds picker and "send to app" buttons only show these
 var ALL_APPS=["fanduel","draftkings","betmgm","betrivers"],MYAPPS=ALL_APPS.slice();
@@ -691,7 +691,7 @@ function setMyTeam(abbr){
   o.featured=abbr;o.featuredName=nm;try{localStorage.setItem("fav_"+SPORT,JSON.stringify({team:abbr,name:nm}))}catch(e){}
   TEAM=abbr;TGAME=null;renderAll();toast("★ "+nm+" is your team for "+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT]+".")
 }
-function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now(),Object.assign({},Engine.OPTS[SPORT],{calib:CALIB}));GAMES=ENG.G;PROPS=ENG.P}
+function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now(),Object.assign({},Engine.OPTS[SPORT],{calib:CALIB,upcomingOnly:true}));GAMES=ENG.G;PROPS=ENG.P;BUILT=Date.now()}
 function gkey(g,t){return ENG.gkey(g,t)}
 function gameLeg(g,t){return ENG.gameLeg(g,t)}
 function propLeg(p,r){return ENG.propLeg(p,r)}
@@ -1102,7 +1102,9 @@ function slateList(){
   var o=Engine.OPTS[SPORT]||{},ids=GAMES.map(function(g){return g.id}),out=[];
   out.push({id:"best",label:o.noWeek?"Best overall":"Best of Week",note:o.noWeek?"Across every game on the board.":"Across the whole week, one leg per game.",
     list:function(){return ENG.likelySlips(ids).concat(o.noWeek?[]:ENG.slateSlips(ids)).concat(ENG.playerPresets()).concat(ENG.gamePresets())}});
-  ENG.slates().forEach(function(sl){
+  var nowS=Date.now();ids=ids.filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>nowS})});
+  ENG.slates().forEach(function(sl0){
+    var sl={k:sl0.k,g:sl0.g.filter(function(g){return+new Date(g.t)>nowS})};if(!sl.g.length)return;
     var gi=sl.g.map(function(g){return g.id}),first=sl.g[0];
     out.push({id:"s:"+sl.k,label:sl.k,count:sl.g.length,t:first.t,games:sl.g,
       note:sl.g.length===1?first.away+" at "+first.home+", "+when(first.t)+". Same-game parlays, so your book's payout will be lower than shown.":sl.g.length+" games, "+when(first.t)+". One leg per game.",
@@ -1110,7 +1112,7 @@ function slateList(){
   });
   if(o.featured){
     var ft=ENG.teamSlips(o.featured),now=Date.now();
-    if(ft.g&&+new Date(ft.g.t)>now-3.5*36e5)out.push({id:"team",label:o.featuredName,team:true,list:function(){return ENG.teamSlips(o.featured).l}});
+    if(ft.g&&+new Date(ft.g.t)>now)out.push({id:"team",label:o.featuredName,team:true,list:function(){return ENG.teamSlips(o.featured).l}});
     else{
       // Our team is off: this spot becomes the game of the week (college: the highest-ranked team's game)
       var up=GAMES.filter(function(g){return+new Date(g.t)>now}).sort(function(a,b){return new Date(a.t)-new Date(b.t)}),pick=null,lab="",why="";
@@ -2144,6 +2146,9 @@ document.querySelectorAll(".sport a").forEach(function(a){a.addEventListener("cl
   var q=a.getAttribute("href").replace("./","");location.href=location.pathname+(q?q+"&":"?")+"r="+Date.now()})});
 // When the home-screen app is reopened after a while, quietly pull fresh data
 var lastLoad=Date.now();
+function kickedSinceBuild(){var n=Date.now();return GAMES.some(function(g){var t=+new Date(g.t);return t>BUILT&&t<=n})}
+setInterval(function(){if(document.visibilityState==="visible"&&!$("panel").classList.contains("open")&&kickedSinceBuild())renderAll()},60000);
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&kickedSinceBuild())renderAll()});
 document.addEventListener("visibilitychange",function(){
   if(document.visibilityState!=="visible"||Date.now()-lastLoad<5*60e3)return;lastLoad=Date.now();
   Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON(DIR+"finals.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;PICKS=r[2]||PICKS;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;FINALS=r[5]||FINALS;renderAll();renderSync()}});

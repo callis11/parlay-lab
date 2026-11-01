@@ -108,6 +108,8 @@
   function make(odds, data, book, now, opts) {
     opts = opts || {};
     var G = [], P = [];
+    // Parlays only use games that haven't kicked off (the site passes upcomingOnly; Node point-in-time builds don't)
+    function up(g) { return !(opts && opts.upcomingOnly) || +new Date(g.t) > Date.now(); }
     // Team display name: college uses the school (and AP rank) from ESPN; pro leagues use the nickname
     function tname(full) { return (data && data.names && data.names[full]) || (opts.full ? full : nick(full)); }
     var wk = now + (opts.windowH || 168) * 36e5;
@@ -203,8 +205,8 @@
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
     function gamePresets() {
       // Skip moneylines so lopsided they barely pay (common in college)
-      var fav = G.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; }).filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
-      var low = G.slice().sort(function (a, b) { return a.total - b.total; }), out = [];
+      var GU = G.filter(up), fav = GU.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; }).filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
+      var low = GU.slice().sort(function (a, b) { return a.total - b.total; }), out = [];
       function add(n, d, l, need) { if (l.length >= need) out.push({ n: n, d: d, l: l }); }
       add("The Safe 3", "Three biggest moneyline favorites", fav.slice(0, 3).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 3);
       add("Favorites Trio", "Next tier of moneyline favorites", fav.slice(3, 6).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 3);
@@ -214,7 +216,7 @@
       return out;
     }
     function playerPresets() {
-      var c = []; P.forEach(function (p) { if (p.healthy) p.rungs.forEach(function (r) { if (r.p !== undefined) c.push({ p: p, r: r }); }); });
+      var c = []; P.forEach(function (p) { if (p.healthy && up(p.g)) p.rungs.forEach(function (r) { if (r.p !== undefined) c.push({ p: p, r: r }); }); });
       function pickN(arr, n) {
         var used = {}, games = {}, out = [];
         arr.forEach(function (x) { if (out.length < n && !used[x.p.player] && !games[x.p.ev]) { used[x.p.player] = 1; games[x.p.ev] = 1; out.push(propLeg(x.p, x.r)); } });
@@ -234,10 +236,10 @@
     function poolFor(ids, team) {
       var set = {}; ids.forEach(function (i) { set[i] = 1; });
       var props = []; P.forEach(function (p) {
-        if (!set[p.ev] || (team && p.team !== team) || !p.healthy) return;
+        if (!set[p.ev] || (team && p.team !== team) || !p.healthy || !up(p.g)) return;
         p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6) props.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a, e: r.ev, td: p.td }); });
       });
-      var gs = G.filter(function (g) { return set[g.id]; });
+      var gs = G.filter(function (g) { return set[g.id] && up(g); });
       function gl(g, t) { return { leg: gameLeg(g, t), who: "G|" + g.id + "|" + (t === "ov" || t === "un" ? "tot" : "side"), ev: g.id, a: g.legs[t].a, p: g.p[t] }; }
       var by = function (f) { return function (a, b) { return f(b) - f(a); }; };
       function sideOf(g, abbr) { var m = data && data.games[g.id]; return m && m.home === abbr ? "h" : "a"; }
@@ -284,9 +286,10 @@
     function teamSlips(abbr, gid) {
       // gid picks one of the team's games (college teams can have two in the window); default is the next one
       var mine = G.filter(function (x) { var m = data && data.games[x.id]; return m && (m.home === abbr || m.away === abbr); });
-      var g = (gid && mine.filter(function (x) { return x.id === gid; })[0]) || mine[0];
+      var g = (gid && mine.filter(function (x) { return x.id === gid; })[0]) || mine.filter(up)[0] || mine[0];
       var myIds = {}; mine.forEach(function (x) { myIds[x.id] = 1; });
       if (!g) return { g: null, l: [] };
+      if (!up(g)) return { g: g, l: [] }; // already kicked off: nothing to bet pre-game
       var Q = poolFor([g.id], abbr), out = [], nm = g[data.games[g.id].home === abbr ? "home" : "away"];
       function add(s) { if (s) out.push(s); }
       var safeTD = Q.tds.filter(function (x) { return x.a <= -110; });
@@ -320,8 +323,8 @@
     // Every healthy rated prop rung and every game side, with our win chance. One leg per game.
     function likelyPool() {
       var c = [];
-      P.forEach(function (p) { if (!p.healthy) return; p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6 && r.a >= -400 && r.a <= 200) c.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a }); }); });
-      G.forEach(function (g) { ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(function (t) { var a = g.legs[t].a; if (a >= -400 && a <= 200) c.push({ leg: gameLeg(g, t), who: "G|" + g.id, ev: g.id, p: g.p[t], a: a }); }); });
+      P.forEach(function (p) { if (!p.healthy || !up(p.g)) return; p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6 && r.a >= -400 && r.a <= 200) c.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a }); }); });
+      G.forEach(function (g) { if (!up(g)) return; ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(function (t) { var a = g.legs[t].a; if (a >= -400 && a <= 200) c.push({ leg: gameLeg(g, t), who: "G|" + g.id, ev: g.id, p: g.p[t], a: a }); }); });
       return c;
     }
     // Search small combinations for the slip with the highest chance that still pays at least `target` (decimal odds).
