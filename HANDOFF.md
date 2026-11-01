@@ -16,6 +16,8 @@ Priorities, in order:
 5. **Two audiences, both first-class:** (a) people who don't follow sports: common sense, plain English, the why behind every number; (b) people who do: the best results possible, deep stats, and room to "go a little crazy", like his friend who puts small amounts on big long shots (15-leg parlays, big payouts). Long shots must stay honest ("1 in N", what usually goes wrong) and should use the best-value legs, not just random plus-money ones. Ideas: a Long shot / Lottery mode with the best long-shot value per $1, near-miss stats ("missed by 1 leg") on Results.
 6. **Double-up planner + My usual bet** (see "QUEUED: Double-up planner").
 
+**SITEMAP.md** = every screen, button, word and number on the site, written for AIs and new chats (Nov 1). Keep it updated when screens change. Give it to other AIs with the site link.
+
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
 - Wants plain-English explanations, honest odds, and lots of "why" behind every %. Likes iterating fast on look and feel; push small changes and tell him to tap the ↻ button.
