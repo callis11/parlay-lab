@@ -111,7 +111,8 @@ th{color:var(--muted);font-weight:600}
 .bar .in{max-width:720px;margin:0 auto}
 .sum{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
 .sum .num{font-size:26px}
-.panel{display:none;margin-top:10px;max-height:45vh;overflow:auto}
+.panel{display:none;margin-top:10px;max-height:72vh;overflow:auto}
+.slsum{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 6px}.slsum p:first-child{margin-top:0!important}.slh{margin:10px 0 4px;font-size:14px;color:var(--muted)}
 .placed{margin:10px 0;padding:10px;border:1px dashed var(--line);border-radius:4px}
 .sync{margin:28px 0 0;padding:12px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px}
 .sync b{color:var(--ink);font-weight:600}
@@ -363,7 +364,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .genx{display:block;width:100%;margin-top:12px;font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer}
 .gen-t{display:flex;justify-content:space-between;align-items:center}
 .gen-c:after{content:"Open ▾";font-family:"Barlow",sans-serif;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0}
-.gen[open] .gen-c:after{content:"Close ✕"}
+.gen[open] .gen-c:after{content:"▴"}
 .gmulti{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
 .gm-h{width:100%;margin:0 0 2px;font-size:12px;color:var(--muted)}
 .gmulti button{font:inherit;font-size:13px;font-weight:700;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 9px;cursor:pointer;flex:1 1 46%;min-width:0}
@@ -2250,15 +2251,15 @@ function renderSlip(){
   document.querySelectorAll(".rung").forEach(function(b){var s=SLIP["P|"+b.dataset.p];b.setAttribute("aria-pressed",!!(s&&String(s.line)===b.dataset.l))});
   if(SLIP_RESTORED)slipSave();
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
-  if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
+  if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
-  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':"")+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
-    fdButton(legs)+
+  $("legs").innerHTML='<div class="slsum">'+
     (function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}if(c===null)return"";
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':"")+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    fdButton(legs);
   $("sumL").textContent=legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
