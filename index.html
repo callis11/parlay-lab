@@ -546,8 +546,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <h2 id="wkH">Weekly report card</h2>
   <p class="sub" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
   <div id="resWeek"></div>
-  <div id="mySec"><h2>My bets</h2>
-  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Each pick is checked against final scores and box scores a few hours after its game ends, then the bet is marked Won or Lost for you. The buttons are there if you want to set it yourself.</p>
+  <div id="mySec"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:8px">My bets <button class="btn" id="scBtn" style="font-size:15px">🔄 Check scores</button></h2>
+  <p class="sub" id="scStat" style="margin:0 0 6px"></p>
+  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Tap <b>🔄 Check scores</b> any time for live scores and finished games (while one of your games is on, it checks again every 2 minutes). The site also checks on its own after each game window. Each pick is marked ✓ or ✗ and the bet Won or Lost for you. The buttons are there if you want to set it yourself.</p>
   <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
     <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the picks, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
     <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <button class="btn" id="shotPaste">📋 Paste screenshot</button> <span class="sub" id="shotStat"></span>
@@ -1711,7 +1712,9 @@ function legResult(l){
 function finalResult(l){
   if(!l.ev&&l.n){var hit=null;GAMES.forEach(function(G){Object.keys(G.legs).forEach(function(t){if(G.legs[t].n===l.n)hit={ev:G.id,kind:"g",t:t,pt:G.legs[t].pt}})});
     if(!hit)PROPS.forEach(function(p){p.rungs.forEach(function(r){var L=propLeg(p,r);if(L.n===l.n)hit=legKeep(L)})});if(hit)l=Object.assign({},l,hit)}
-  var g=FINALS&&FINALS.games&&l.ev&&FINALS.games[l.ev];if(!g||g.hs==null)return null;
+  var g=l.ev?((FINALS&&FINALS.games&&FINALS.games[l.ev])||null):null;var lf=l.ev&&SC.fin[l.ev];
+  if(lf&&(!g||g.hs==null||(l.kind==="p"&&l.player&&!((l.player+"|"+l.label) in g.props)&&lf.props&&((l.player+"|"+l.label) in lf.props))))g=lf;
+  if(!g||g.hs==null)return null;
   if(l.kind==="g"&&l.t){var t=l.t,hs=g.hs,as=g.as;if(t.charAt(0)==="1"){if(g.h1h==null)return null;hs=g.h1h;as=g.h1a;t=t.slice(1)}
     var r;if(t==="ml-h"||t==="ml-a"){var m=t==="ml-h"?hs-as:as-hs;r=m>0?"won":m<0?"lost":"push"}
     else if(t==="sp-h"||t==="sp-a"){if(l.pt==null)return null;var m2=(t==="sp-h"?hs-as:as-hs)+l.pt;r=m2>0?"won":m2<0?"lost":"push"}
@@ -1755,9 +1758,86 @@ function renderMyBets(){
   $("myBets").innerHTML='<table><thead><tr><th>App</th><th>Bets</th><th>Staked</th><th>Profit</th></tr></thead><tbody>'+apps+'<tr><td><b>Total</b></td><td>'+tot.n+'</td><td>$'+tot.st.toFixed(0)+'</td><td class="'+(tot.pl>=0?"pos":"neg")+'"><b>'+money(tot.pl)+'</b></td></tr></tbody></table>'+
     all.slice().reverse().slice(0,30).map(function(b){var s=myStatus(b);
       return'<div class="card"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+esc(Engine.BOOK_NAMES[b.book]||b.book)+' <span>· $'+b.stake.toFixed(0)+" at "+fmt(b.odds)+" · "+new Date(b.saved).toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span></span><span class="badge '+(s==="won"||s==="lost"?s:"")+'">'+lab[s]+'</span></h3>'+
-        '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+(l.res?{won:"✓",lost:"✗"}[l.res]:m)+'</span>'+esc(l.n)+'</span><span>'+(l.a?fmt(l.a):"")+'</span></li>'}).join("")+'</ul>'+(b.fee?'<p class="sub" style="margin:4px 0 0">Includes $'+b.fee.toFixed(2)+' add-on fee'+(b.ret!=null?", app paid $"+b.ret.toFixed(2):"")+'</p>':"")+
+        '<ul class="rl">'+b.legs.map(function(l){var r=legResult(l),m=r?{won:"✓",lost:"✗",push:"–",void:"–"}[r.r]:"…";return'<li><span><span class="mk">'+(l.res?{won:"✓",lost:"✗"}[l.res]:m)+'</span>'+esc(l.n)+(r?"":scLine(l))+'</span><span>'+(l.a?fmt(l.a):"")+'</span></li>'}).join("")+'</ul>'+(b.fee?'<p class="sub" style="margin:4px 0 0">Includes $'+b.fee.toFixed(2)+' add-on fee'+(b.ret!=null?", app paid $"+b.ret.toFixed(2):"")+'</p>':"")+
         '<p style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-myset="won" data-id="'+b.id+'">Mark won</button><button class="btn" data-myset="lost" data-id="'+b.id+'">Mark lost</button>'+(b.manual?'<button class="btn" data-myset="" data-id="'+b.id+'">Auto</button>':"")+'<button class="btn rm" data-mydel="'+b.id+'">✕ Remove</button></p></div>'}).join("");
 }
+// ---------- Check scores: live and final scores straight from ESPN, on this phone (no credits) ----------
+// Tap 🔄 Check scores, or leave Results open while a game is on (checks every 2 min). Final games are saved on the
+// phone (SC.fin) and grade My bets right away; finals.json from the server still wins when it has the game.
+var SC={fin:{},live:{},at:0,busy:false,timer:null};
+try{SC.fin=JSON.parse(localStorage.getItem("scfin_"+SPORT)||"{}")||{}}catch(e){SC.fin={}}
+(function(){var cut=Date.now()-21*864e5;Object.keys(SC.fin).forEach(function(k){if(+new Date(SC.fin[k].t)<cut)delete SC.fin[k]})})();
+var ESPN_PATH={nfl:"football/nfl",cfb:"football/college-football",nba:"basketball/nba",cbb:"basketball/mens-college-basketball"};
+var ESPN_ABBR={LA:"LAR",WAS:"WSH"}; // nflverse → ESPN
+function scNorm(n){return String(n||"").toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g,"").replace(/[^a-z]/g,"")}
+function scDay(t){var d=new Date(new Date(t).toLocaleString("en-US",{timeZone:"America/New_York"}));return""+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")}
+function scGame(ev){return DATA&&DATA.games&&DATA.games[ev]||null}
+function scOpenLegs(){var out=[];myLoad().filter(function(b){return b.sport===SPORT&&!b.manual}).forEach(function(b){b.legs.forEach(function(l){if(l.ev&&!legResult(l))out.push(l)})});return out}
+function scTime(l){var g=scGame(l.ev);return l.time||(g&&(g.t||g.time))||null}
+// One box-score row per player: {"passing.passingYards":"245","PTS":"21",...}
+function scBox(sum){var rows={};((sum&&sum.boxscore&&sum.boxscore.players)||[]).forEach(function(tm){(tm.statistics||[]).forEach(function(gp){
+  (gp.athletes||[]).forEach(function(a){var nm=scNorm(a.athlete&&a.athlete.displayName),r=rows[nm]=rows[nm]||{};
+    (a.stats||[]).forEach(function(v,i){if(gp.keys&&gp.keys[i])r[(gp.name||"")+"."+gp.keys[i]]=v;if(gp.labels&&gp.labels[i])r[gp.labels[i]]=v;if(gp.names&&gp.names[i])r[gp.names[i]]=v})})})});return rows}
+function scStat(r,label){
+  function n(k){var v=r[k];if(v==null||v==="--"||v==="")return 0;return parseFloat(String(v).split(/[\/-]/)[0])||0}
+  function n2(k){var v=r[k];if(v==null)return 0;var p=String(v).split(/[\/-]/);return parseFloat(p[1])||0}
+  function any(){for(var i=0;i<arguments.length;i++)if(r[arguments[i]]!=null)return arguments[i];return arguments[0]}
+  var py=n("passing.passingYards"),ry=n("rushing.rushingYards"),wy=n("receiving.receivingYards"),rt=n("rushing.rushingTouchdowns"),wt=n("receiving.receivingTouchdowns");
+  var pts=n(any("PTS",".points","points")),reb=n(any("REB",".rebounds","rebounds")),ast=n(any("AST",".assists","assists")),thr=n(any("3PT",".threePointFieldGoalsMade-threePointFieldGoalsAttempted"));
+  var M={"Points":pts,"Rebounds":reb,"Assists":ast,"Threes":thr,"Pts + reb + ast":pts+reb+ast,
+    "Passing yards":py,"Rushing yards":ry,"Receiving yards":wy,"Receptions":n("receiving.receptions"),"Passing TDs":n("passing.passingTouchdowns"),
+    "Rush + rec yards":ry+wy,"Anytime TD":rt+wt,"Rush + rec TDs":rt+wt,"Rushing TDs":rt,"Receiving TDs":wt,"Pass + rush + rec yards":py+ry+wy,
+    "Pass attempts":n2("passing.completions/passingAttempts"),"Completions":n("passing.completions/passingAttempts"),"Interceptions thrown":n("passing.interceptions"),
+    "Rush attempts":n("rushing.rushingAttempts"),"Sacks":n("defensive.sacks"),"Solo tackles":n("defensive.soloTackles"),"Tackles + assists":n("defensive.totalTackles"),
+    "Tackle assists":n("defensive.totalTackles")-n("defensive.soloTackles"),"Def interceptions":n("interceptions.interceptions"),
+    "Field goals":n("kicking.fieldGoalsMade/fieldGoalAttempts"),"Kicking points":n("kicking.totalKickingPoints")};
+  return label in M?M[label]:null}
+function scGet(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()})}
+function checkScores(quiet){
+  if(SC.busy)return;var legs=scOpenLegs(),path=ESPN_PATH[SPORT];
+  if(!legs.length){if(!quiet){$("scStat").textContent="Nothing waiting on a score.";toast("All your bets here are already graded.")}return}
+  var days={};legs.forEach(function(l){var t=scTime(l);if(t&&+new Date(t)<=Date.now()+36e5)days[scDay(t)]=1});
+  if(!Object.keys(days).length){if(!quiet)$("scStat").textContent="None of your games have started yet.";return}
+  SC.busy=true;$("scBtn").disabled=true;$("scStat").textContent="Checking scores…";
+  var base="https://site.api.espn.com/apis/site/v2/sports/"+path,grp=SPORT==="cfb"?"&groups=80":SPORT==="cbb"?"&groups=50":"";
+  Promise.all(Object.keys(days).map(function(d){return scGet(base+"/scoreboard?dates="+d+grp+"&limit=500").catch(function(){return null})})).then(function(boards){
+    if(boards.every(function(b){return!b}))throw new Error("reach");
+    var byId={},byTeams={};boards.forEach(function(b){((b&&b.events)||[]).forEach(function(e){var c=e.competitions&&e.competitions[0];if(!c)return;
+      var h=c.competitors.filter(function(x){return x.homeAway==="home"})[0],a=c.competitors.filter(function(x){return x.homeAway==="away"})[0];if(!h||!a)return;
+      var st=(c.status||e.status||{}).type||{},o={id:e.id,state:st.state,detail:st.shortDetail||st.detail||"",hs:+h.score,as:+a.score,ha:h.team.abbreviation,aa:a.team.abbreviation,
+        h1h:h.linescores&&h.linescores[0]?+h.linescores[0].value:null,h1a:a.linescores&&a.linescores[0]?+a.linescores[0].value:null,day:scDay(e.date)};
+      byId[e.id]=o;byTeams[o.aa+"@"+o.ha+"|"+o.day]=o})});
+    var need={},jobs=[];
+    legs.forEach(function(l){var g=scGame(l.ev),t=scTime(l),o=null;if(!g)return;
+      if(g.gid&&byId[g.gid])o=byId[g.gid];
+      else{var A=ESPN_ABBR[g.away]||g.away,H=ESPN_ABBR[g.home]||g.home;o=byTeams[A+"@"+H+"|"+(t?scDay(t):"")]||null}
+      if(!o)return;SC.live[l.ev]=o;
+      if(o.state==="post"){var f=SC.fin[l.ev]=SC.fin[l.ev]||{t:t||new Date().toISOString(),props:{}};f.hs=o.hs;f.as=o.as;
+        if(SPORT==="cbb"&&o.h1h!=null){f.h1h=o.h1h;f.h1a=o.h1a}}
+      if(l.kind==="p"&&l.player&&(o.state==="in"||o.state==="post"))need[o.id]=need[o.id]||{o:o,evs:{}},need[o.id].evs[l.ev]=1});
+    Object.keys(need).forEach(function(id){jobs.push(scGet(base+"/summary?event="+id).then(function(sum){var rows=scBox(sum),N=need[id];
+      Object.keys(N.evs).forEach(function(ev){var o=N.o,bucket=o.state==="post"?SC.fin[ev]:(SC.live[ev].props=SC.live[ev].props||{});if(!bucket)return;bucket.props=bucket.props||{};
+        legs.forEach(function(l){if(l.ev!==ev||l.kind!=="p"||!l.player)return;var r=rows[scNorm(l.player)];if(!r)return;var v=scStat(r,l.td?"Anytime TD":l.label);if(v==null)return;
+          if(o.state==="post")bucket.props[l.player+"|"+l.label]=v;else bucket[l.player+"|"+l.label]=v})})}).catch(function(){}))});
+    return Promise.all(jobs)}).then(function(){
+    try{localStorage.setItem("scfin_"+SPORT,JSON.stringify(SC.fin))}catch(e){}
+    SC.at=Date.now();var still=scOpenLegs(),live=still.filter(function(l){var o=SC.live[l.ev];return o&&o.state==="in"}).length;
+    $("scStat").textContent="Checked "+new Date().toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+(live?" · "+live+" pick"+(live>1?"s":"")+" live, checking again every 2 min":still.length?" · "+still.length+" pick"+(still.length>1?"s":"")+" still waiting":" · everything graded");
+    renderMyBets();scAuto();
+  }).catch(function(){$("scStat").textContent="Couldn't reach live scores from this phone right now. Results still fill in on their own after games end.";if(!quiet)toast("Couldn't reach live scores. Try again in a minute.",true)})
+  .then(function(){SC.busy=false;$("scBtn").disabled=false})}
+// live score / stat under an ungraded leg
+function scLine(l){var o=l.ev&&SC.live[l.ev];if(!o)return"";
+  if(o.state==="pre")return'<br><small class="sub">Starts '+esc(o.detail)+'</small>';
+  var sc=o.aa+" "+o.as+" – "+o.ha+" "+o.hs,stat="";
+  if(l.kind==="p"&&l.player){var v=o.state==="in"?(o.props||{})[l.player+"|"+l.label]:null;if(v!=null)stat=" · "+(l.side==="under"?"at "+v+", needs under "+l.line:"has "+v+" of "+(Math.floor(l.line||0)+1))}
+  return'<br><small class="sub">'+(o.state==="in"?"🔴 "+esc(o.detail)+" · ":"Final · ")+esc(sc)+esc(stat)+'</small>'}
+// While Results is open and one of your games is live (or just ended), check every 2 minutes
+function scAuto(){clearInterval(SC.timer);SC.timer=null;
+  var on=$("v-results")&&!$("v-results").hidden&&document.visibilityState==="visible";if(!on)return;
+  var hot=scOpenLegs().some(function(l){var t=scTime(l);if(!t)return false;var ms=Date.now()-new Date(t);return ms>-5*6e4&&ms<6*36e5});
+  if(hot)SC.timer=setInterval(function(){checkScores(true)},2*6e4)}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&$("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)checkScores(true);scAuto()});
 // ---------- Add bets from a screenshot (FanDuel / DraftKings "My Bets"), read on this phone ----------
 // Tesseract (free, runs in the browser) turns the picture into text; shotParse() finds each bet in that text;
 // shotMatch() ties the legs to this page's games and players; the user checks a card and taps Save.
@@ -1918,6 +1998,7 @@ document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotT
 document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();
+  if($("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},500);
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});
   if(!done.length){$("resSummary").innerHTML='<p class="empty">Nothing graded yet. This week\'s slips are saved and will be graded after the games, once box scores are posted.</p>'}
@@ -2218,7 +2299,9 @@ function route(){
   if(["parlays","build","games","props","team","results"].indexOf(v)<0)v="parlays";
   ["parlays","build","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
   if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();TPICKED=true;TSIDE="team";if(DATA){renderTeam();renderSlip()}}
+  if(v==="results"&&DATA&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},300);else setTimeout(scAuto,0);
 }
+$("scBtn").addEventListener("click",function(){checkScores(false)});
 window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;TPICKED=true;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";TPICKED=false;renderTeam();renderSlip()});

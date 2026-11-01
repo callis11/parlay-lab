@@ -70,7 +70,7 @@ Filters: kickoff window chips, division/conference, team (★ team's game first)
 
 ### Results
 - **Weekly report card** (‹ › pages weeks): record, profit at $10 each, picks hit, what we said vs reality, toughest miss ("one pick away"), best type, report cards, **Share image**.
-- **My bets** (this phone only): **📷 Add bets from a screenshot** of FanDuel My Bets or a DraftKings receipt (read on the phone), **📋 Paste screenshot**, paste text, or **Add bets from a code**. Picks grade themselves from final scores and box scores.
+- **My bets** (this phone only): **🔄 Check scores** pulls live and final scores (and player stats for props) from ESPN on the phone; live picks show "🔴 3rd 8:12 · MIN 10 – DET 17" and prop progress; rechecks every 2 min while a game is live and Results is open. **📷 Add bets from a screenshot** of FanDuel My Bets or a DraftKings receipt (read on the phone), **📋 Paste screenshot**, paste text, or **Add bets from a code**. Picks grade themselves from final scores and box scores.
 - **How our picks did:** every auto-built slip, locked at FanDuel's price at first kickoff, graded later; individual pick hit rates.
 - **Beating the closing line**, **Game report cards** (Safe picks / Straights / Anytime TD vs books expected), **By section**, **What's working** (each bet type: hit %, what we said, how we adjust).
 - **Estimate vs reality:** graded picks by % bucket.
