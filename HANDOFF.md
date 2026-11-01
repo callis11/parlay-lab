@@ -4,6 +4,9 @@
 
 Read this first, then `README.md`. Everything lives in this repo (github.com/callis11/parlay-lab, branch `main`); the site is GitHub Pages: https://callis11.github.io/parlay-lab/ (`?nba`, `?cfb`, `?cbb` for other sports).
 
+## What ParlayLabs is for (Andrew, Oct 31; read this first)
+Built for people who **don't follow sports closely** but still want to make good parlay decisions and build their own. LadderUp (his buddy's site) serves people who already know what's happening in the games; ParlayLabs replaces that knowledge with **data, history and plain-English reasons**. Andrew will spend money on data to make it as **open, honest and understandable** as possible. He loves stats: more stats, and more "here's why" a reader can dig into, is better. Every feature should answer: could a non-fan understand this number and trust why it's there?
+
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
 - Wants plain-English explanations, honest odds, and lots of "why" behind every %. Likes iterating fast on look and feel; push small changes and tell him to tap the ↻ button.
