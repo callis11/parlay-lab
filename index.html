@@ -477,6 +477,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
 .tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
 .tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
+.start1{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}.start1 ol{margin:6px 0 4px;padding-left:20px}.start1 li{margin:3px 0}
 </style>
 </head>
 <body>
@@ -519,6 +520,11 @@ select,input,textarea{font-size:max(16px,1em)}
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
+  <div class="start1" id="start1" hidden><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>New here? Start in 3 taps</b><button class="lnk" id="start1x" aria-label="Hide this">✕</button></div>
+    <ol><li><b>Pick a parlay below</b> and tap <b>Load slip</b>, or open <b>Build → Top list</b> and tap the picks you like.</li>
+    <li><b>Tap the bar at the bottom</b> to see your slip: the chance it hits, what $10 pays, and whether the price is fair.</li>
+    <li><b>Tap Open in FanDuel</b> (or your app). Your picks land on its slip and you place the bet there. We never take money.</li></ol>
+    <small class="sub">Words like ML, spread or −138? Tap <b>ⓘ</b> at the top, slide 2.</small></div>
   <div id="genMount_par"></div>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
@@ -2431,6 +2437,9 @@ function route(){
   if(v==="results"&&DATA&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},300);else setTimeout(scAuto,0);
 }
 $("scBtn").addEventListener("click",function(){checkScores(false)});
+// "New here?" card: first few visits until hidden or a bet is saved
+(function(){var hide=false;try{hide=localStorage.getItem("start1")==="hide"||JSON.parse(localStorage.getItem("mybets")||"[]").length>0}catch(e){}
+  if(!hide)$("start1").hidden=false;$("start1x").onclick=function(){$("start1").hidden=true;try{localStorage.setItem("start1","hide")}catch(e){}}})();
 window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;TPICKED=true;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";TPICKED=false;renderTeam();renderSlip()});
