@@ -9,6 +9,12 @@ on:
       reserve:
         description: "Stop before credits drop below this"
         default: "15000"
+      games:
+        description: "Which games: REG, POST (playoffs) or REG,POST"
+        default: "REG"
+      alt_only:
+        description: "Season to add alt lines to (e.g. 2023); blank = normal pull"
+        default: ""
 permissions:
   contents: write
 concurrency:
@@ -31,6 +37,8 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           TEST: ${{ inputs.test && '1' || '0' }}
           RESERVE: ${{ inputs.reserve }}
+          GAMES: ${{ inputs.games }}
+          ALT_ONLY: ${{ inputs.alt_only }}
       - if: always()
         run: |
           git config user.name "odds-bot"

@@ -4,6 +4,8 @@
 //   PROP_SEASONS=2025,2024,2023               player props: 10 credits per market per game
 //   TEST=1                                    one game only (about 150 credits) to check everything works
 //   RESERVE=15000                             stop before credits drop below this, so the live site keeps running
+//   GAMES=POST                                playoff games instead of the regular season (REG, POST or REG,POST); saved in the same season files
+//   ALT_ONLY=2023                             only add the four alternate-line markets to games already in props-2023 (40 credits per game)
 // Saves compact, gzipped files to backtest/raw/ and skips anything already pulled, so it can be re-run safely.
 
 const fs = require("fs"), zlib = require("zlib");
@@ -18,6 +20,9 @@ const MAIN = FULL.slice(0, 7); // 2023: main lines only, to save credits
 const RESERVE = +(process.env.RESERVE || 15000), TEST = process.env.TEST === "1";
 const LINES_SEASONS = (process.env.LINES_SEASONS || "2025,2024,2023,2022,2021").split(",").map(Number);
 const PROP_SEASONS = (process.env.PROP_SEASONS || "2025,2024,2023").split(",").map(Number);
+const GAMES = (process.env.GAMES || "REG").toUpperCase().split(","), POST = ["WC", "DIV", "CON", "SB"];
+const TYPES = GAMES.flatMap(t => t === "POST" ? POST : [t]);
+const ALT_ONLY = process.env.ALT_ONLY ? +process.env.ALT_ONLY : null, ALTS = FULL.slice(7);
 const BEFORE_MIN = 45; // snapshot 45 minutes before kickoff (inactives are out, lines are close to final)
 
 let remaining = null, used = 0;
@@ -47,8 +52,33 @@ const slim = ev => ({ id: ev.id, commence_time: ev.commence_time, home_team: ev.
   bookmakers: (ev.bookmakers || []).map(b => ({ key: b.key, markets: (b.markets || []).map(m => ({ key: m.key, outcomes: m.outcomes.map(o => { const x = { name: o.name, price: o.price }; if (o.point !== undefined) x.point = o.point; if (o.description) x.description = o.description; return x; }) })) })) });
 
 (async () => {
-  const sched = (await getCSV(`${NFLVERSE}/schedules/games.csv`)).filter(g => g.game_type === "REG");
-  const slots = season => { const s = {}; sched.filter(g => +g.season === season).forEach(g => { const k = etToUtc(g.gameday, g.gametime); (s[k] = s[k] || []).push(g); }); return Object.keys(s).sort().map(k => ({ kick: k, games: s[k] })); };
+  const sched = (await getCSV(`${NFLVERSE}/schedules/games.csv`)).filter(g => TYPES.includes(g.game_type));
+  const slots = season => { const s = {}; sched.filter(g => +g.season === season && g.gameday && +new Date(g.gameday) < Date.now() - 864e5).forEach(g => { const k = etToUtc(g.gameday, g.gametime); (s[k] = s[k] || []).push(g); }); return Object.keys(s).sort().map(k => ({ kick: k, games: s[k] })); };
+
+  // ---- ALT_ONLY: add alternate lines to games already saved (same snapshot time), then stop ----
+  if (ALT_ONLY) {
+    const name = "props-" + ALT_ONLY, out = load(name); let n = 0;
+    for (const id in out) {
+      const ev = out[id];
+      if (ev.error || ev.alt || !ev.commence_time) continue;
+      if (remaining !== null && remaining < RESERVE + ALTS.length * 10) { console.log("Reserve reached, stopping alt lines."); break; }
+      const at = new Date(+new Date(ev.commence_time) - BEFORE_MIN * 6e4).toISOString().replace(/\.\d+Z$/, "Z");
+      try {
+        const j = slim((await get(`${H}/events/${id}/odds?apiKey=${KEY}&date=${at}&bookmakers=${BOOKS}&markets=${ALTS.join(",")}&oddsFormat=american`)).data || {});
+        for (const b of j.bookmakers) {
+          let mine = ev.bookmakers.find(x => x.key === b.key);
+          if (!mine) ev.bookmakers.push(mine = { key: b.key, markets: [] });
+          for (const m of b.markets) if (!mine.markets.some(x => x.key === m.key)) mine.markets.push(m);
+        }
+        ev.alt = 1; n++;
+      } catch (e) { console.warn("alt", id, e.message); }
+      if (n % 10 === 0) save(name, out);
+      if (TEST) break;
+    }
+    save(name, out);
+    console.log("Alt lines", ALT_ONLY + ":", Object.values(out).filter(e => e.alt).length, "of", Object.keys(out).length, "games. Credits used:", used, "Remaining:", remaining);
+    return;
+  }
 
   // ---- game lines: one request per kickoff time covers every game starting then ----
   for (const season of LINES_SEASONS) {

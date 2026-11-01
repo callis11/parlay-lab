@@ -61,7 +61,7 @@ const imp = a => 1 / dec(a);
     for (const kick in lines) for (const ev of lines[kick].events) { const d = Math.abs(new Date(ev.commence_time) - new Date(kick)); if (!best[ev.id] || d < best[ev.id].d) best[ev.id] = { d, ev }; }
     for (const id in best) { const ev = best[id].ev; {
       const a = TEAM[ev.away_team], h = TEAM[ev.home_team];
-      const row = sched.find(g => +g.season === season && g.game_type === "REG" && g.away_team === a && g.home_team === h);
+      const row = sched.find(g => +g.season === season && g.game_type !== "" && g.away_team === a && g.home_team === h);
       if (!row) continue;
       (weeks[row.week] = weeks[row.week] || []).push({ ev, row, props: props[ev.id] && !props[ev.id].error ? props[ev.id] : null });
     } }
