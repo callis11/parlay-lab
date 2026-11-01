@@ -1381,7 +1381,7 @@ function heroCard(sp0){
   var nmA=SPORT==="cfb"?g.away:g.away,nmH=g.home,isPro=true;
   var ev=(ODDS&&ODDS.lines||[]).filter(function(e){return e.id===g.id})[0]||{},city=function(full,nick){full=String(full||"");var i=full.lastIndexOf(" "+nick);return i>0?full.slice(0,i):""};
   var PL=DATA&&DATA.places||{},cityA=COL?PL[m.away]||"":city(ev.away_team,g.away),cityH=COL?PL[m.home]||"":city(ev.home_team,g.home);
-  return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+
+  return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"})+' ET</span></div>'+((+new Date(g.t).toLocaleString("en-US",{timeZone:"America/New_York",hour:"numeric",hour12:false})%24)<9?'<div class="hl" style="margin-top:2px">Early start'+(m.neutral?" · neutral site, likely overseas":"")+'</div>':"")+
     '<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div>'+(isPro&&cityA?'<div class="city">'+esc(cityA)+'</div>':"")+
     '<div class="at">AT</div><div class="tn h" style="color:'+ch+';'+tnSize(nmH)+'">'+esc(nmH)+'</div>'+(isPro&&cityH?'<div class="city h">'+esc(cityH)+'</div>':"")+
     winBar(g)+'<div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+spreadNote(fav,fav===(m.home||g.home)?(m.away||g.away):(m.home||g.home),line,g.total)+heroTrends(m)+
@@ -2167,11 +2167,13 @@ function fdButton(legs){
   var apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),btns=[],notes=[];
   apps.forEach(function(bk){var nm=Engine.BOOK_NAMES[bk]||bk,L=Engine.betslipLink(legs,bk);if(!L)return;
     if(L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(L.n<legs.length?" ("+L.n+" of "+legs.length+")":"")+'</a>');
-    else notes.push(nm+": tap its link next to each leg")});
+    else notes.push(nm+": tap its link next to each pick")});
+  // The chosen app may not have posted lines for some games yet (early-season college basketball): say whose prices those are
+  var altG={};legs.forEach(function(l){var g=GAMES.filter(function(x){return x.id===l.ev})[0];if(g&&g.alt)altG[g.alt]=1});var alts=Object.keys(altG);
   if(!btns.length&&!notes.length)return'<p class="sub" style="margin:8px 0 0">Links to your apps show up after the next odds refresh.</p>';
   return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. Your slip here stays saved.</p>'+
     '<div class="sendapps">'+btns.join("")+'</div>'+
-    '<p class="sub" style="margin:6px 0 0">Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'. Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
+    '<p class="sub" style="margin:6px 0 0">'+(alts.length?esc(Engine.BOOK_NAMES[BOOK])+' hasn\'t posted lines for '+(legs.length>1?"some of these games":"this game")+' yet, so those prices are from '+esc(alts.join(" / "))+'.':'Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'.')+' Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
 }
 
 // ---------- game report cards ----------
