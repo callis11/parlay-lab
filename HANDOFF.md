@@ -7,6 +7,15 @@ Read this first, then `README.md`. Everything lives in this repo (github.com/cal
 ## What ParlayLabs is for (Andrew, Oct 31; read this first)
 Built for people who **don't follow sports closely** but still want to make good parlay decisions and build their own. LadderUp (his buddy's site) serves people who already know what's happening in the games; ParlayLabs replaces that knowledge with **data, history and plain-English reasons**. Andrew will spend money on data to make it as **open, honest and understandable** as possible. He loves stats: more stats, and more "here's why" a reader can dig into, is better. Every feature should answer: could a non-fan understand this number and trust why it's there?
 
+## START HERE (next chat, set Oct 31 late)
+Priorities, in order:
+1. **Top rule, every sport:** a parlay for a later game must never include an earlier game that has started and might lose. Today: started games are always left out (done Oct 31, `upcomingOnly`). With live odds: a started game may stay only if ESPN's live score/win % and the live price say it's still very likely to win (clears the style bar; use the lower of the two). Verify with the started-games check in the beginner review.
+2. **History pull** when Odds API credits reset (see "Remaining history pull"). A reminder was set for Nov 1, 9 AM in the earlier Oct 30–31 chat; if it doesn't fire, just do it.
+3. **Live odds build** (see "NEXT BUILD").
+4. **Beginner review + other-AI cross-check** (see "QUEUED: beginner review"); Andrew will paste the other AI's answers.
+5. **Two audiences, both first-class:** (a) people who don't follow sports: common sense, plain English, the why behind every number; (b) people who do: the best results possible, deep stats, and room to "go a little crazy", like his friend who puts small amounts on big long shots (15-leg parlays, big payouts). Long shots must stay honest ("1 in N", what usually goes wrong) and should use the best-value legs, not just random plus-money ones. Ideas: a Long shot / Lottery mode with the best long-shot value per $1, near-miss stats ("missed by 1 leg") on Results.
+6. **Double-up planner + My usual bet** (see "QUEUED: Double-up planner").
+
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
 - Wants plain-English explanations, honest odds, and lots of "why" behind every %. Likes iterating fast on look and feel; push small changes and tell him to tap the ↻ button.
