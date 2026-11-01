@@ -883,7 +883,8 @@ function renderProps(){
   var nowP=Date.now(),list=playerGroups(PROPS.filter(function(p){return+new Date(p.g.t)>nowP&&(!PWIN||kickWin(p.g)===PWIN)&&(!fg||p.ev===fg)&&(!fm||p.label===fm)&&(!onlyT||p.team===onlyT)}));
   list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="value"?function(a,b){return b.best-a.best}:function(a,b){return b.top-a.top});
   if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
-  $("props").innerHTML=list.slice(0,SHOWN).map(playerCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
+  var nUp=GAMES.filter(function(g){return+new Date(g.t)>nowP}).length,nPg=Object.keys(pg).filter(function(k){return+new Date(pg[k].t)>nowP}).length,pnote=nPg<nUp?'<p class="sub" style="margin:0 0 8px">'+nPg+' of '+nUp+' games have player lines so far. The rest usually post closer to kickoff.</p>':"";
+  $("props").innerHTML=pnote+list.slice(0,SHOWN).map(playerCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
 }
 var OPENP={};
 // One market's lines for a player: top 3 most likely that still pay (-700 or better), the rest behind "Show all"
@@ -896,7 +897,7 @@ function propLines(p){
     var rungs=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line;
       var stat=r.p!==undefined?'<span class="s2"><span>'+(p.td?"Scored in "+r.hits+" of last "+r.n:"Hit "+r.hits+" of last "+r.n)+'</span>'+(r.since&&r.since[1]>r.n?'<span>'+r.since[0]+" of "+r.since[1]+" "+(SINCE_LABEL[SPORT]||"in past seasons")+"</span>":"")+'</span>':"Not enough games to rate";
       var dots=!p.td&&p.recent&&p.recent.length?'<br><span class="l5w"><span class="l5">Last 5: oldest</span><span class="dots">'+p.recent.map(function(v){return'<i'+(v>r.line?' class="h"':"")+'></i>'}).join("")+'</span><span class="l5">newest</span></span>':"";
-      return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
+      return '<button class="rung" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span><span class="t">'+(r.p!==undefined?'<span class="hit" style="color:'+hitColor(r.p)+'">'+Math.round(r.p*100)+'%</span>':"")+(p.td?"Scores a TD":(r.line+0.5)+"+ "+Engine.unit(p.label,r.line+0.5))+'</span><br><span class="s">'+stat+dots+'</span></span><span class="pr">'+fmt(r.a)+(r.best&&r.best.a!==r.a?'<br><small style="font-weight:500">'+esc(r.best.book)+" "+fmt(r.best.a)+'</small>':"")+'</span></button>'}).join("");
     return rungs+(hidden?'<button class="lnk" data-openp="'+esc(p.id)+'">'+(open?"Show fewer":"Show all "+p.rungs.length+" lines")+'</button>':"");
 }
 // Best chance among lines that still pay something
@@ -1091,7 +1092,7 @@ function genRun(cx){
     legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
     note:(b&&b.n?"In past seasons, picks we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" picks). ":"")+
       (C.cf.pairs.length?"Same-game picks here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
-      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for same-game pairs and how "+n+"-pick slips really hit. ":"")+
+      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for "+(C.cf.pairs.length?"same-game pairs and ":"")+"how "+n+"-pick slips really hit. ":"")+
       (n>=6?"Big parlays are long shots: every pick has to hit, so even likely picks multiply down fast. Missing by one or two picks is common. ":"")+
       (sg?"Some picks are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every pick is from a different game.")};
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
@@ -1267,11 +1268,11 @@ function legStory(l){
   if(l.kind==="p"){
     var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0],U=l.side==="under";
     if(r&&r.n){var sr=sideRec(l,r);S.recent.push(sr.word+sr.hits+" of his last "+sr.n+" games");
-      if(pp.avg!==null&&!pp.td)S.recent.push("Averages "+pp.avg+" (line "+(l.td?"0.5":l.line)+")");
+      if(pp.avg!==null&&!pp.td)S.recent.push("Averages "+pp.avg+" (this pick needs "+(U?"under "+l.line:(Math.floor(l.line)+1)+"+")+")");
       if(pp.recent&&pp.recent.length&&!pp.td)S.recent.push("Last 5: "+pp.recent.join(", "));
       if(sr.since&&sr.since[1]>sr.n)S.past.push(sr.since[0]+" of "+sr.since[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons"));
       else S.past.push("No longer record at this line yet");
-      var pv=SPORT==="nfl"&&playerPast(pp.team,pp.player,pp.label);if(pv&&!U)S.past.push("Main line "+(pp.td?"hit":"overs")+" "+pv[0]+"–"+pv[1]+" in replayed 2023–25 games");
+      var pv=SPORT==="nfl"&&playerPast(pp.team,pp.player,pp.label);if(pv&&!U)S.past.push((pp.td?"Scored ":"Went over the book's main number ")+pv[0]+" times and "+(pp.td?"didn't ":"stayed under ")+pv[1]+" times in replayed 2023–25 games");
       if(r.vs){var vs=U?[r.vs[1]-r.vs[0],r.vs[1]]:r.vs;S.matchup.push("Vs "+pp.opp+": "+(U?"under":pp.td?"scored":"over")+" this line "+vs[0]+" of "+vs[1]+" games")}
       else if(pp.opp)S.matchup.push("No past games vs "+pp.opp+" in our data");
       S.sum="Why "+pct(l.p)+": he "+(U?"stayed under":(pp.td?"scored":"cleared this"))+" in "+sr.hits+" of his last "+sr.n+" games"+(sr.since&&sr.since[1]>sr.n?" ("+sr.since[0]+" of "+sr.since[1]+" over a longer stretch)":"")+", and the book's price says "+pct(1/dec(l.a))+".";
@@ -1466,6 +1467,7 @@ function legendHTML(){
   P.push('<p><b>Same game</b> '+(nfl?'Picks from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).':'A side and the total from the same game get adjusted for how those pairs finished together in past seasons.')+'</p>');
   P.push('<p><b>Most likely · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>');
   P.push('<p><b>Parlay % colors</b> <span style="color:var(--green)">green 45%+</span>, <span style="color:var(--flag)">yellow 20–44%</span>, <span style="color:var(--red)">red under 20% (long shot)</span>. Under each % it says what that means, like "hits about 1 time in 5".</p>');
+  P.push('<p><b>Circle icons</b> Each circle is one pick. <b>ML</b> = pick the winner, <b>S</b> = spread, <b>O</b> / <b>U</b> = over or under the total points, <b>TD</b> = scores a touchdown, and a little player = a player stat (yards, catches, points…). Tap a card to see every pick written out.</p>');
   P.push('<p><b>Circle colors</b> Each pick\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p>');
   return'<div class="legend"><b>How to read these cards</b>'+P.join("")+'</div>';
 }
