@@ -504,7 +504,7 @@ select,input,textarea{font-size:max(16px,1em)}
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
     <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px">Expand all</button>
-    <select id="fLegs" aria-label="Legs"><option value="">Any legs</option><option value="s">2–3 legs</option><option value="l">4+ legs</option></select>
+    <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
     <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
   </div>
   <div id="pList"></div>
@@ -517,7 +517,7 @@ select,input,textarea{font-size:max(16px,1em)}
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
   <h2>Build your own</h2>
-  <p class="sub">Tap legs to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
+  <p class="sub">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters">
@@ -547,9 +547,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <p class="sub" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
   <div id="resWeek"></div>
   <div id="mySec"><h2>My bets</h2>
-  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Each leg is checked against final scores and box scores a few hours after its game ends, then the bet is marked Won or Lost for you. The buttons are there if you want to set it yourself.</p>
+  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Each pick is checked against final scores and box scores a few hours after its game ends, then the bet is marked Won or Lost for you. The buttons are there if you want to set it yourself.</p>
   <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
-    <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the legs, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
+    <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the picks, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
     <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <button class="btn" id="shotPaste">📋 Paste screenshot</button> <span class="sub" id="shotStat"></span>
     <details style="margin-top:6px"><summary class="sub" style="cursor:pointer">Or paste the text</summary><p class="sub">Paste a copied screenshot here, or the text from it (in Photos, press and hold the screenshot, tap Copy All).</p>
     <textarea id="shotTxt" rows="3" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea><button class="btn" id="shotGo" style="margin-top:6px">Read it</button></details>
@@ -566,7 +566,7 @@ select,input,textarea{font-size:max(16px,1em)}
   <p class="sub">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
   <div id="resCLV"></div>
   <h2>Game report cards</h2>
-  <p class="sub" id="cardsSub">For every game we lock our top-rated legs at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
+  <p class="sub" id="cardsSub">For every game we lock our top-rated picks at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
   <div id="resCards"></div>
   <h2>By section</h2>
   <div id="resGroups"></div>
@@ -596,7 +596,7 @@ select,input,textarea{font-size:max(16px,1em)}
 </section>
 
 <p class="sync" id="sync" aria-live="polite"></p>
-<p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. Payouts for legs from the same game are estimates, since books price same-game parlays differently. Picks and payouts are estimates only. We are not responsible for losses; bet at your own risk. 21+ only. <a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a>. Gambling problem? Call 1-800-GAMBLER.</p>
+<p class="note"><span id="src"></span> Our estimate blends each player's hit rate with the book's price. Hit rates come from each player's last 10 regular-season games (this season and last), so it can't see injuries, role changes or matchups. Payouts for picks from the same game are estimates, since books price same-game parlays differently. Picks and payouts are estimates only. We are not responsible for losses; bet at your own risk. 21+ only. <a href="disclaimer.html" style="color:inherit">Read the full disclaimer</a>. Gambling problem? Call 1-800-GAMBLER.</p>
 </div>
 
 <div class="bar"><div class="in">
@@ -629,8 +629,12 @@ try{var _ma=JSON.parse(localStorage.getItem("apps")||"null");if(_ma&&_ma.length)
 if(!MYAPPS.length)MYAPPS=ALL_APPS.slice();if(MYAPPS.indexOf(BOOK)<0)BOOK=MYAPPS[0];
 function renderBookSel(){var pb=$("placeBook");if(pb)pb.value=BOOK}
 var $=function(id){return document.getElementById(id)};
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function esc(s){return dsp(String(s)).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function dec(a){return a>0?1+a/100:1+100/-a}
+// Beginner wording on screen only (saved names keep "ML"/"leg" so old bets and grading still match)
+function dsp(s){return s.replace(/ ML\b/g," to win").replace(/(\d)-Leg\b/g,"$1-Pick").replace(/\blegs\b/g,"picks").replace(/\bleg\b/g,"pick").replace(/\bLegs\b/g,"Picks")}
+// What a price means in plain money: -138 -> "$10 wins $7.25", +110 -> "$10 wins $11"
+function winsOn10(a){var w=a>0?a/10:1000/-a;return"$10 wins $"+(w>=100||Math.abs(w-Math.round(w))<0.005?Math.round(w).toLocaleString():w.toFixed(2))}
 function fmt(a){return a>0?"+"+a:""+a}
 function am(d){var a=d>=2?Math.round((d-1)*100):Math.round(-100/(d-1));return a>=10000?"+"+a.toLocaleString("en-US"):fmt(a)}
 function nick(n){return n.split(" ").pop()}
@@ -773,7 +777,7 @@ ICO.otxt='<text x="12" y="20.2" text-anchor="middle" font-family="Barlow Condens
 ICO.utxt='<text x="12" y="20.2" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="23" fill="currentColor">U</text>';
 ICO.outxt='<text x="12" y="16" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="10.5" fill="currentColor">O/U</text>';
 ICO.td='<text x="12" y="18.2" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="17" fill="currentColor">TD</text>';
-ICO.mltxt='<text x="12" y="18.2" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="17" fill="currentColor">ML</text>';
+ICO.mltxt='<text x="12" y="18.2" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,Arial,sans-serif" font-weight="800" font-size="11" fill="currentColor">WIN</text>';
 var HOOPS=SPORT==="nba"||SPORT==="cbb";
 // Game lines get players too: football ML = TD celebration, spread = running back, total = QB; hoops ML = rebound, spread = shooter, total = three
 function icoKey(l){
@@ -877,7 +881,7 @@ function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stri
 function genBox(cx){
   var C=GENCX[cx],x=function(id){return id+"_"+cx};
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
-    '<div class="gen-row"><label>Legs</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="More legs"><option value="">6+</option>'+[6,7,8,9,10,11,12,13,14,15].map(function(n){return'<option value="'+n+'">'+n+' legs</option>'}).join("")+'</select></div></div>'+
+    '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="More legs"><option value="">6+</option>'+[6,7,8,9,10,11,12,13,14,15].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"||COL?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
@@ -1010,7 +1014,7 @@ function legWhy(x){return storyLine(legStory(x.leg))}
 function genRun(cx){
   cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
   // one game with only game lines can make at most a side + the total
-  if(cx==="tm"&&!(G.multi||[]).length&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 legs: a side plus the total.")}
+  if(cx==="tm"&&!(G.multi||[]).length&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 picks: a side plus the total.")}
   if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
   if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
   var avoid=last.map(function(x){return x.key}),got=genPick(P.pool,n,avoid,cx),useSt=G.style,useN=n,auto="";
@@ -1022,9 +1026,9 @@ function genRun(cx){
     for(var m=n-1;m>=2;m--)if(n<=5||m<=Math.min(most,n-1)&&(sizes.length<4||m<=5))sizes.push(m);
     sizes.forEach(function(m){[G.style].concat(order).forEach(function(s2){tries.push([s2,m])})});
     for(var i=0;i<tries.length&&!got;i++){var keep=G.style;G.style=tries[i][0];var P2=genPool(cx),g2=genPick(P2.pool,tries[i][1],avoid,cx);G.style=keep;if(g2&&g2.inRange){got=g2;useSt=tries[i][0];useN=tries[i][1]}}
-    if(!got){toast("Not enough legs in these games to build any parlay. "+(G.side&&G.side!=="both"&&(cx==="tm"||G.games.slice(0,2)==="g:")?"Pick Both teams or add more games.":"Add more games."),true);return}
+    if(!got){toast("Not enough picks in these games to build any parlay. "+(G.side&&G.side!=="both"&&(cx==="tm"||G.games.slice(0,2)==="g:")?"Pick Both teams or add more games.":"Add more games."),true);return}
     var hasP=P.pool.some(function(x){return x.leg.kind==="p"}),one=cx==="tm"||G.games.slice(0,2)==="g:";
-    auto=st0.name+" couldn't make "+n+" legs here: "+(np<n?"only "+np+" leg"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices"+(hasP?"":" (spreads and over/unders are near 50%)"):"the "+np+" legs that fit "+st0.name+" don't combine into "+n+" (one bet per player, one side and one total per game, and the payout has to stay in "+st0.name+"'s range)")+". So this one is "+
+    auto=st0.name+" couldn't make "+n+" picks here: "+(np<n?"only "+np+" leg"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices"+(hasP?"":" (spreads and over/unders are near 50%)"):"the "+np+" picks that fit "+st0.name+" don't combine into "+n+" (one bet per player, one side and one total per game, and the payout has to stay in "+st0.name+"'s range)")+". So this one is "+
       (useSt!==G.style?STYLE[useSt].name:"")+(useSt!==G.style&&useN!==n?", ":"")+(useN!==n?useN+" legs":"")+".";
     n=useN}
   var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
@@ -1032,11 +1036,11 @@ function genRun(cx){
   var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
   var item={t:Date.now(),key:got.key,set:Object.assign({},G,{style:useSt,legs:n}),auto:auto,d:d,ch:ch,raw:raw,sg:sg,
     legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
-    note:(b&&b.n?"In past seasons, legs we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" legs). ":"")+
-      (C.cf.pairs.length?"Same-game legs here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
-      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for same-game pairs and how "+n+"-leg slips really hit. ":"")+
-      (n>=6?"Big parlays are long shots: every leg has to hit, so even likely legs multiply down fast. Missing by one or two legs is common. ":"")+
-      (sg?"Some legs are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every leg is from a different game.")};
+    note:(b&&b.n?"In past seasons, picks we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" picks). ":"")+
+      (C.cf.pairs.length?"Same-game picks here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
+      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for same-game pairs and how "+n+"-pick slips really hit. ":"")+
+      (n>=6?"Big parlays are long shots: every pick has to hit, so even likely picks multiply down fast. Missing by one or two picks is common. ":"")+
+      (sg?"Some picks are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every pick is from a different game.")};
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
 }
@@ -1048,7 +1052,7 @@ function renderGenOut(cx){
     var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return+new Date(l.time)>now}).length?LL:[]);
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+(it.ch>=0.45?"var(--green)":it.ch>=0.2?"var(--flag)":"var(--red)")+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+
-      '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" legs · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
+      '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
           '<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
@@ -1092,7 +1096,7 @@ function slipFlags(legs){
         var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&rs[0]/rs[1]<l.p-0.15)red.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons"));
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
         if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)red.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
-      if(l.player){if(who[l.player])red.push("two legs on "+l.player+" move together");who[l.player]=1}}
+      if(l.player){if(who[l.player])red.push("two picks on "+l.player+" move together");who[l.player]=1}}
     else{var mv=lineMove(l,gmeta(l.ev));if(mv<=-1.5)red.push(l.n+": the line has moved "+Math.abs(mv)+" points against this side since it opened")}
   });
   var seen={};red=red.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
@@ -1110,14 +1114,14 @@ function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(f
 // Slates: "Best of week" (or "Best overall" for NBA), each kickoff slate, then the hometown team
 function slateList(){
   var o=Engine.OPTS[SPORT]||{},ids=GAMES.map(function(g){return g.id}),out=[];
-  out.push({id:"best",label:o.noWeek?"Best overall":"Best of Week",note:o.noWeek?"Across every game on the board.":"Across the whole week, one leg per game.",
+  out.push({id:"best",label:o.noWeek?"Best overall":"Best of Week",note:o.noWeek?"Across every game on the board.":"Across the whole week, one pick per game.",
     list:function(){return ENG.likelySlips(ids).concat(o.noWeek?[]:ENG.slateSlips(ids)).concat(ENG.playerPresets()).concat(ENG.gamePresets())}});
   var nowS=Date.now();ids=ids.filter(function(id){return GAMES.some(function(g){return g.id===id&&+new Date(g.t)>nowS})});
   ENG.slates().forEach(function(sl0){
     var sl={k:sl0.k,g:sl0.g.filter(function(g){return+new Date(g.t)>nowS})};if(!sl.g.length)return;
     var gi=sl.g.map(function(g){return g.id}),first=sl.g[0];
     out.push({id:"s:"+sl.k,label:sl.k,count:sl.g.length,t:first.t,games:sl.g,
-      note:sl.g.length===1?first.away+" at "+first.home+", "+when(first.t)+". Same-game parlays, so your book's payout will be lower than shown.":sl.g.length+" games, "+when(first.t)+". One leg per game.",
+      note:sl.g.length===1?first.away+" at "+first.home+", "+when(first.t)+". Same-game parlays, so your book's payout will be lower than shown.":sl.g.length+" games, "+when(first.t)+". One pick per game.",
       list:function(){return ENG.likelySlips(gi).concat(ENG.slateSlips(gi))}});
   });
   if(o.featured){
@@ -1138,7 +1142,7 @@ function slateList(){
 }
 function teamNote(){
   var o=Engine.OPTS[SPORT]||{},r=ENG.teamSlips(o.featured),nm=o.featuredName;
-  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(COL?". Pairs "+nm+" lines with the best lines from other games; slips with two legs from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
+  if(r.g&&r.l.length)return r.g.away+" at "+r.g.home+", "+when(r.g.t)+(COL?". Pairs "+nm+" lines with the best lines from other games; slips with two picks from the same game will pay less than shown.":". Same-game parlays, so your book's payout will be lower than shown.");
   var nx=DATA&&DATA.next&&DATA.next[o.featured];
   return nx?"The "+nm+" play next "+(nx.tbd?new Date(nx.day+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" (time TBD)":when(nx.t))+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
 }
@@ -1185,7 +1189,7 @@ function renderBacktest(){
   var yrs=Object.keys(R.seasons),c=R.cards,pc=function(x){return x.n?Math.round(100*x.w/x.n)+"%":"—"};
   var sec=function(nm,x){return'<tr><td>'+nm+'</td><td class="r">'+x.w+" of "+x.n+" ("+pc(x)+')<br><small>books expected '+Math.round(100*x.book/x.n)+"% · we said "+Math.round(100*x.ours/x.n)+'%</small></td></tr>'};
   var sl=Object.keys(R.slips).map(function(k){var x=R.slips[k];x.k=k;return x}).filter(function(x){return x.n>=10}).sort(function(a,b){return b.profit/b.n-a.profit/a.n});
-  var pb=Object.keys(R.legs.byP).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=R.legs.byP[k];return'<tr><td>We said '+k*10+"–"+(k*10+10)+'%</td><td class="r">hit '+Math.round(100*x.w/x.n)+'% <small>('+x.n+" legs)</small></td></tr>"}).join("");
+  var pb=Object.keys(R.legs.byP).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=R.legs.byP[k];return'<tr><td>We said '+k*10+"–"+(k*10+10)+'%</td><td class="r">hit '+Math.round(100*x.w/x.n)+'% <small>('+x.n+" picks)</small></td></tr>"}).join("");
   el.innerHTML='<h2>Past seasons replay ('+(yrs.length>1?yrs[0]+"–"+yrs[yrs.length-1].slice(2):yrs[0])+')</h2><p class="sub">Every week rebuilt as it would have looked 1 hour before kickoff, with real FanDuel prices and only stats from games already played, then graded. '+Object.values(R.seasons).reduce(function(a,s){return a+s.games},0)+' games.</p>'+
     '<div class="card"><h3>Report card sections</h3><table class="ht">'+sec("Safe legs",c.pieces)+sec("Straights",c.straights)+sec("TDs",c.tds)+'</table></div>'+
     '<div class="card"><h3>Parlay types, $10 each</h3><table class="ht">'+sl.map(function(x){return'<tr><td>'+esc(x.k)+'<br><small>'+x.n+' slips · we said '+Math.round(100*x.exp/x.n)+'%</small></td><td class="r">'+x.w+"–"+(x.n-x.w)+' <small class="'+(x.profit>=0?"up":"dn")+'">'+(x.profit>=0?"+":"-")+"$"+Math.abs(x.profit).toFixed(0)+'</small></td></tr>'}).join("")+'</table></div>'+
@@ -1220,7 +1224,7 @@ function legStory(l){
       if(pp.injury)S.matchup.push("Injury report: "+pp.injury);else if(pp.missedLast)S.matchup.push("Missed his team's last game")}
     var w=r&&r.n?Math.round(100*r.n/(r.n+15)):0;
     S.how.push(w?"His record gets "+w+"% of the weight and the book's price the rest (more games, more weight on him)":"Book's price only");
-    if(l.p0!=null&&Math.abs(l.p0-l.p)>=0.01)S.how.push("Graded results for legs like this tuned it from "+pct(l.p0)+" to "+pct(l.p));
+    if(l.p0!=null&&Math.abs(l.p0-l.p)>=0.01)S.how.push("Graded results for picks like this tuned it from "+pct(l.p0)+" to "+pct(l.p));
   }else{
     var t0=l.t.replace(/^1/,""),h1=l.t.charAt(0)==="1",side=/^(ml|sp)/.test(t0),tm=side?(/-a$/.test(t0)?m.away:m.home):null,isH=tm&&tm===m.home,op=side?(isH?m.away:m.home):null;
     var teams=side?[tm]:[m.away,m.home];
@@ -1258,15 +1262,15 @@ function slipWhy(legs,name){
   var C=slipChance(legs,name),raw=C.raw||0,h=C.h,ch=C.ch||0,be=1/d,b=SPORT==="nfl"&&name&&BTR&&BTR.slips&&BTR.slips[name],F=slipFlags(legs);
   var avg=legs.reduce(function(a,l){return a+l.p},0)/legs.length,bk=BTR&&BTR.legs&&BTR.legs.byP&&BTR.legs.byP[Math.min(9,Math.floor(avg*10))];
   var anyProp=legs.some(function(l){return l.kind==="p"});
-  var steps=[anyProp?'<li><b>Each leg:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>':'<li><b>Each leg:</b> we take the sportsbook\'s price, remove its cut to get a fair chance, and adjust it by how those kinds of bets did in past seasons.</li>',
-    '<li><b>Multiply:</b> '+legs.map(function(l){return pct(l.p)}).join(" × ")+' = <b>'+pct(raw)+'</b> if the legs were independent.</li>'];
+  var steps=[anyProp?'<li><b>Each pick:</b> we start from the player\'s recent games and his record at this exact line, blend in the sportsbook\'s own price (the less history, the more we lean on the book), then adjust for the defense and weather.</li>':'<li><b>Each pick:</b> we take the sportsbook\'s price, remove its cut to get a fair chance, and adjust it by how those kinds of bets did in past seasons.</li>',
+    '<li><b>Multiply:</b> '+legs.map(function(l){return pct(l.p)}).join(" × ")+' = <b>'+pct(raw)+'</b> if the picks were independent.</li>'];
   if(C.cf.pairs.length){var pw=C.cf.pairs.slice().sort(function(a,b){return Math.abs(b.m-1)-Math.abs(a.m-1)}).slice(0,3).map(function(q){return esc(legs[q.i].n)+" and "+esc(legs[q.j].n)+(q.m>=1?" tend to hit together":" tend to pull against each other")+" ("+(q.m>=1?"+":"−")+Math.abs(Math.round((q.m-1)*100))+"%)"});
     steps.push('<li><b>Same game:</b> '+pw.join("; ")+'. From how pairs like these finished over three past seasons, '+pct(raw)+' becomes <b>'+pct(C.c1)+'</b>.</li>')}
-  if(h&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
-  if(!name&&legs.length>1&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>Parlay check:</b> in past seasons, '+legs.length+'-leg parlays hit about '+Math.round(C.f*100)+'% as often as their legs suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
-  if(sg)steps.push('<li><b>Payout:</b> some legs come from the same game, so your book will pay less than shown here.</li>');
+  if(h&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>History check:</b> "'+esc(name)+'" parlays hit '+h.w+' of '+h.n+' times in past seasons, '+(h.fac<1?"less":"more")+' than their picks suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
+  if(!name&&legs.length>1&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>Parlay check:</b> in past seasons, '+legs.length+'-pick parlays hit about '+Math.round(C.f*100)+'% as often as their picks suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
+  if(sg)steps.push('<li><b>Payout:</b> some picks come from the same game, so your book will pay less than shown here.</li>');
   if(F.red.length)steps.push('<li><b>⚑ Red flag:</b> '+F.red.map(esc).join("; ")+'.</li>');
-  if(bk&&bk.n)steps.push('<li><b>Track record:</b> in past seasons, legs we rated '+Math.floor(avg*10)*10+'–'+(Math.floor(avg*10)*10+10)+'% hit '+pct(bk.w/bk.n)+' of the time ('+bk.n.toLocaleString()+' legs).</li>');
+  if(bk&&bk.n)steps.push('<li><b>Track record:</b> in past seasons, picks we rated '+Math.floor(avg*10)*10+'–'+(Math.floor(avg*10)*10+10)+'% hit '+pct(bk.w/bk.n)+' of the time ('+bk.n.toLocaleString()+' picks).</li>');
   steps.push('<li><b>Price vs chance:</b> at '+am(d)+' you need it to hit '+pct(be)+' of the time to break even. We think it hits '+pct(ch)+(ch>=be*1.03?", a little better than the price, but small edges swing a lot over a few bets.":ch>=be*0.97?", about what the price says.":", less than the price needs, so it loses money over many tries. Bet it for fun, not as an edge.")+'</li>');
   if(b&&b.n>=10)steps.push('<li><b>This type in past seasons:</b> '+b.w+'–'+(b.n-b.w)+', '+(b.profit>=0?"+":"-")+'$'+Math.abs(b.profit).toFixed(0)+' at $10 a slip.</li>');
   return'<div class="why"><div class="fbh"><b>How we got '+pct(ch)+'</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+legs.map(legBreakdown).join("")+'<ol class="wst">'+steps.join("")+'</ol><p class="wnote">Estimates, not guarantees. One game is a coin toss; these numbers only hold up over many bets.</p></div>';
@@ -1274,7 +1278,7 @@ function slipWhy(legs,name){
 function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
-  var shop=bd>x.d*1.02?'<p class="mt">Shop each leg for the best price: up to '+am(bd)+'</p>':"";
+  var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
   return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" legs"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big">'+Math.round(x.ch*100)+'%<small>to hit'+(x.raw!==null&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+Math.round(x.raw*100)+"%":"")+'</small></div>':"")+'<div class="nm">'+esc(p.n)+'</div>'+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
@@ -1388,18 +1392,20 @@ function renderParlays(){
 // "How to read these cards", per sport: only what that sport actually uses, plus where its numbers come from
 function legendHTML(){
   var nfl=SPORT==="nfl",props=SPORT==="nfl"||SPORT==="nba",P=[];
-  var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 154,000 legs graded in a replay of the 2023–25 seasons, and every pick we've graded live this season.",
+  var src={nfl:"Every player's games since 2023 (nflverse box scores), every team's closing lines since 2021, about 154,000 picks graded in a replay of the 2023–25 seasons, and every pick we've graded live this season.",
     nba:"Every player's box scores from last season and this one (ESPN), every team's closing lines over the same games (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), and every pick we've graded live so far.",
     cfb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far.",
     cbb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far."}[SPORT];
-  P.push('<p><b>Where the % comes from</b> '+src+' Open any leg (ⓘ on Build, or How we got this % on a card) to see its price, recent form, past seasons, matchup and the math.</p>');
-  if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact legs, and most Proven types are long shots that win rarely but pay big.</p>');
+  P.push('<p><b>Reading the numbers</b> <b>To win</b> = pick who wins the game. <b>Spread</b> (like −3.5) = the favorite has to win by more than that; the other team (+3.5) can lose by less and still count. <b>Over / Under</b> = total points scored by both teams. <b>−138</b> = the favorite: you risk more than you win ($10 wins $7.25). <b>+110</b> = the underdog: you win more than you risk ($10 wins $11). <b>Pick</b> = one bet inside a parlay; betting apps call it a "leg."</p>');
+  P.push('<p><b>% to hit</b> Our honest estimate that every pick wins. It\'s usually low, because each pick has to win. Most parlays lose, and that\'s normal; the payout is what makes up for it. A 25% parlay hits about 1 time in 4.</p>');
+  P.push('<p><b>Where the % comes from</b> '+src+' Open any pick (ⓘ on Build, or How we got this % on a card) to see its price, recent form, past seasons, matchup and the math.</p>');
+  if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact picks, and most Proven types are long shots that win rarely but pay big.</p>');
     P.push('<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>')}
-  P.push('<p><b>adj. from 59%</b> Legs multiplied together overstate a parlay, so the chance is corrected'+(nfl?' by how often this type really hit in past seasons':' using how NFL parlays really hit in our replay (this sport doesn\'t have its own replay yet)')+'.</p>');
-  P.push('<p><span class="hb gr">All green</span> Every leg is 70%+ to hit. <span class="hb so">Spread out</span> Every leg is from a different game, so one bad game can only cost you one leg. <span class="hb rf">⚑ Red flag</span> Something to check first: a leg under 45%'+(props?', an injury tag, a player who rarely clears this line':'')+', or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>');
-  P.push('<p><b>Same game</b> '+(nfl?'Legs from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).':'A side and the total from the same game get adjusted for how those pairs finished together in past seasons.')+'</p>');
+  P.push('<p><b>adj. from 59%</b> Picks multiplied together overstate a parlay, so the chance is corrected'+(nfl?' by how often this type really hit in past seasons':' using how NFL parlays really hit in our replay (this sport doesn\'t have its own replay yet)')+'.</p>');
+  P.push('<p><span class="hb gr">All green</span> Every pick is 70%+ to hit. <span class="hb so">Spread out</span> Every pick is from a different game, so one bad game can only cost you one pick. <span class="hb rf">⚑ Red flag</span> Something to check first: a pick under 45%'+(props?', an injury tag, a player who rarely clears this line':'')+', or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>');
+  P.push('<p><b>Same game</b> '+(nfl?'Picks from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).':'A side and the total from the same game get adjusted for how those pairs finished together in past seasons.')+'</p>');
   P.push('<p><b>Safest · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>');
-  P.push('<p><b>Circle colors</b> Each leg\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p>');
+  P.push('<p><b>Circle colors</b> Each pick\'s chance to hit: <span style="color:#36D399">green 70%+</span>, <span style="color:#F7C600">yellow 50–69%</span>, <span style="color:#FF6B5E">red under 50%</span>.</p>');
   return'<div class="legend"><b>How to read these cards</b>'+P.join("")+'</div>';
 }
 var DIVS={nfl:{"AFC East":["BUF","MIA","NE","NYJ"],"AFC North":["BAL","CIN","CLE","PIT"],"AFC South":["HOU","IND","JAX","TEN"],"AFC West":["DEN","KC","LV","LAC"],"NFC East":["DAL","NYG","PHI","WAS"],"NFC North":["CHI","DET","GB","MIN"],"NFC South":["ATL","CAR","NO","TB"],"NFC West":["ARI","LA","SF","SEA"]},
@@ -1505,10 +1511,10 @@ function bothSlips(g){
   if(!A.length||!H.length)return[];
   var take=function(list,used,n){var out=[];list.forEach(function(x){if(out.length<n&&!used[x.who]){used[x.who]=1;out.push(x)}});return out};
   var mk=function(n,d,arr){return{n:n,d:d,l:arr.map(function(x){return x.leg?x.leg:x})}},out=[];
-  var u1={};var a1=take(A,u1,1),h1=take(H,u1,1);out.push(mk("Best of Both","The single most likely leg from each team.",a1.concat(h1)));
-  var u2={};var a2=take(A,u2,1),h2=take(H,u2,1),x3=take(legs,u2,1);if(x3.length)out.push(mk("Both Teams 3","The best leg from each team, plus the next most likely leg from either side.",a2.concat(h2,x3)));
-  var u3={};var a3=take(A,u3,2),h3=take(H,u3,2);if(a3.length===2&&h3.length===2)out.push(mk("Both Teams 4","The two most likely legs from each team.",a3.concat(h3)));
-  if(tot&&tot.p>=0.45)out.push(mk("Both Teams + Total","The best leg from each team plus the likelier side of the game total.",a1.concat(h1,[tot])));
+  var u1={};var a1=take(A,u1,1),h1=take(H,u1,1);out.push(mk("Best of Both","The single most likely pick from each team.",a1.concat(h1)));
+  var u2={};var a2=take(A,u2,1),h2=take(H,u2,1),x3=take(legs,u2,1);if(x3.length)out.push(mk("Both Teams 3","The best pick from each team, plus the next most likely pick from either side.",a2.concat(h2,x3)));
+  var u3={};var a3=take(A,u3,2),h3=take(H,u3,2);if(a3.length===2&&h3.length===2)out.push(mk("Both Teams 4","The two most likely picks from each team.",a3.concat(h3)));
+  if(tot&&tot.p>=0.45)out.push(mk("Both Teams + Total","The best pick from each team plus the likelier side of the game total.",a1.concat(h1,[tot])));
   return out;
 }
 var TSIDE="team";
@@ -1519,7 +1525,7 @@ function renderTeamLower(){
   $("teamSide").innerHTML=r.g?[[m.away,r.g.away],[m.home,r.g.home]].map(function(t){return'<button data-side="'+esc(t[0])+'" aria-pressed="'+(TSIDE==="team"&&t[0]===v)+'">'+esc(t[1])+'</button>'}).join("")+'<button data-side="BOTH" aria-pressed="'+(TSIDE==="both")+'">Both</button>':"";
   if(TSIDE==="both"&&r.g){
     $("teamParH").textContent=r.g.away+" + "+r.g.home+" parlays";
-    $("teamNote").textContent=(COL?"The strongest game-line combos in ":"The best legs from each team in ")+r.g.away+" at "+r.g.home+(COL?".":", at least one from each side.")+" Same-game parlays, so your book's payout will be lower than shown.";
+    $("teamNote").textContent=(COL?"The strongest game-line combos in ":"The best picks from each team in ")+r.g.away+" at "+r.g.home+(COL?".":", at least one from each side.")+" Same-game parlays, so your book's payout will be lower than shown.";
     renderPresetRow("pr-team",bothSlips(r.g),"b");
     var bp=PROPS.filter(function(p){return p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
     $("teamProps").innerHTML=bp.length?playerGroups(bp).map(playerCard).join(""):'<p class="empty">No rated props for this game yet.</p>';
@@ -1571,14 +1577,14 @@ function renderBuild(){
     (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>';
   // live slip summary
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});
-  if(!legs.length){$("bSlip").innerHTML='<div class="bslip empty2">Your parlay is empty. Tap legs below to add them.</div>';return}
+  if(!legs.length){$("bSlip").innerHTML='<div class="bslip empty2">Your parlay is empty. Tap 2 or more picks below. Every pick has to win for a parlay to pay.</div>';return}
   var d=1,raw=1,evs={},sg=false,who={},dup=false;legs.forEach(function(l){d*=dec(l.a);raw*=(l.p||0.5);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.player){if(who[l.player])dup=true;who[l.player]=1}});
   var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
   var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+(ch>=0.45?"var(--green)":ch>=0.2?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+
-    '<div class="mt">'+legs.length+' leg'+(legs.length>1?"s":"")+' · $10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(0)+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-leg parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
+    '<div class="mt">'+legs.length+' leg'+(legs.length>1?"s":"")+' · $10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(0)+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
     legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small></span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
-    (sg?'<p class="sg">Some legs are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
-    (dup?'<p class="sg">Two legs on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
+    (sg?'<p class="sg">Some picks are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
+    (dup?'<p class="sg">Two picks on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
     '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" id="bOpen">Open slip to bet ›</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
   $("bSlip").innerHTML=whyWrap(front,legs,"");
 }
@@ -1604,14 +1610,14 @@ function renderCLV(){
   if(!L.length){el.innerHTML='<p class="empty">Starts with this week\'s picks: each one\'s first posted price against its last price before kickoff. The first numbers show up once those games start.</p>';return}
   var A=clvSum(L),G=clvSum(L.filter(function(x){return x.kind==="g"})),P=clvSum(L.filter(function(x){return x.kind==="p"}));
   var gr=function(f){var a=L.filter(function(x){return f(x)&&(x.result==="won"||x.result==="lost")}),w=a.filter(function(x){return x.result==="won"}).length;return a.length?Math.round(100*w/a.length)+"% <small>("+w+"/"+a.length+")</small>":"—"};
-  var row=function(nm,x){return'<tr><td>'+nm+'</td><td class="r">'+(x.n?Math.round(100*x.beat/x.n)+"% beat <small>("+x.beat+" of "+x.n+")</small><br><small>"+(x.avg>=0?"+":"")+(x.avg*100).toFixed(1)+" pts a leg · "+x.lost+" moved against</small>":"—")+'</td></tr>'};
+  var row=function(nm,x){return'<tr><td>'+nm+'</td><td class="r">'+(x.n?Math.round(100*x.beat/x.n)+"% beat <small>("+x.beat+" of "+x.n+")</small><br><small>"+(x.avg>=0?"+":"")+(x.avg*100).toFixed(1)+" pts a pick · "+x.lost+" moved against</small>":"—")+'</td></tr>'};
   var top=L.filter(function(x){return x.clv>0}).sort(function(a,b){return b.clv-a.clv}).slice(0,3);
   el.innerHTML='<div class="stats"><div class="stat"><span class="num '+(A.beat>=A.lost?"pos":"neg")+'">'+Math.round(100*A.beat/A.n)+'%</span><span>Picks the line moved toward</span></div>'+
     '<div class="stat"><span class="num">'+Math.round(100*A.lost/A.n)+'%</span><span>Moved against us</span></div>'+
-    '<div class="stat"><span class="num '+(A.avg>=0?"pos":"neg")+'">'+(A.avg>=0?"+":"")+(A.avg*100).toFixed(1)+'</span><span>Avg points of chance gained per leg</span></div>'+
-    '<div class="stat"><span class="num">'+A.n+'</span><span>Legs tracked</span></div></div>'+
+    '<div class="stat"><span class="num '+(A.avg>=0?"pos":"neg")+'">'+(A.avg>=0?"+":"")+(A.avg*100).toFixed(1)+'</span><span>Avg points of chance gained per pick</span></div>'+
+    '<div class="stat"><span class="num">'+A.n+'</span><span>Picks tracked</span></div></div>'+
     '<div class="card"><table class="ht">'+row("Game lines",G)+row("Player props",P)+
-      '<tr><td>When we beat the close</td><td class="r">legs hit '+gr(function(x){return x.clv>0.004})+'</td></tr><tr><td>When it moved against us</td><td class="r">legs hit '+gr(function(x){return x.clv<-0.004})+'</td></tr></table></div>'+
+      '<tr><td>When we beat the close</td><td class="r">picks hit '+gr(function(x){return x.clv>0.004})+'</td></tr><tr><td>When it moved against us</td><td class="r">picks hit '+gr(function(x){return x.clv<-0.004})+'</td></tr></table></div>'+
     (top.length?'<p class="sub" style="margin-top:8px">Biggest moves our way: '+top.map(function(x){return"<b>"+esc(x.n)+"</b> "+esc(clvTxt(x))}).join(" · ")+'</p>':"")+
     '<p class="sub">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
 }
@@ -1649,16 +1655,16 @@ function renderWeek(){
   var nm=function(s){return esc(s.name)+' <small>· '+esc(s.group)+'</small>'};
   var rows=[];
   if(R.best)rows.push(['Best hit',nm(R.best)+'<br><small>'+am(R.best.dec)+' · $10 won '+money(10*(R.best.dec-1))+'</small>']);
-  if(R.miss){var ml=R.miss.s.legs.filter(function(x){return x.result==="lost"})[0];rows.push(['Toughest miss',nm(R.miss.s)+'<br><small>One leg away ('+Math.round(R.miss.ch*100)+'% to hit): '+esc(ml.n)+(ml.actual!==undefined&&!ml.td?" ("+ml.actual+")":"")+'</small>'])}
+  if(R.miss){var ml=R.miss.s.legs.filter(function(x){return x.result==="lost"})[0];rows.push(['Toughest miss',nm(R.miss.s)+'<br><small>One pick away ('+Math.round(R.miss.ch*100)+'% to hit): '+esc(ml.n)+(ml.actual!==undefined&&!ml.td?" ("+ml.actual+")":"")+'</small>'])}
   if(R.types.length){var b=R.types[0],z=R.types[R.types.length-1];rows.push(['Best type',esc(b.k)+'<br><small>'+b.w+'–'+(b.n-b.w)+' · '+money(b.pr)+'</small>']);if(R.types.length>1&&z.pr<0)rows.push(['Worst type',esc(z.k)+'<br><small>'+z.w+'–'+(z.n-z.w)+' · '+money(z.pr)+'</small>'])}
   if(R.fw+R.fl)rows.push([esc(R.fav)+' parlays',R.fw+'–'+R.fl]);
-  if(R.cs.n)rows.push(['Report cards',R.cs.hit+' of '+R.cs.n+' legs hit<br><small>books expected '+R.cs.book.toFixed(1)+'</small>']);
-  if(R.clv.n)rows.push(['Closing line',Math.round(100*R.clv.beat/R.clv.n)+'% of picks moved our way<br><small>'+(R.clv.avg>=0?"+":"")+(R.clv.avg*100).toFixed(1)+' pts a leg · '+R.clv.n+' legs</small>']);
+  if(R.cs.n)rows.push(['Report cards',R.cs.hit+' of '+R.cs.n+' picks hit<br><small>books expected '+R.cs.book.toFixed(1)+'</small>']);
+  if(R.clv.n)rows.push(['Closing line',Math.round(100*R.clv.beat/R.clv.n)+'% of picks moved our way<br><small>'+(R.clv.avg>=0?"+":"")+(R.clv.avg*100).toFixed(1)+' pts a pick · '+R.clv.n+' picks</small>']);
   el.innerHTML='<div class="card wkc"><div class="wkh"><h3>'+esc(wkLabel(WKSEL))+' <span class="badge '+(R.final?"won":"")+'">'+(R.final?"Final":"In progress")+'</span></h3><div class="wknav"><button data-wk="'+(i+1)+'" aria-label="Earlier week"'+(i>=keys.length-1?" disabled":"")+'>‹</button><button data-wk="'+(i-1)+'" aria-label="Later week"'+(i<=0?" disabled":"")+'>›</button></div></div>'+
     '<p class="sub" style="margin:2px 0 8px">'+d(R.t0)+(d(R.t0)!==d(R.t1)?" – "+d(R.t1):"")+(R.open?" · "+R.open+" slip"+(R.open>1?"s":"")+" still waiting on box scores":"")+'</p>'+
     '<div class="stats"><div class="stat"><span class="num">'+R.w+"-"+R.l+(R.pu?"-"+R.pu:"")+'</span><span>Slips won-lost</span></div>'+
     '<div class="stat"><span class="num '+(R.pr>=0?"pos":"neg")+'">'+money(R.pr)+'</span><span>Profit at $10 each'+(R.risk?" ("+(R.pr>=0?"+":"")+Math.round(100*R.pr/R.risk)+"%)":"")+'</span></div>'+
-    '<div class="stat"><span class="num">'+(R.gl?Math.round(100*R.hit/R.gl)+"%":"–")+'</span><span>Legs hit'+(R.gl?" ("+R.hit+" of "+R.gl+")":"")+'</span></div>'+
+    '<div class="stat"><span class="num">'+(R.gl?Math.round(100*R.hit/R.gl)+"%":"–")+'</span><span>Picks hit'+(R.gl?" ("+R.hit+" of "+R.gl+")":"")+'</span></div>'+
     '<div class="stat"><span class="num">'+(R.gl?Math.round(100*R.said/R.gl)+"%":"–")+'</span><span>What we said'+(R.gl?(Math.abs(R.said/R.gl-R.hit/R.gl)<0.03?" · right on":R.hit/R.gl<R.said/R.gl?" · ran hot":" · ran cold"):"")+'</span></div></div>'+
     (rows.length?'<table class="ht" style="margin-top:10px">'+rows.map(function(r){return'<tr><td>'+r[0]+'</td><td class="r">'+r[1]+'</td></tr>'}).join("")+'</table>':"")+
     (R.done.length?'<p style="margin:10px 0 0"><button class="btn" data-wkshare="1">Share image</button></p>':"")+'</div>';
@@ -1677,9 +1683,9 @@ function shareWeek(){
   box(0,R.w+"-"+R.l,"slips won-lost");box(1,money(R.pr).replace(".00",""),"profit at $10\neach",R.pr>=0?green:red);box(2,R.gl?Math.round(100*R.hit/R.gl)+"%":"–","legs hit");box(3,R.gl?Math.round(100*R.said/R.gl)+"%":"–","what we said");
   var y=480,line=function(lab,val,sub){x.fillStyle=flag;x.font="700 30px "+F;x.fillText(lab.toUpperCase(),56,y);x.fillStyle="#fff";x.font="34px "+S;x.fillText(val.length>48?val.slice(0,47)+"…":val,56,y+44);if(sub){x.fillStyle=mut;x.font="26px "+S;x.fillText(sub.length>64?sub.slice(0,63)+"…":sub,56,y+80)}y+=sub?130:100};
   if(R.best)line("Best hit",R.best.name+" · "+R.best.group,am(R.best.dec)+" · $10 won "+money(10*(R.best.dec-1)));
-  if(R.miss){var ml=R.miss.s.legs.filter(function(q){return q.result==="lost"})[0];line("Toughest miss",R.miss.s.name+" · "+R.miss.s.group,"one leg away: "+ml.n)}
+  if(R.miss){var ml=R.miss.s.legs.filter(function(q){return q.result==="lost"})[0];line("Toughest miss",R.miss.s.name+" · "+R.miss.s.group,"one pick away: "+ml.n)}
   if(R.fw+R.fl)line(R.fav+" parlays",R.fw+"–"+R.fl);
-  if(R.cs.n)line("Report cards",R.cs.hit+" of "+R.cs.n+" legs hit","books expected "+R.cs.book.toFixed(1));
+  if(R.cs.n)line("Report cards",R.cs.hit+" of "+R.cs.n+" picks hit","books expected "+R.cs.book.toFixed(1));
   if(R.clv.n)line("Closing line",Math.round(100*R.clv.beat/R.clv.n)+"% of picks moved our way",(R.clv.avg>=0?"+":"")+(R.clv.avg*100).toFixed(1)+" points of chance per leg");
   x.fillStyle=mut;x.font="24px "+S;x.fillText(location.host+location.pathname+"  ·  21+  ·  For entertainment only",56,H-40);
   cv.toBlob(function(b){var file=new File([b],"parlaylabs-"+WKSEL+".png",{type:"image/png"});
@@ -1851,12 +1857,12 @@ function shotMatch(b){var T=shotTeams(),when=b.placed||Date.now(),mus=b.raw.filt
 function shotRead(text){
   var bets=shotParse(text).map(shotMatch),have={};myLoad().forEach(function(x){if(x.betId)have[x.betId]=1});
   bets.forEach(function(b){b.dup=!!(b.id&&have[b.id])});SHOT.bets=SHOT.bets.concat(bets);renderShot();
-  if(!bets.length)toast("Couldn't find a bet in that. Screenshot the bet in My Bets (Open or Settled) so the legs, odds and wager show, then try again.",true)}
+  if(!bets.length)toast("Couldn't find a bet in that. Screenshot the bet in My Bets (Open or Settled) so the picks, odds and wager show, then try again.",true)}
 function renderShot(){
   var el=$("shotOut");if(!el)return;var B=Engine.BOOK_NAMES||{};
   el.innerHTML=SHOT.bets.map(function(b,i){
     var miss=b.match.filter(function(x){return!x.ok}).length;
-    return'<div class="card shotc"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+(b.n?b.n+"-leg parlay":b.legs.length>1?b.legs.length+"-leg parlay":"Single bet")+'</span><span>'+(b.odds!=null?fmt(b.odds):"")+'</span></h3>'+
+    return'<div class="card shotc"><h3 style="display:flex;justify-content:space-between;gap:8px"><span>'+(b.n?b.n+"-pick parlay":b.legs.length>1?b.legs.length+"-pick parlay":"Single bet")+'</span><span>'+(b.odds!=null?fmt(b.odds):"")+'</span></h3>'+
       (b.dup?'<p class="gauto">Already in My bets (same bet ID).</p>':"")+
       '<ul class="rl">'+b.match.map(function(x){return'<li><span><span class="mk">'+(x.ok?"✓":"?")+'</span>'+esc(x.n)+'</span><span>'+(x.a!=null?fmt(x.a):"")+'</span></li>'}).join("")+'</ul>'+
       (miss?'<p class="sub" style="margin:4px 0 0">? = not found on this '+({nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"})[SPORT]+' page. It still saves, but you\'ll mark its result yourself. If it\'s another sport, open that tab and add it there.</p>':"")+
@@ -1864,7 +1870,7 @@ function renderShot(){
       '<label class="sub">Wager $<input data-shotf="stake" data-i="'+i+'" inputmode="decimal" value="'+(b.stake!=null?b.stake.toFixed(2):"")+'" style="width:70px"></label>'+
       '<label class="sub">Odds <input data-shotf="odds" data-i="'+i+'" inputmode="text" value="'+(b.odds!=null?fmt(b.odds):"")+'" style="width:64px"></label>'+
       '<select data-shotf="status" data-i="'+i+'" aria-label="Result"><option value="">Open</option><option value="won"'+(b.status==="won"?" selected":"")+'>Won</option><option value="lost"'+(b.status==="lost"?" selected":"")+'>Lost</option><option value="push"'+(b.status==="push"?" selected":"")+'>Push</option></select></div>'+
-      '<p class="sub" style="margin:6px 0 0">'+(b.pay!=null?"Payout read: $"+b.pay.toFixed(2)+". ":"")+(b.oddsGuess?"Odds weren't readable, so they're worked out from the legs; check them against your app. ":"")+(b.placed?"Placed "+new Date(b.placed).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+". ":"")+'Check the numbers, then save.</p>'+
+      '<p class="sub" style="margin:6px 0 0">'+(b.pay!=null?"Payout read: $"+b.pay.toFixed(2)+". ":"")+(b.oddsGuess?"Odds weren't readable, so they're worked out from the picks; check them against your app. ":"")+(b.placed?"Placed "+new Date(b.placed).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+". ":"")+'Check the numbers, then save.</p>'+
       '<p style="margin:8px 0 0;display:flex;gap:6px"><button class="btn flag" data-shotsave="'+i+'"'+(b.dup?" disabled":"")+'>Save to My bets</button><button class="btn rm" data-shotskip="'+i+'">Skip</button></p></div>'}).join("");
 }
 function shotSave(i){
@@ -1897,7 +1903,7 @@ function slipFromText(text){
   SHOT.slipMeta={betId:b.id||null,pay:b.pay,placed:b.placed||null};
   var n=Object.keys(SLIP).length,cnt=b.n||b.legs.length,dup=b.id&&myLoad().some(function(x){return x.betId===b.id});
   st.innerHTML='<span class="gauto" style="display:block">Read: '+esc((Engine.BOOK_NAMES[b.book]||"app not found")+(b.odds!=null?" · "+fmt(b.odds):"")+(b.stake!=null?" · $"+b.stake.toFixed(2)+" wager":"")+(b.pay!=null?" · pays $"+b.pay.toFixed(2):""))+'.'+
-    (cnt&&n&&cnt!==n?" Your receipt has "+cnt+" legs but this slip has "+n+", so check it's the right slip.":"")+(dup?" This bet is already in My bets.":" Check it, then Save.")+'</span>'}
+    (cnt&&n&&cnt!==n?" Your receipt has "+cnt+" picks but this slip has "+n+", so check it's the right slip.":"")+(dup?" This bet is already in My bets.":" Check it, then Save.")+'</span>'}
 // Paste a copied screenshot: the button reads the clipboard (the phone shows a small Paste bubble to allow it); pasting into the box works too
 async function shotPasteBtn(mode){
   try{if(!navigator.clipboard||!navigator.clipboard.read)throw 0;var items=await navigator.clipboard.read(),imgs=[];
@@ -1924,7 +1930,7 @@ function renderResults(){
       '<div class="stat"><span class="num '+(pr>=0?"pos":"neg")+'">'+money(pr)+'</span><span>Profit betting $10 on each</span></div>'+
       '<div class="stat"><span class="num">'+(risk?Math.round(100*pr/risk)+"%":"–")+'</span><span>Return on money risked</span></div>'+
       '<div class="stat"><span class="num">'+(w+l?Math.round(100*w/(w+l)):0)+'%</span><span>Slips that won</span></div></div>'+
-      '<p class="sub" style="margin-top:10px">Individual legs: game lines hit '+rate(function(x){return x.kind==="g"})+', player props hit '+rate(function(x){return x.kind==="p"})+'. Same-game slips use multiplied prices, so their profit is an estimate.</p>';
+      '<p class="sub" style="margin-top:10px">Individual picks: game lines hit '+rate(function(x){return x.kind==="g"})+', player props hit '+rate(function(x){return x.kind==="p"})+'. Same-game slips use multiplied prices, so their profit is an estimate.</p>';
   }
   var groups={};done.forEach(function(s){var g=groups[s.group]=groups[s.group]||{w:0,l:0,p:0,pr:0};g[s.status==="won"?"w":s.status==="lost"?"l":"p"]++;g.pr+=profit(s)});
   var gk=Object.keys(groups);
@@ -1936,7 +1942,7 @@ function renderResults(){
   renderCards();
   // Estimate vs reality
   var B=CALIB&&CALIB.buckets?Object.keys(CALIB.buckets).map(Number).sort(function(a,b){return a-b}).map(function(k){var x=CALIB.buckets[k];x.k=k;return x}).filter(function(x){return x.n>=10}):[];
-  if(B.length)$("resLearn").innerHTML+='<h3 style="margin:18px 0 4px;font-size:16px">Estimate vs. reality ('+CALIB.legsGraded+' graded legs)</h3><p class="sub" style="margin:0 0 6px">Green bar is how often legs actually hit; the black tick is what we predicted. Close together means our percentages can be trusted.</p>'+
+  if(B.length)$("resLearn").innerHTML+='<h3 style="margin:18px 0 4px;font-size:16px">Estimate vs. reality ('+CALIB.legsGraded+' graded picks)</h3><p class="sub" style="margin:0 0 6px">Green bar is how often picks actually hit; the black tick is what we predicted. Close together means our percentages can be trusted.</p>'+
     B.map(function(x){return'<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>We said '+x.k+"–"+(x.k+10)+'%</span><span>Hit '+Math.round(x.rate*100)+"% of "+x.n+'</span></div><div class="bar2"><i style="width:'+Math.round(x.rate*100)+'%"></i><b style="left:'+Math.round(x.est*100)+'%"></b></div></div>'}).join("");
   var f=$("fRes").value,now=Date.now();
   var list=all.filter(function(s){return s.lock<=now&&(!f||s.status===f||(f==="pending"&&s.status==="open"))}).sort(function(a,b){return b.lock-a.lock}).slice(0,40);
@@ -1955,14 +1961,15 @@ function fdButton(legs){
     if(L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(L.n<legs.length?" ("+L.n+" of "+legs.length+")":"")+'</a>');
     else notes.push(nm+": tap its link next to each leg")});
   if(!btns.length&&!notes.length)return'<p class="sub" style="margin:8px 0 0">Links to your apps show up after the next odds refresh.</p>';
-  return'<div class="sendapps">'+btns.join("")+'</div>'+
-    '<p class="sub" style="margin:6px 0 0">Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'. Check every leg made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
+  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. Your slip here stays saved.</p>'+
+    '<div class="sendapps">'+btns.join("")+'</div>'+
+    '<p class="sub" style="margin:6px 0 0">Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'. Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
 }
 
 // ---------- game report cards ----------
 var CARDSHOW=8;
 function cardList(){return CARDS&&CARDS.cards?Object.keys(CARDS.cards).map(function(k){return CARDS.cards[k]}).filter(function(c){return +new Date(c.t)<=Date.now()}).sort(function(a,b){return new Date(b.t)-new Date(a.t)}):[]}
-function secLabel(k){return{pieces:"Safe legs",straights:"Straights",tds:"Anytime TD"}[k]}
+function secLabel(k){return{pieces:"Safe picks",straights:"Straights",tds:"Anytime TD"}[k]}
 function renderCards(){
   var L=cardList();
   if(!L.length){$("resCards").innerHTML='<p class="empty">The first report cards lock when '+(SPORT==="nba"?"tonight's":"this week's")+' games tip off and get graded after the box scores post.</p>';return}
@@ -2009,8 +2016,8 @@ function renderPresetRow(el,list,prefix){
   if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=dec(l.best?l.best.a:l.a)});
-    var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each leg for the best price: up to '+am(bd)+'</span><br>':"";
-    return whyWrap('<div class="preset"><h3 class="ph">'+p.n+(ch!==null?'<span class="pct2" style="color:'+(ch>=0.5?"var(--green)":ch>=0.25?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game legs move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game legs, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
+    var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"";
+    return whyWrap('<div class="preset"><h3 class="ph">'+p.n+(ch!==null?'<span class="pct2" style="color:'+(ch>=0.5?"var(--green)":ch>=0.25?"var(--flag)":"var(--red)")+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
 function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false")}
 function renderSlip(){
@@ -2018,15 +2025,16 @@ function renderSlip(){
   document.querySelectorAll(".pick").forEach(function(b){var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0],k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
   document.querySelectorAll(".rung").forEach(function(b){var s=SLIP["P|"+b.dataset.p];b.setAttribute("aria-pressed",!!(s&&String(s.line)===b.dataset.l))});
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
-  if(!legs.length){$("legs").innerHTML='<p class="empty">Tap any line or prop to add a leg.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":"");$("sumR").textContent="";return}
+  if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
-  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+'</small></span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+  $("legs").innerHTML=legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small></span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs)+
-    (Engine.chance(legs)!==null?'<p style="margin:8px 0 0">Our estimate: <b>'+Math.round(Engine.chance(legs)*100)+'% to hit</b></p>':"")+
+    (function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}if(c===null)return"";
+      return'<p style="margin:8px 0 0">Our estimate: <b>'+pct(c)+' to hit</b></p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':'The app\'s price says about '+pct(1/d)+', with its cut built in. When ours is higher, the price is in your favor.')+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
-    (legs.length>1?'<p class="warn">Every leg must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some legs share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");
-  $("sumL").textContent=legs.length+(legs.length===1?" leg":" legs")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
+    (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"");
+  $("sumL").textContent=legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
 // ---------- odds sync status: last pull and next scheduled pull ----------
@@ -2102,7 +2110,7 @@ document.addEventListener("click",function(e){
     try{SLIP={};PRE[t.dataset.pre].forEach(function(l){SLIP[l.k]=l});renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
     $("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
-    var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" legs. It's at the bottom of the screen.");
+    var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" picks. It's at the bottom of the screen.");
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];if(!Object.keys(SLIP).length)closeSlip();renderSlip()}
   else if(t.id==="clear"){SLIP={};SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
@@ -2114,7 +2122,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.shotskip!==undefined){SHOT.bets.splice(+t.dataset.shotskip,1);renderShot()}
   else if(t.id==="impBtn"){importBets($("impCode").value);$("impCode").value=""}
   else if(t.id==="placeSave"){
-    var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some legs to the slip first.",true);return}
+    var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length){toast("Add some picks to the slip first.",true);return}
     var d=legs.reduce(function(x,l){return x*dec(l.a)},1),od=parseOdds($("placeOdds").value);
     var bet={id:Date.now().toString(36),sport:SPORT,book:$("placeBook").value,stake:parseFloat($("stake").value)||0,odds:od||Engine.amFromDec(d),saved:Date.now(),
       last:Math.max.apply(null,legs.map(function(l){return +new Date(l.time)||Date.now()})),legs:legs.map(legKeep)};
@@ -2178,11 +2186,11 @@ if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight'
 // ---------- Quick tour: first visit, and any time from the ⓘ button ----------
 var TOUR=[
  ["🧪","Welcome to ParlayLabs","Parlays built from live sportsbook odds and real history: every player's recent games, his record at each line, every team's record against the spread and on overs this season and last, and (NFL) three replayed seasons. Every % is our honest chance to hit.","Pick a sport at the top: NFL, NBA, NCAAF or NCAAB."],
- ["⚡","Parlays tab","<b>ParlayLabs Generator:</b> pick legs, a style (Safe, Balanced, Long shot) and games (one, several or all), and it builds the best one it can and explains every leg. <b>Generate another</b> gives the next best.<br><br>Below it, <b>slate chips</b> show our top 3 parlays for each day or window. Tags: <b>All green</b> (every leg 70%+), <b>Spread out</b> (every leg a different game), <b>⚑ Red flag</b> (something to check first).","Circle colors show each leg's chance: green 70%+, yellow 50–69%, red under 50%."],
- ["ⓘ","Why trust the %?","Every leg tells the same story wherever you open it: <b>The price</b> · <b>Recent form</b> · <b>Past seasons</b> · <b>Matchup</b> (vs this opponent, past meetings, line moves) · <b>How we got the %</b>.<br><br>Tap <b>How we got this %</b> on a parlay to flip it. Same-game legs are adjusted for how pairs like them really finished together. <b>Proven</b> and <b>Weak history</b> (NFL) show how that parlay type did in replayed seasons.","Estimates, not guarantees. They hold up over many bets, not one."],
+ ["⚡","Parlays tab","<b>ParlayLabs Generator:</b> choose how many picks, a style (Safe, Balanced, Long shot) and games (one, several or all), and it builds the best one it can and explains every pick. <b>Generate another</b> gives the next best.<br><br>Below it, <b>slate chips</b> show our top 3 parlays for each day or window. Tags: <b>All green</b> (every pick 70%+), <b>Spread out</b> (every pick a different game), <b>⚑ Red flag</b> (something to check first).","Circle colors show each leg's chance: green 70%+, yellow 50–69%, red under 50%."],
+ ["ⓘ","Why trust the %?","Every pick tells the same story wherever you open it: <b>The price</b> · <b>Recent form</b> · <b>Past seasons</b> · <b>Matchup</b> (vs this opponent, past meetings, line moves) · <b>How we got the %</b>.<br><br>Tap <b>How we got this %</b> on a parlay to flip it. Same-game picks are adjusted for how pairs like them really finished together. <b>Proven</b> and <b>Weak history</b> (NFL) show how that parlay type did in replayed seasons.","Estimates, not guarantees. They hold up over many bets, not one."],
  ["🏈","Players tab","One card per player: each stat with its likeliest lines, how often he's hit it lately and over a longer stretch, and his last 5 games.<br><br>The <b>ParlayLabs Generator</b> here is players only: pick <b>markets</b> (All markets, or check several), <b>Overs, Unders or Both</b>, and games.","Tap any line to add it to your slip."],
  ["🔄","Games tab","Swipe through every game. The front shows each team's record against the spread and on overs this season. <b>Tap a card to flip it</b> for the lines, last 5 games (✓ covered), past meetings and weather.<br><br>Under the card: the ParlayLabs Generator for that game, for either team or <b>Both</b>.","Your ★ team comes first; when they're off, it's the game of the week."],
- ["🛠️","Build tab","Every leg on the board ranked by our chance to hit. <b>Tap a row to add it</b> to your parlay (tap again to remove), or tap <b>ⓘ</b> for its data and history. Filter by game or type, or pick several games.<br><br>Your parlay sits at the top and updates live: honest %, payout, red flags and <b>How we got this %</b>.","Same-game legs get adjusted, and your app will pay less for them than shown."],
+ ["🛠️","Build tab","Every pick on the board ranked by our chance to hit. <b>Tap a row to add it</b> to your parlay (tap again to remove), or tap <b>ⓘ</b> for its data and history. Filter by game or type, or pick several games.<br><br>Your parlay sits at the top and updates live: honest %, payout, red flags and <b>How we got this %</b>.","Same-game picks get adjusted, and your app will pay less for them than shown."],
  ["🧾","Your slip and Results","Tap lines anywhere, or <b>Load slip</b> on a parlay, and it fills the bar at the bottom. Open it to send it to <b>your betting apps</b>, then <b>Save to My bets</b> after you place it.<br><br><b>Results</b>: the weekly report card (every Monday), how our picks did, whether we beat the closing line, and your saved bets.","Tap ↻ for the latest odds and updates."],
  ["★","Your teams and apps","Tap <b>★</b> to set your team for each sport and pick the <b>betting apps</b> you use. Your slip gets an <b>Open in …</b> button for each app, and you choose which app's odds the site shows.","Tap ⓘ at the top any time to see this tour again."]];
 var TI=0;
