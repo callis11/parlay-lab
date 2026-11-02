@@ -59,12 +59,43 @@ function clvOf(l) {
   }
   return +(imp(l.close.a) - imp(l.a1)).toFixed(3);
 }
-function trackClose(legs, priceOf, evOf) {
+function trackClose(legs, priceOf, evOf, both) {
   for (const l of legs) {
     if (+new Date(l.time) <= now) continue; // game started: close is final
     const c = priceOf(l, evOf(l)); if (!c) continue;
+    if (both) { const d = both(evOf(l), Object.assign({}, l, { pt: c.pt !== undefined ? c.pt : l.pt }), BOOK2); if (d !== undefined) c.dk = d; } // DraftKings at the same moment, same line
     l.close = c; l.clv = clvOf(l);
   }
+}
+
+// ---------- FanDuel vs DraftKings ----------
+// The same bet's price at each app (same side, same line); undefined if that app doesn't offer it.
+function priceBoth(odds, data) {
+  const L = {}, P = {};
+  ((odds && odds.lines) || []).forEach(e => { L[e.id] = e; });
+  ((data && data.props) || []).forEach(p => { P[p.event + "|" + p.player + "|" + p.label] = p; });
+  return function (ev, l, book) {
+    if (!book) return undefined;
+    if (l.kind === "g") {
+      const e = L[ev]; const b = e && (e.bookmakers || []).find(x => x.key === book); if (!b) return undefined;
+      const h1 = l.t.charAt(0) === "1", t = l.t.replace(/^1/, ""), k = t.slice(0, 2) === "sp" ? "spreads" : t.slice(0, 2) === "ml" ? "h2h" : "totals";
+      const m = (b.markets || []).find(x => x.key === k + (h1 ? "_h1" : "")); if (!m) return undefined;
+      const name = /-a$/.test(t) ? e.away_team : /-h$/.test(t) ? e.home_team : t === "ov" ? "Over" : "Under";
+      const o = m.outcomes.find(x => x.name === name && (k === "h2h" || x.point === l.pt)); return o ? o.price : undefined;
+    }
+    const p = P[ev + "|" + l.player + "|" + l.label]; const r = p && p.ladder.find(x => x.line === l.line); if (!r) return undefined;
+    return l.side === "under" ? (r.under || {})[book] : (r.prices || {})[book];
+  };
+}
+// $10 on a pick at a price: profit if it won, -10 if it lost
+const flat = (a, won) => won ? 10 * (Engine.dec(a) - 1) : -10;
+function bookSum(rows) { // rows: {fd, dk, won, mk}
+  const o = { n: 0, fdMore: 0, dkMore: 0, same: 0, fd: 0, dk: 0, byMkt: {} };
+  const add = (x, r) => { x.n++; const d = Engine.dec(r.fd) - Engine.dec(r.dk); if (d > 1e-9) x.fdMore++; else if (d < -1e-9) x.dkMore++; else x.same++; x.fd += flat(r.fd, r.won); x.dk += flat(r.dk, r.won); };
+  for (const r of rows) { add(o, r); const m = o.byMkt[r.mk] = o.byMkt[r.mk] || { n: 0, fdMore: 0, dkMore: 0, same: 0, fd: 0, dk: 0 }; add(m, r); }
+  const rd = x => { x.fd = +x.fd.toFixed(2); x.dk = +x.dk.toFixed(2); };
+  rd(o); for (const k in o.byMkt) rd(o.byMkt[k]);
+  return o;
 }
 
 // ---------- record ----------
@@ -73,6 +104,7 @@ function record(store) {
   if (!odds || !data) { console.log("No odds/data to record from."); return; }
   const calib = readJSON(DIR + "calibration.json", null);
   const E = Engine.make(odds, data, BOOK, now, Object.assign({}, Engine.OPTS[SPORT], { calib }));
+  const both = priceBoth(odds, data);
   const seen = {}; // groupKey -> ids made this run
   let added = 0, updated = 0;
   for (const grp of E.allParlays()) {
@@ -94,7 +126,7 @@ function record(store) {
         legs: s.l.map(l => { const m = data.games[l.ev] || {};
           const f = firstOf[l.n];
           return { n: l.n, a: l.a, p: l.p, p0: l.p0, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, team: l.team, label: l.label, td: l.td, time: l.time, ev: l.ev, gid: m.gid, away: m.away, home: m.home,
-            a1: f ? f.a1 : l.a, pt1: f ? f.pt1 : l.pt, t1: f ? f.t1 : now }; }),
+            a1: f ? f.a1 : l.a, pt1: f ? f.pt1 : l.pt, t1: f ? f.t1 : now, dk: both(l.ev, l, BOOK2) }; }),
         status: "open"
       };
       old ? updated++ : added++;
@@ -108,7 +140,7 @@ function record(store) {
   }
   // Keep following each leg's price until its own game starts (later games in a slip keep moving after the slip locks)
   const priceOf = priceIndex(E);
-  for (const id in store.slips) { const s = store.slips[id]; if (["won", "lost", "push"].includes(s.status)) continue; trackClose(s.legs.filter(l => l.ev), priceOf, l => l.ev); }
+  for (const id in store.slips) { const s = store.slips[id]; if (["won", "lost", "push"].includes(s.status)) continue; trackClose(s.legs.filter(l => l.ev), priceOf, l => l.ev, both); }
   console.log(`Recorded: ${added} new, ${updated} refreshed, ${dropped} dropped`);
 }
 
@@ -124,6 +156,7 @@ function buildCards(cards, book) {
   // Fallback book: legs FanDuel doesn't post (e.g. NFL attempts, tackles, kicking) are graded at DraftKings' price
   const E2 = BOOK2 ? Engine.make(odds, data, BOOK2, now, Object.assign({}, Engine.OPTS[SPORT], { calib })) : null;
   const dec = Engine.dec, imp = a => 1 / dec(a) / 1.045;
+  const both = priceBoth(odds, data), px = (ev, l) => ({ fd: both(ev, l, BOOK), dk: both(ev, l, BOOK2) });
   let made = 0;
   const legKey = l => l.player + "|" + l.label + "|" + l.line + "|" + l.side;
   // Every rated prop rung of one event from one engine, as gradebook legs. Players with an injury tag or who missed
@@ -152,7 +185,7 @@ function buildCards(cards, book) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
     if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] }))
-      .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, {})))(rated(E, g.id, BOOK, {})) : []) }; made++; continue; } // college basketball: game lines only
+      .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, {})))(rated(E, g.id, BOOK, {})) : []).map(l => Object.assign(l, px(g.id, l))) }; made++; continue; } // college basketball: game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -177,7 +210,7 @@ function buildCards(cards, book) {
     const tdPicks = onePer(tds.sort((a, b) => b.p - a.p), 5);
     const prev = cards.cards[g.id], firstOf = {};
     if (prev) ["pieces", "straights", "tds"].forEach(k => { if (prev[k]) prev[k].legs.forEach(x => { if (x.a1 !== undefined) firstOf[x.nm] = x.a1; }); });
-    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, a1: firstOf[l.nm] !== undefined ? firstOf[l.nm] : l.a, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p: +(l.p || 0).toFixed(3) })),
+    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, a1: firstOf[l.nm] !== undefined ? firstOf[l.nm] : l.a, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, dk: both(g.id, l, BOOK2), p: +(l.p || 0).toFixed(3) })),
       bookExp: +legs.reduce((s, l) => s + imp(l.a), 0).toFixed(2), ourExp: +legs.reduce((s, l) => s + (l.p || 0), 0).toFixed(2) });
     cards.cards[g.id] = { ev: g.id, gid: meta.gid, away: g.away, home: g.home, aa: meta.away, ha: meta.home, t: g.t, season: meta.season, week: meta.week, saved: now, status: "open",
       pieces: sec(pieces), straights: sec(straights), tds: SPORT === "nfl" ? sec(tdPicks) : null };
@@ -185,7 +218,7 @@ function buildCards(cards, book) {
     const flagged = rated(E, g.id, BOOK, { only: p => !p.healthy, minN: 6, range: true, unders: true });
     const fdAll = all.concat(flagged);
     const book = fdAll.concat(withFallback(g.id, fdAll, { minN: 6, range: true, unders: true }));
-    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: book.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0, bk: l.bk, flag: l.flag })) };
+    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: book.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0, bk: l.bk, flag: l.flag, fd: both(g.id, l, BOOK), dk: both(g.id, l, BOOK2) })) };
     made++;
   }
   return made;
@@ -230,7 +263,8 @@ function gradeLeg(l, games, stats) {
   const cards = readJSON(DIR + "cards.json", { cards: {} });
   cards.book = readJSON(DIR + "gradebook.json", {});
   const graded = readJSON(DIR + "graded-legs.json", { legs: [] });
-  const finals = readJSON(DIR + "finals.json", { games: {} }); // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, estimate, won 1/0, time]
+  const finals = readJSON(DIR + "finals.json", { games: {} });
+  const prices = readJSON(DIR + "pricebook.json", { legs: [] }); // [market, FanDuel price, DraftKings price, won 1/0, time] for every graded leg both apps priced // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, estimate, won 1/0, time]
   if (process.env.RECORD === "true") { record(store); console.log("Report cards built:", buildCards(cards)); }
 
   const open = Object.values(store.slips).filter(s => !["won", "lost", "push"].includes(s.status) && s.lock <= now);
@@ -277,7 +311,7 @@ function gradeLeg(l, games, stats) {
     }
     // Every rated leg: grade, keep only the compact result for learning
     for (const id of openBook) {
-      const b = cards.book[id]; let pending = false; const out = [];
+      const b = cards.book[id]; let pending = false; const out = [], pb = [];
       const gm = games[b.gid];
       if (gm && gm.result !== "") { // final: keep the score (and each graded player's stat) so the site can grade anyone's bets on this game
         const f = finals.games[id] = finals.games[id] || { t: b.t, props: {} };
@@ -289,9 +323,10 @@ function gradeLeg(l, games, stats) {
         if (l.kind === "p" && finals.games[id] && (r === "won" || r === "lost" || r === "push")) finals.games[id].props[l.player + "|" + l.label] = l.actual;
         if (l.kind === "p" && finals.games[id] && r === "void") finals.games[id].props[l.player + "|" + l.label] = null; // didn't play
         if (r === "pending") { pending = true; break; }
+        if ((r === "won" || r === "lost") && l.fd !== undefined && l.fd !== null && l.dk !== undefined && l.dk !== null) pb.push([Engine.category(l).split("|")[0], l.fd, l.dk, r === "won" ? 1 : 0, +new Date(b.t)]);
         if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t)].concat(l.bk ? [l.bk] : []));
       }
-      if (!pending) { graded.legs.push(...out); delete cards.book[id]; }
+      if (!pending) { graded.legs.push(...out); prices.legs.push(...pb); delete cards.book[id]; }
     }
   }
   // Keep about a season of graded legs and 60 days of cards
@@ -332,7 +367,25 @@ function gradeLeg(l, games, stats) {
   const buckets = {};
   for (const x of graded.legs) { const b = Math.min(9, Math.floor(x[1] * 10)); const k = b * 10; const o = buckets[k] = buckets[k] || { n: 0, hits: 0, est: 0 }; o.n++; o.hits += x[2]; o.est += x[1]; }
   for (const k in buckets) { const o = buckets[k]; o.rate = +(o.hits / o.n).toFixed(3); o.est = +(o.est / o.n).toFixed(3); }
-  fs.writeFileSync(DIR + "calibration.json", JSON.stringify({ updated: new Date(now).toISOString(), legsGraded: graded.legs.length, byCat, byStrategy, buckets }));
+  // FanDuel vs DraftKings: every graded leg both apps priced, our own picks (slip + report-card legs, each once),
+  // and our parlays at each app's prices (different-game parlays only: each app prices same-game parlays its own way)
+  prices.legs = prices.legs.filter(x => x[4] > now - 200 * 864e5);
+  const pickRows = [], pseen = {};
+  const addPick = (key, l, fd, dk) => { if (pseen[key] || (l.result !== "won" && l.result !== "lost") || fd == null || dk == null) return; pseen[key] = 1; pickRows.push({ fd, dk, won: l.result === "won" ? 1 : 0, mk: Engine.category(Object.assign({}, l, { a: fd })).split("|")[0] }); };
+  for (const s of all) for (const l of s.legs) { const c = l.close && l.close.dk !== undefined ? l.close : null; addPick(l.ev + "|" + l.n, l, c ? c.a : l.a, c ? c.dk : l.dk); }
+  for (const id in cards.cards) for (const k of ["pieces", "straights", "tds"]) { const sec = cards.cards[id][k]; if (sec) sec.legs.forEach(l => addPick(id + "|" + l.nm, l, l.a, l.dk)); }
+  const par = { n: 0, w: 0, fd: 0, dk: 0, fdMore: 0, dkMore: 0 };
+  for (const s of all) {
+    if (!["won", "lost"].includes(s.status) || s.sg) continue;
+    const L = s.legs.filter(l => l.result !== "void" && l.result !== "push"); if (!L.length || L.some(l => l.dk == null)) continue;
+    const fdD = L.reduce((d, l) => d * Engine.dec(l.a), 1), dkD = L.reduce((d, l) => d * Engine.dec(l.dk), 1), won = s.status === "won";
+    par.n++; if (won) par.w++; par.fd += won ? 10 * (fdD - 1) : -10; par.dk += won ? 10 * (dkD - 1) : -10;
+    if (fdD > dkD + 1e-9) par.fdMore++; else if (dkD > fdD + 1e-9) par.dkMore++;
+  }
+  par.fd = +par.fd.toFixed(2); par.dk = +par.dk.toFixed(2);
+  const books = { rated: bookSum(prices.legs.map(x => ({ mk: x[0], fd: x[1], dk: x[2], won: x[3] }))), picks: bookSum(pickRows), parlays: par };
+  fs.writeFileSync(DIR + "pricebook.json", JSON.stringify(prices));
+  fs.writeFileSync(DIR + "calibration.json", JSON.stringify({ updated: new Date(now).toISOString(), legsGraded: graded.legs.length, byCat, byStrategy, buckets, books }));
   const book = cards.book; delete cards.book;
   cards.updated = new Date(now).toISOString();
   fs.writeFileSync(DIR + "cards.json", JSON.stringify(cards));

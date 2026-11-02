@@ -595,6 +595,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <h2>Beating the closing line</h2>
   <p class="sub">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
   <div id="resCLV"></div>
+  <h2>FanDuel vs DraftKings</h2>
+  <p class="sub">The same pick (same side, same line) at both apps, checked at the same moment before kickoff. A better price doesn't change the chance to hit; it just pays more when it does.</p>
+  <div id="resBooks"></div>
   <h2>Game report cards</h2>
   <p class="sub" id="cardsSub">For every game we lock our top-rated picks at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
   <div id="resCards"></div>
@@ -1723,6 +1726,25 @@ function renderCLV(){
     (top.length?'<p class="sub" style="margin-top:8px">Biggest moves our way: '+top.map(function(x){return"<b>"+esc(x.n)+"</b> "+esc(clvTxt(x))}).join(" · ")+'</p>':"")+
     '<p class="sub">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
 }
+// FanDuel vs DraftKings on the same picks (calibration.json "books", written by picks.js)
+function renderBooks(){
+  var el=$("resBooks");if(!el)return;var B=CALIB&&CALIB.books,P=B&&B.picks;
+  if(!P||!P.n){el.innerHTML='<p class="empty">Shows up once picks priced at both apps are graded.</p>';return}
+  var pc=function(a,n){return n?Math.round(100*a/n)+"%":"–"},m=function(x){return(x<0?"−$":"+$")+Math.abs(x).toFixed(0)};
+  var win=P.dk>P.fd+0.5?"DraftKings":P.fd>P.dk+0.5?"FanDuel":"";
+  var M={};Object.keys(P.byMkt||{}).forEach(function(k){var x=P.byMkt[k],nm=k.replace(/ under$/,""),o=M[nm]=M[nm]||{n:0,fdMore:0,dkMore:0,fd:0,dk:0};o.n+=x.n;o.fdMore+=x.fdMore;o.dkMore+=x.dkMore;o.fd+=x.fd;o.dk+=x.dk});
+  var rows=Object.keys(M).filter(function(k){return M[k].n>=5}).sort(function(a,b){return M[b].n-M[a].n});
+  var R=B.rated,Q=B.parlays;
+  el.innerHTML='<div class="stats"><div class="stat"><span class="num">'+pc(P.dkMore,P.n)+'</span><span>DraftKings paid more</span></div>'+
+    '<div class="stat"><span class="num">'+pc(P.fdMore,P.n)+'</span><span>FanDuel paid more</span></div>'+
+    '<div class="stat"><span class="num">'+pc(P.same,P.n)+'</span><span>Same price</span></div>'+
+    '<div class="stat"><span class="num">'+P.n+'</span><span>Our picks at both apps</span></div></div>'+
+    '<div class="card"><table class="ht"><tr><td>$10 on each of our picks</td><td class="r">FanDuel <b class="'+(P.fd>=0?"pos":"neg")+'">'+m(P.fd)+'</b><br>DraftKings <b class="'+(P.dk>=0?"pos":"neg")+'">'+m(P.dk)+'</b></td></tr>'+
+    (Q&&Q.n?'<tr><td>Our parlays, $10 each<br><small>different-game parlays only</small></td><td class="r">FanDuel <b class="'+(Q.fd>=0?"pos":"neg")+'">'+m(Q.fd)+'</b><br>DraftKings <b class="'+(Q.dk>=0?"pos":"neg")+'">'+m(Q.dk)+'</b><br><small>'+Q.w+"-"+(Q.n-Q.w)+" · DK paid more on "+Q.dkMore+", FD on "+Q.fdMore+'</small></td></tr>':"")+
+    (R&&R.n?'<tr><td>Every pick we rated<br><small>'+R.n+' at both apps</small></td><td class="r">DK paid more '+pc(R.dkMore,R.n)+' · FD '+pc(R.fdMore,R.n)+'</td></tr>':"")+'</table></div>'+
+    (rows.length?'<table style="margin-top:10px"><thead><tr><th>Bet type</th><th>Paid more</th><th>$10 each</th></tr></thead><tbody>'+rows.map(function(k){var x=M[k];return"<tr><td>"+esc(k)+' <small style="color:var(--muted)">('+x.n+')</small></td><td>DK '+pc(x.dkMore,x.n)+"<br>FD "+pc(x.fdMore,x.n)+"</td><td>FD "+m(x.fd)+"<br>DK "+m(x.dk)+"</td></tr>"}).join("")+"</tbody></table>":"")+
+    '<p class="sub" style="margin-top:8px">'+(win?"So far "+win+" has paid a little more on our picks. ":"")+'Picks where the apps offered different lines (say −3 vs −3.5) aren\'t compared, and same-game parlays are left out because each app prices those its own way. Checking both apps before you bet costs nothing and adds up over many bets.</p>';
+}
 // ---------- weekly report card (the "Monday report card") ----------
 var WKSEL=null;
 function etMonday(t){var d=new Date(new Date(t).toLocaleString("en-US",{timeZone:"America/New_York"}));d.setHours(12,0,0,0);var w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return d.toISOString().slice(0,10)}
@@ -2132,7 +2154,7 @@ document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotT
   var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
 document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
 function renderResults(){
-  renderMyBets();renderBacktest();renderWeek();renderCLV();
+  renderMyBets();renderBacktest();renderWeek();renderCLV();renderBooks();
   if($("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},500);
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});

@@ -167,6 +167,11 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Backfill:** Week 8 NFL and the NBA games since Oct 29 were graded from each game's last pre-kickoff commit (1,868 NFL + 1,082 NBA legs added to graded-legs.json). Early reads: NFL solo tackles overs 36% vs 49% est (104); NBA flagged Points overs 24% vs 49% (83).
 - Known quirk left as is: under legs in the gradebook use 1 − the over's estimate (matches the replay), not the under-price blend the site shows.
 
+## FanDuel vs DraftKings prices (Nov 2)
+- `picks.js` `priceBoth(odds, data)` looks up the same bet (same side, same line) at each app. Slip legs keep `dk` next to `a` (same moment, at slip lock) and `close.dk` next to the close; report-card legs keep `dk`; gradebook legs keep `fd` + `dk`. Graded gradebook legs with both prices go to `<sport>/pricebook.json` ([market, fd, dk, won, time], 200 days; added to refresh.yml).
+- `calibration.json` `books`: `rated` (every graded leg at both apps), `picks` (our slip + card legs, each once: close prices when there are both), `parlays` (different-game slips only, payout at each app's prices). Results → **FanDuel vs DraftKings** (`renderBooks()`): who paid more, $10 on each pick at each app, parlays, per bet type (5+).
+- Different lines at the two apps (−3 vs −3.5) aren't compared; same-game parlays are left out (each app prices them its own way). Backfilled from git history for games since Oct 29.
+
 ## Check scores + after-game runs (Nov 1)
 - **Why bets weren't grading:** finals only got written when a workflow ran after games ended, and the schedule had none (college's last Saturday run was 6:55 PM; NBA 8:24 PM; NFL finals.json was empty because the Thursday game graded before finals existed). Also finals.json only holds games/players the site rated.
 - **schedule.json after-game runs** (entries with `why: after-game`): NFL Sun 16:35/20:05/23:50, Mon+Thu 23:50; college football Tue–Sat 23:30, Sat 22:05, Sun 00:50 + 09:05; college basketball daily 23:40 + 01:25; NBA daily 00:05 + 01:15 (staggered because every workflow shares concurrency group `refresh`, which keeps only one pending run).
