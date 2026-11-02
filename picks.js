@@ -2,12 +2,13 @@
 //   RECORD=true node picks.js   -> save/refresh slips that haven't kicked off yet (run after a fresh odds pull)
 //   node picks.js               -> grade only
 // A slip locks when its first game kicks off; the version saved at that point is the one graded.
-// Prices are FanDuel's. Data: nflverse schedule (scores) and weekly player stats.
+// Prices are FanDuel's (DraftKings' for legs FanDuel doesn't post). Data: nflverse schedule (scores) and weekly player stats.
 
 const fs = require("fs");
 const Engine = require("./engine.js");
 
 const BOOK = "fanduel";
+const BOOK2 = process.env.BOOK2 === "none" ? null : "draftkings"; // fallback price for legs FanDuel doesn't post
 // SPORT=nba grades the NBA page from nba/ files (ESPN box scores cached in nba/logs.json)
 const SPORT = process.env.SPORT || "nfl";
 const DIR = SPORT === "nfl" ? "" : SPORT + "/";
@@ -120,13 +121,38 @@ function buildCards(cards, book) {
   if (!odds || !data) return 0;
   const calib = readJSON(DIR + "calibration.json", null);
   const E = Engine.make(odds, data, BOOK, now, Object.assign({}, Engine.OPTS[SPORT], { calib }));
+  // Fallback book: legs FanDuel doesn't post (e.g. NFL attempts, tackles, kicking) are graded at DraftKings' price
+  const E2 = BOOK2 ? Engine.make(odds, data, BOOK2, now, Object.assign({}, Engine.OPTS[SPORT], { calib })) : null;
   const dec = Engine.dec, imp = a => 1 / dec(a) / 1.045;
   let made = 0;
+  const legKey = l => l.player + "|" + l.label + "|" + l.line + "|" + l.side;
+  // Every rated prop rung of one event from one engine, as gradebook legs. Players with an injury tag or who missed
+  // their team's last game are kept (flag: 1) in their own calibration group, so we learn how they really do.
+  // Unders use 1 - the over's estimate, same as before and as the backtest replay.
+  function rated(Ex, ev, bk, opt) {
+    const out = [];
+    for (const p of Ex.P) {
+      if (p.ev !== ev || (opt.only && !opt.only(p))) continue;
+      for (const r of p.rungs) {
+        if (r.p === undefined || (opt.minN && r.n < opt.minN)) continue;
+        const base = { kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line, bk: bk === BOOK ? undefined : bk, flag: p.healthy ? undefined : 1 };
+        if (!opt.range || (r.a >= -400 && r.a <= 250)) out.push(Object.assign({}, base, { side: "over", a: r.a, p0: r.p0 }));
+        if (opt.unders && r.under !== undefined && !p.td && (!opt.range || (r.under >= -400 && r.under <= 250))) out.push(Object.assign({}, base, { side: "under", a: r.under, p0: r.p0 !== undefined ? 1 - r.p0 : undefined }));
+      }
+    }
+    return out;
+  }
+  // FanDuel's legs first; then DraftKings' legs for anything FanDuel doesn't price
+  function withFallback(ev, have, opt) {
+    if (!E2) return [];
+    const seen = {}; have.forEach(l => { if (l.kind === "p") seen[legKey(l)] = 1; });
+    return rated(E2, ev, BOOK2, opt).filter(l => !seen[legKey(l)]);
+  }
   for (const g of E.G) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
     if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] }))
-      .concat(SPORT === "cfb" ? E.P.filter(p => p.ev === g.id).flatMap(p => p.rungs.filter(r => r.p !== undefined).map(r => ({ kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line, side: "over", a: r.a, p0: r.p0 }))) : []) }; made++; continue; } // no props: grade game lines only
+      .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, {})))(rated(E, g.id, BOOK, {})) : []) }; made++; continue; } // college basketball: game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -155,7 +181,11 @@ function buildCards(cards, book) {
       bookExp: +legs.reduce((s, l) => s + imp(l.a), 0).toFixed(2), ourExp: +legs.reduce((s, l) => s + (l.p || 0), 0).toFixed(2) });
     cards.cards[g.id] = { ev: g.id, gid: meta.gid, away: g.away, home: g.home, aa: meta.away, ha: meta.home, t: g.t, season: meta.season, week: meta.week, saved: now, status: "open",
       pieces: sec(pieces), straights: sec(straights), tds: SPORT === "nfl" ? sec(tdPicks) : null };
-    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: all.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0 })) };
+    // the gradebook also takes injury-tagged / missed-last-game players (flagged) and DraftKings-only legs
+    const flagged = rated(E, g.id, BOOK, { only: p => !p.healthy, minN: 6, range: true, unders: true });
+    const fdAll = all.concat(flagged);
+    const book = fdAll.concat(withFallback(g.id, fdAll, { minN: 6, range: true, unders: true }));
+    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: book.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0, bk: l.bk, flag: l.flag })) };
     made++;
   }
   return made;
@@ -259,7 +289,7 @@ function gradeLeg(l, games, stats) {
         if (l.kind === "p" && finals.games[id] && (r === "won" || r === "lost" || r === "push")) finals.games[id].props[l.player + "|" + l.label] = l.actual;
         if (l.kind === "p" && finals.games[id] && r === "void") finals.games[id].props[l.player + "|" + l.label] = null; // didn't play
         if (r === "pending") { pending = true; break; }
-        if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t)]);
+        if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t)].concat(l.bk ? [l.bk] : []));
       }
       if (!pending) { graded.legs.push(...out); delete cards.book[id]; }
     }

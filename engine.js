@@ -62,7 +62,8 @@
   function category(leg) {
     var t2 = leg.kind === "g" ? leg.t.replace(/^1/, "") : "", h1 = leg.kind === "g" && leg.t.charAt(0) === "1" ? "1H " : "";
     var mk = leg.kind === "g" ? h1 + (t2.slice(0, 2) === "ml" ? "Moneyline" : t2.slice(0, 2) === "sp" ? "Spread" : "Total") : leg.label + (leg.side === "under" ? " under" : "");
-    return mk + "|" + bucket(leg.a);
+    // flag: injury tag or missed his team's last game; learned separately from healthy players
+    return mk + "|" + bucket(leg.a) + (leg.flag ? "|flag" : "");
   }
   function calibrate(p, cat, calib) {
     var c = calib && calib.byCat && calib.byCat[cat];
@@ -175,21 +176,21 @@
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
     ((data && data.props) || []).forEach(function (p) {
       var g = live[p.event]; if (!g) return;
+      // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
+      var healthy = !p.injury && !p.missedLast, flag = healthy ? undefined : 1;
       var rungs = p.ladder.filter(function (r) { return r.prices[book] !== undefined; }).map(function (r) {
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
         var p0;
         var ua = r.under ? r.under[book] : undefined, pu, pu0;
-        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under" }), opts.calib); }
+        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib); }
         if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
-          pa = calibrate(pa, category({ kind: "p", label: p.label, a: a }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
+          pa = calibrate(pa, category({ kind: "p", label: p.label, a: a, flag: flag }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
         return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
       });
       if (!rungs.length) return;
-      // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
-      var healthy = !p.injury && !p.missedLast;
       P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy,
         label: p.label, td: p.td, avg: p.avg, recent: p.recent, rungs: rungs,
         best: Math.max.apply(null, rungs.map(function (r) { return r.ev === null || r.n < 6 || r.a > 400 ? -9 : r.ev; })),
