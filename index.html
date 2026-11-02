@@ -6,7 +6,7 @@
 <title>ParlayLabs</title>
 <meta property="og:title" content="ParlayLabs">
 <meta property="og:site_name" content="ParlayLabs">
-<meta property="og:image" content="https://callis11.github.io/parlay-lab/icon-512.png">
+<meta property="og:image" content="https://parlaylabs.net/icon-512.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.json">
@@ -492,6 +492,11 @@ select,input,textarea{font-size:max(16px,1em)}
   <div class="gmulti approw" id="appRows"></div>
   <p class="fsub" style="margin:2px 0 4px;color:var(--ink);font-weight:700">Show odds from</p><div class="seg" id="oddsFrom" style="margin-bottom:10px"></div>
   <p class="fsub" style="margin:0 0 8px">Saved on this phone until you delete the app from your home screen. Change it any time with ★.</p>
+  <details class="mvbox"><summary class="fsub" style="cursor:pointer;color:var(--ink);font-weight:700">📦 Move my data to another app or phone</summary>
+    <p class="fsub">Your saved bets, slip, teams, apps and settings live on this phone, tied to this web address. To bring them to a new home-screen app (like the new parlaylabs.net), tap <b>Copy my data</b> here, open the new app, come back to ★ › Move my data, paste it, and tap <b>Bring it over</b>.</p>
+    <p style="margin:6px 0"><button class="btn flag" id="mvCopy">Copy my data</button> <span class="fsub" id="mvStat"></span></p>
+    <textarea id="mvIn" rows="3" placeholder="Paste your data code here" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea>
+    <p style="margin:6px 0"><button class="btn" id="mvGo">Bring it over</button></p></details>
   <div class="tnav"><button class="lnk" id="favCancel">Cancel</button><button class="btn flag" id="favSave">Save</button></div>
 </div></div>
 <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="How to use ParlayLabs"><div class="tbox">
@@ -2501,6 +2506,19 @@ try{var _bm=localStorage.getItem("bmode");if(_bm)BLD.mode=_bm}catch(e){}
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
 $("favBtn").onclick=function(){favOpen()};
+// ---------- Move my data: every ParlayLabs setting on this phone as one code (base64 JSON), for a new web address or phone ----------
+function mvCode(){var o={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);o[k]=localStorage.getItem(k)}return"PLMOVE1:"+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,at:Date.now(),from:location.host,d:o}))))}
+$("mvCopy").onclick=function(){var c=mvCode(),n=0;try{n=JSON.parse(localStorage.getItem("mybets")||"[]").length}catch(e){}
+  var done=function(ok){$("mvStat").textContent=ok?"Copied ("+n+" saved bet"+(n===1?"":"s")+"). Now open the new app.":"Couldn't copy. The code is in the box below: select it all and copy.";if(!ok)$("mvIn").value=c};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(function(){done(true)},function(){done(false)});else done(false)};
+$("mvGo").onclick=function(){var t=$("mvIn").value.trim();if(!/^PLMOVE1:/.test(t)){toast("That isn't a ParlayLabs data code. Tap Copy my data in the old app first.",true);return}
+  try{var j=JSON.parse(decodeURIComponent(escape(atob(t.slice(8))))),d=j.d||{},added=0,merged=0;
+    Object.keys(d).forEach(function(k){
+      if(k==="mybets"){var have=[];try{have=JSON.parse(localStorage.getItem("mybets")||"[]")}catch(e){}var ids={};have.forEach(function(b){ids[b.id]=1});
+        var inc=[];try{inc=JSON.parse(d[k]||"[]")}catch(e){}inc.forEach(function(b){if(!ids[b.id]){have.push(b);merged++}});localStorage.setItem("mybets",JSON.stringify(have));return}
+      if(localStorage.getItem(k)===null){localStorage.setItem(k,d[k]);added++}});
+    toast("Brought over "+merged+" bet"+(merged===1?"":"s")+" and "+added+" setting"+(added===1?"":"s")+". Reloading…");setTimeout(function(){location.reload()},1200)}
+  catch(e){toast("That code didn't work. Copy the whole thing and try again.",true)}};
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
 $("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-favapp]");if(!b)return;var a=b.dataset.favapp,i=FAVAPPS.indexOf(a);if(i>=0)FAVAPPS.splice(i,1);else FAVAPPS.push(a);favApps()});$("favCancel").onclick=function(){$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
 renderBookSel();
