@@ -132,14 +132,17 @@ function parse(j) {
   const thRows = Object.keys(LH.g).map(id => { const g = LH.g[id], L = LH.l[id] || [null, null]; return { d: g[0], cur: !!g[1], h: g[2], a: g[3], hs: g[4], as: g[5], sp: L[0], tot: L[1] }; });
   // ---------- college football player props: box scores for every team with props, then ratings ----------
   let cprops = [];
-  if (SP === "cfb" && (odds.props || []).length) {
+  if (SP === "cfb") {
     const CP = require("./props.js"), box = readJSON("cfb/box.json", { games: {}, teams: {} });
     const now = Date.now();
+    // Get box-score history ready ahead of time for every Big Ten / SEC / Big 12 / ACC team playing in the next 6 days (free, ESPN)
+    const P4 = /^(Big Ten|SEC|Big 12|ACC)$/;
+    Object.keys(games).forEach(id => { const G = games[id], lg = logs.games[G.gid]; if (lg && +new Date(lg.t) < now + 6 * 864e5) [G.away, G.home].forEach(t => { if (P4.test(conf[t] || "")) box.teams[t] = now; }); });
     (odds.props || []).forEach(p => { const G = games[p.id]; if (G) [G.away, G.home].forEach(t => { box.teams[t] = now; }); });
     for (const t in box.teams) if (box.teams[t] < now - 4 * 864e5) delete box.teams[t];
     const teams = new Set(Object.keys(box.teams));
     const needB = Object.keys(LH.g).filter(id => { const g = LH.g[id]; return g[1] && (teams.has(g[2]) || teams.has(g[3])) && !box.games[id]; })
-      .sort((x, y) => LH.g[y][0].localeCompare(LH.g[x][0])).slice(0, +(process.env.BOX_MAX || 200));
+      .sort((x, y) => LH.g[y][0].localeCompare(LH.g[x][0])).slice(0, +(process.env.BOX_MAX || 450));
     let gotB = 0; const qb = needB.slice();
     await Promise.all(Array.from({ length: 6 }, async () => { while (qb.length) { const id = qb.shift();
       try { const sum = await getJSON(`${ESPN}/summary?event=${id}`); const rows = CP.boxRows(sum);
