@@ -15,7 +15,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync(SP + "/odds.json", 
 (async () => {
   // Automatic runs skip if odds were pulled in the last 45 minutes (two timers, one refresh)
   const old0 = readOld();
-  if (process.env.AUTO_GUARD === "true") { const o = old0; if (o && Date.now() - new Date(o.fetchedAt) < 45 * 60e3) { console.log("College odds already pulled at", o.fetchedAt, "- skipping"); process.exit(0); } }
+  if (process.env.AUTO_GUARD === "true") { const o = old0; if (o && Date.now() - new Date(o.fetchedAt) < 20 * 60e3) { console.log("College odds already pulled at", o.fetchedAt, "- skipping"); process.exit(0); } }
   const res = await fetch(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american&includeLinks=true&includeSids=true`);
   const remaining = res.headers.get("x-requests-remaining");
   if (!res.ok) { console.error("Odds API error", res.status, (await res.text()).slice(0, 200)); process.exit(1); }
@@ -58,7 +58,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync(SP + "/odds.json", 
   // Turn off with CFB_PROPS=false, force with CFB_PROPS=true. Started games keep their last pre-game pull.
   let props = (old0 && old0.props) || [], propsAt = (old0 && old0.propsAt) || null;
   if (SP === "cfb" && process.env.CFB_PROPS !== "false") {
-    const now = Date.now(), MAX = +(process.env.PROPS_MAX || 45), MIN = +(process.env.PROPS_MIN || 4000), HRS = +(process.env.PROPS_HOURS || 10);
+    const now = Date.now(), MAX = +(process.env.PROPS_MAX || 45), MIN = +(process.env.PROPS_MIN || 4000), HRS = +(process.env.PROPS_HOURS || 5);
     props = props.filter(p => +new Date(p.commence_time) > now - 12 * 36e5);
     const due = !propsAt || now - new Date(propsAt) > HRS * 36e5 || process.env.CFB_PROPS === "true";
     if (due && (left === null || left > MIN)) {
