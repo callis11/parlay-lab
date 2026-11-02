@@ -468,7 +468,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .oddsw input{font:inherit;border:0;background:transparent;color:var(--ink);padding:8px;min-width:0;flex:1;outline:none}
 .stsum{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--ink)}
 .cfbgeo{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}
-.bmode{margin:10px 0 6px}
+.bmode{margin:10px 0 6px}.tlmore{display:block;margin:6px auto 0;font-weight:700}
 .tl{border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .tl .b2{border-bottom:1px solid var(--line)}.tl .b2:last-child{border-bottom:0}
 .tl .b2r{display:grid;grid-template-columns:18px minmax(0,1fr) auto 36px 38px;align-items:center;gap:6px;padding:5px 8px;min-height:38px;cursor:pointer;font-size:13.5px}
@@ -1637,6 +1637,7 @@ function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===
 // ---------- Top list (Build tab): everything worth picking on one scrolling screen ----------
 // Most likely player picks (best line per player that still pays), best single bets (main lines, either side),
 // anytime TDs, and teams to win. All games or one kickoff window (the chips above). Tap a row to add it to the slip.
+var TOPX={};
 function topListHTML(){
   var now=Date.now(),okG=function(g){return g&&+new Date(g.t)>now&&(!BLD.win||kickWin(g)===BLD.win)};
   var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
@@ -1657,7 +1658,10 @@ function topListHTML(){
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
       '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
       '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%</span></div></div>'}
-  function sec(title,sub,list,n){if(!list.length)return"";return'<h3 class="tlh">'+title+' <small>top '+Math.min(n,list.length)+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl">'+list.slice(0,n).map(row).join("")+'</div>'}
+  // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
+  function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
+    return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl">'+list.slice(0,k).map(row).join("")+'</div>'+
+      (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
   var out=sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30)+
     sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10)+
     sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
@@ -2504,6 +2508,8 @@ $("bList").addEventListener("click",function(e){var b=e.target.closest("button[d
   if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
   else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
   renderSlip();renderBuild()});
+$("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-topx]");if(!b)return;e.stopPropagation();var k=b.dataset.topx;TOPX[k]=!TOPX[k];var y=b.getBoundingClientRect().top;renderBuild();
+  if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);
 $("bMode").addEventListener("click",function(e){var b=e.target.closest("[data-bmode]");if(!b)return;BLD.mode=b.dataset.bmode;try{localStorage.setItem("bmode",BLD.mode)}catch(x){}renderBuild()});
 try{var _bm=localStorage.getItem("bmode");if(_bm)BLD.mode=_bm}catch(e){}
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
