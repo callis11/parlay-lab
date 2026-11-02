@@ -18,6 +18,8 @@ Priorities, in order:
 
 **SITEMAP.md** = every screen, button, word and number on the site, written for AIs and new chats (Nov 1). Keep it updated when screens change. Give it to other AIs with the site link.
 
+**Site address (Nov 2): https://parlaylabs.net** (custom domain via `CNAME`; old callis11.github.io/parlay-lab forwards there). Updates work exactly as before: push to main → GitHub Pages rebuilds. The Claude container can't open parlaylabs.net or the Pages settings API (proxy), so test locally with Playwright and have Andrew tap ↻.
+
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
 - Wants plain-English explanations, honest odds, and lots of "why" behind every %. Likes iterating fast on look and feel; push small changes and tell him to tap the ↻ button.
@@ -115,7 +117,7 @@ Check credits first: run the backtest workflow in test mode (`-f "inputs[test]=t
 ## Cold beginner review (Nov 1, fresh agent, phone size, all sports)
 **Fixed now:** tour slide 2 showed "undefined" (missing hint) and now defines prop / ATS / covered / push · **break-even + verdict** on every parlay (`priceVerdict`/`verdictLine`: "Break-even 77% · loses money over time / about a fair price / in your favor"; slip spells it out) · **slip kept on the phone** per sport (`slipSave`/`slipRestore`, rebuilt from today's prices, started games dropped) · Results no longer scrolls sideways (weekly report table wraps) · bets before kickoff say "Not started" (was "Live") · ✓ / ✗ / … legend on My bets · "Safest" tag → "Most likely" · report card "ran hot" → "we were too high/low", "Best type" → "Closest to a win" when no type made money · "adj. from" explained as up or down · % words ("hits about 9 times in 10", "a bit worse than a coin flip").
 **Done Nov 1 evening (the rest of the list):** odd NCAAB times are real (ESPN agrees: neutral-site, likely overseas) → hero card says "Early start · neutral site, likely overseas" · FanDuel hasn't posted most early-season NCAAB games (46 of 137) → slip now says whose prices are shown instead of "Prices here are FanDuel's" · Players % colors use `hitColor` · "Safe" in slip names shows as "Likeliest" on screen (`slipName`; saved names unchanged for tracking) · Proven + Red flag cards explain both · Build opens on the Top list · slip: summary box first (chance, break-even verdict, payout, warnings), then "Your picks", then the app buttons; panel 72vh tall · generator: More picker not clipped, header shows ▴ instead of a second "Close" · "this pick needs 3+" instead of "line 2.5" · Players says "N of M games have player lines so far" · same-game wording only when picks share a game · icon legend in How to read these cards · parlay example ($10 on three −110 picks) on the empty slip.
-**Not done:** in-app feedback button (needs somewhere to send it; Andrew's email shouldn't go on a public page without asking).
+**Feedback (Nov 2):** 💬 "Something confusing or wrong? Tell us" link at the bottom of every page (`fbOpen()`), mailto feedback@parlaylabs.net (Cloudflare Email Routing → Andrew's Gmail) with sport, tab, slip count, time and phone filled in. Mentioned on the last tour slide.
 
 ## Started-games check (Nov 1): PASS on all 4 sports
 - `tools/started-check.js` (Playwright, fake clock 40 min after a kickoff, two slates per sport): checks every slate slip (`slateList()`), all three generator pools (`genPool`), and Build rows. All passed.
