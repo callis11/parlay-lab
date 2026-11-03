@@ -2879,32 +2879,51 @@ $("mvGo").onclick=function(){var t=$("mvIn").value.trim();if(!/^PLMOVE1:/.test(t
 // ---------- Several bets (the generator's second mode; was the Double-up planner) ----------
 // Budget + number of bets -> N separate parlays, each aimed at the chosen style's payout, spread over different games, plus the honest odds for the whole plan.
 function planKey(x){return x.leg.k+"|"+(x.leg.t||"")+"|"+(x.leg.line||"")}
-function planTry(pool,N,n){
-  var evs={};pool.forEach(function(x){evs[x.ev]=1});var G=Object.keys(evs).length||1,cap=Math.max(1,Math.ceil(N*n/G)),use={},usedLeg={},bets=[];GENS.plan.legs=n;
+function planTry(pool,N,n,reuse){
+  var evs={};pool.forEach(function(x){evs[x.ev]=1});var G=Object.keys(evs).length||1,cap=reuse?9999:Math.max(1,Math.ceil(N*n/G)),use={},usedLeg={},usedCombo={},bets=[];GENS.plan.legs=n;
   for(var i=0;i<N;i++){
-    var pl=pool.filter(function(x){return!usedLeg[planKey(x)]&&(use[x.ev]||0)<cap});
-    var rk=pl.length>=n?genRank(pl,n,"plan").filter(function(r){return r.inRange}).slice(0,60):[],best=null;
+    var pl=pool.filter(function(x){return(reuse||!usedLeg[planKey(x)])&&(use[x.ev]||0)<cap});
+    var rk=pl.length>=n?genRank(pl,n,"plan").filter(function(r){return r.inRange&&!usedCombo[r.key]}).slice(0,80):[],best=null;
     rk.forEach(function(r){var LL=r.legs.map(function(x){return x.leg}),C=slipChance(LL,"");if(C.ch===null)return;
-      var pen=0;r.legs.forEach(function(x){pen+=use[x.ev]||0});var sc=C.ch*Math.pow(0.9,pen);if(!best||sc>best.sc)best={sc:sc,ch:C.ch,r:r,LL:LL}});
+      var pen=0,rp=0;r.legs.forEach(function(x){pen+=use[x.ev]||0;rp+=usedLeg[planKey(x)]||0});var sc=C.ch*Math.pow(0.9,pen)*Math.pow(0.7,rp);if(!best||sc>best.sc)best={sc:sc,ch:C.ch,r:r,LL:LL}});
     if(!best)break;
     var d=1;best.LL.forEach(function(l){d*=dec(l.a)});
-    best.r.legs.forEach(function(x){usedLeg[planKey(x)]=1;use[x.ev]=(use[x.ev]||0)+1});
+    usedCombo[best.r.key]=1;
+    best.r.legs.forEach(function(x){usedLeg[planKey(x)]=(usedLeg[planKey(x)]||0)+1;use[x.ev]=(use[x.ev]||0)+1});
     bets.push({legs:best.LL,ch:best.ch,d:d})}
-  return{bets:bets,use:use,n:n}}
+  var rep=Object.keys(usedLeg).filter(function(k){return usedLeg[k]>1}).length;
+  return{bets:bets,use:use,n:n,reuse:!!reuse,rep:rep}}
 function planBuild(){
   var P0=GENS.par,N=Math.max(2,Math.min(15,Math.round(P0.nbets||10))),B=P0.budget||100,want=Math.max(2,Math.min(5,P0.legs||2)),G0=GENS.plan;
   G0.style="plan"+({safe:"s",bal:"d",long:"l"}[P0.style]||"d");G0.kind=P0.kind;G0.games=P0.games;G0.side=P0.side;G0.multi=P0.multi;G0.legs=want;
-  var pool=genPool("plan").pool,R=planTry(pool,N,want);
-  // not enough bets at this many picks? try fewer picks per bet and keep whichever fills the most bets
-  for(var n2=want-1;n2>=2&&R.bets.length<N;n2--){var R2=planTry(pool,N,n2);if(R2.bets.length>R.bets.length)R=R2}
+  var pool=genPool("plan").pool,R=null,tries=[],k;
+  // fill all N bets if we can. Order: your picks per bet with no pick used twice, then fewer picks per bet, then letting a pick appear in more than one bet, then single-pick bets
+  for(k=want;k>=2;k--)tries.push([k,false]);for(k=want;k>=2;k--)tries.push([k,true]);tries.push([1,false]);tries.push([1,true]);
+  // keep the attempt with the most bets, then the fewest repeated picks, then the most picks per bet; stop early on a full plan with no repeats
+  for(var t=0;t<tries.length;t++){var R2=planTry(pool,N,tries[t][0],tries[t][1]);
+    if(!R||R2.bets.length>R.bets.length||(R2.bets.length===R.bets.length&&(R2.rep<R.rep||(R2.rep===R.rep&&R2.n>R.n))))R=R2;
+    if(R.bets.length>=N&&!R.rep)break}
   var bets=R.bets,use=R.use,n=R.n;
   if(!bets.length){PLANOUT={err:"Not enough picks in these games to build bets at this price. Try Games remaining or a different style."};return}
   var K=bets.length,stake=B/K;
   bets.forEach(function(b,i){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x});
-  var dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
+  var dist=R.rep?planSim(bets,stake):planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
   var pa=0,dd=0;bets.forEach(function(b){pa+=b.ch;dd+=b.d});pa/=K;dd/=K;
   var gamesUsed=Object.keys(use).length,shared=Object.keys(use).filter(function(k){return use[k]>1}).length;
-  PLANOUT={bets:bets,K:K,N:N,n:n,want:want,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,asked:N,style:P0.style,t:Date.now()}}
+  PLANOUT={bets:bets,K:K,N:N,n:n,want:want,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,rep:R.rep,asked:N,style:P0.style,t:Date.now()}}
+// when a pick is in more than one bet those bets win and lose together, so simulate it: each distinct pick hits or misses once per trial
+function planSim(bets,stake){
+  var legs={},K=bets.length,B=stake*K,key=function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")},lk=[];
+  bets.forEach(function(b){b.legs.forEach(function(l){var k=key(l);if(!(k in legs)){legs[k]=Math.max(0.01,Math.min(0.99,l.p||0.5));lk.push(k)}})});
+  // scale every pick's chance by one factor so the bets' average chance matches the adjusted chances we show
+  var target=0;bets.forEach(function(b){target+=b.ch});
+  var f=function(g){var t=0;bets.forEach(function(b){var p=1;b.legs.forEach(function(l){p*=Math.min(0.99,legs[key(l)]*g)});t+=p});return t},lo=0.3,hi=1.6;
+  for(var i=0;i<30;i++){var m=(lo+hi)/2;if(f(m)<target)lo=m;else hi=m}var g=(lo+hi)/2;
+  var out={ahead:0,even:0,some:0,most:0},T=20000,hit={};
+  for(var s=0;s<T;s++){lk.forEach(function(k){hit[k]=Math.random()<Math.min(0.99,legs[k]*g)});
+    var ret=0;bets.forEach(function(b){if(b.legs.every(function(l){return hit[key(l)]}))ret+=stake*b.d});
+    var r=ret/B;if(r>1.05)out.ahead++;else if(r>=0.95)out.even++;else if(r>0.6)out.some++;else out.most++}
+  out.ahead/=T;out.even/=T;out.some/=T;out.most/=T;return out}
 // exact distribution of what comes back, treating each bet as its own coin flip (enumerates 2^K outcomes, K <= 15)
 function planDist(bets,stake){var K=bets.length,out={ahead:0,even:0,some:0,most:0},B=stake*K;
   for(var m=0;m<(1<<K);m++){var pr=1,ret=0;for(var i=0;i<K;i++){if(m>>i&1){pr*=bets[i].ch;ret+=stake*bets[i].d}else pr*=1-bets[i].ch}
@@ -2915,7 +2934,7 @@ function planHTML(){
   if(!o)return'<p class="sub" style="margin:10px 0 0">Set a budget and how many bets, then tap <b>Build my plan</b>. You get that many separate bets, each paying '+PLANWORD[G.style]+' if it wins, on different games where we can.</p>';
   if(o.err)return'<p class="warn">'+esc(o.err)+'</p>';
   var D=o.dist,pc=function(x){return x>0&&x<0.01?"under 1%":Math.round(x*100)+"%"},mp=o.mean/o.B,h='<div class="plan nb"><div class="pb">';
-  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Small wins",bal:"Double-up",long:"Big wins"}[o.style]||"Double-up")+': '+PLANWORD[o.style]+' each'+(o.K<o.asked?' <span class="sub">(only '+o.K+' of '+o.asked+' fit: not enough picks at this price)</span>':"")+'<br><span class="sub">'+(o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
+  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Small wins",bal:"Double-up",long:"Big wins"}[o.style]||"Double-up")+': '+PLANWORD[o.style]+' each'+(o.K<o.asked?' <span class="sub">(only '+o.K+' of '+o.asked+' fit: not enough picks at this price)</span>':"")+'<br><span class="sub">'+(o.n===1?'single picks, no parlay · ':o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+(o.rep?o.rep+' pick'+(o.rep>1?'s are':' is')+' in more than one bet, so those bets win or lose together · ':'')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
    '<table><tr><td>Come out ahead (back more than $'+usd(o.B*1.05)+')</td><td class="r" style="color:var(--green)">'+pc(D.ahead)+'</td></tr>'+
    '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
    '<tr><td>Lose most of it (back $'+usd(o.B*0.6)+' or less)</td><td class="r" style="color:var(--red)">'+pc(D.most)+'</td></tr>'+
