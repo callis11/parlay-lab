@@ -273,3 +273,10 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Tuesday 1:13 PM ET email:** "ParlayLabs weekly report" scheduled task. Last week, season to date, this week's top parlays.
 - **Nov 1, 2026, 9 AM ET:** reminder back into the Oct 30-31 chat to run the remaining history pull (steps in "Remaining history pull" above).
 - **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
+
+
+## Bundle checklist (place bets one at a time)
+- After "Build my bundle", each bet is its own card with: Open in <app> (one link per app you picked, only that bet's picks), **Placed ✓**, **Remove**. Placed/removed bets leave the list (collapsed "N placed" list with Undo). The top bar shows placed / $ in / left / next bet's odds.
+- Why: an app link can only fill ONE slip, so a whole bundle can't be loaded at once (it would merge into one giant parlay).
+- Code: planMk, bqSave/bqLoad (localStorage key `bundle_<sport>`, expires after 3 days), bqAct, bqHTML in index.html. Bets with a started game show "can't be placed".
+- Idea from Andrew (not built): same one-by-one queue for ANY parlay (add several bets from Parlays/Players/Team, then go through them), not just bundles.

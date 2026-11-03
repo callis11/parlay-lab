@@ -131,7 +131,7 @@ th{color:var(--muted);font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bqbar{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin:10px 0}.bqbar .row2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bqw{display:flex;flex-direction:column;gap:6px;min-width:0}.bqw:has(details[open]){grid-column:1/-1}.bqw .bqb{display:flex;gap:6px;flex-wrap:wrap}.bqw .bqb .btn{flex:1 1 auto;text-align:center}.bqw.next{outline:2px solid var(--flag);outline-offset:2px;border-radius:8px}.bqdone li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
 @media (min-width:640px){.pgrid{grid-template-columns:repeat(3,1fr)}}
 .pc{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:6px;min-width:0}
 .pc[data-tag="safe"]{border-top-color:var(--green)}
@@ -2691,6 +2691,7 @@ document.addEventListener("click",function(e){
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
+  else if(t.dataset.bq){bqAct(t.dataset.bq,+t.dataset.i)}
   else if(t.dataset.planfill){planBuild(true);genUI("par")}
   else if(t.dataset.planall){GENS.par.games="all";GENS.par.multi=[];genSave("par",genSaved("par"));planBuild(false);genUI("par")}
   else if(t.dataset.gmode){GENS.par.mode=t.dataset.gmode;genSave("par",genSaved("par"));genUI("par")}
@@ -2895,6 +2896,18 @@ function planTry(pool,N,n,reuse){
     bets.push({legs:best.LL,ch:best.ch,d:d})}
   var rep=Object.keys(usedLeg).filter(function(k){return usedLeg[k]>1}).length;
   return{bets:bets,use:use,n:n,reuse:!!reuse,rep:rep}}
+function planMk(b,i,K,stake){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x}
+// the checklist survives closing the app: save the plan (without the card objects) and the placed/removed marks
+var BQKEY="bundle_"+SPORT;
+function bqSave(){try{if(!PLANOUT||!PLANOUT.bets){localStorage.removeItem(BQKEY);return}
+  var o=Object.assign({},PLANOUT);o.bets=PLANOUT.bets.map(function(b){return{legs:b.legs,ch:b.ch,d:b.d}});localStorage.setItem(BQKEY,JSON.stringify(o))}catch(e){}}
+function bqLoad(){try{var o=JSON.parse(localStorage.getItem(BQKEY)||"null");if(!o||!o.bets||!o.bets.length||Date.now()-(o.t||0)>3*864e5)return;
+  o.bets.forEach(function(b,i){planMk(b,i,o.K,o.stake)});if(!o.st||o.st.length!==o.bets.length)o.st=o.bets.map(function(){return 0});PLANOUT=o}catch(e){}}
+function bqAct(a,i){var o=PLANOUT;if(!o||!o.st||i<0||i>=o.st.length)return;
+  o.st[i]=a==="p"?1:a==="r"?2:0;bqSave();genUI("par");
+  var left=o.st.filter(function(v){return v===0}).length;
+  toast(a==="p"?"Bet "+(i+1)+" marked placed. "+(left?left+" left.":"That's all of them."):a==="r"?"Bet "+(i+1)+" removed.":"Bet "+(i+1)+" is back on the list.");
+  var bar=document.querySelector(".bqbar");if(bar&&a!=="u")bar.scrollIntoView({block:"start",behavior:"smooth"})}
 function planBuild(fill){
   var P0=GENS.par,N=Math.max(2,Math.min(15,Math.round(P0.nbets||10))),B=P0.budget||100,want=Math.max(2,Math.min(5,P0.legs||2)),G0=GENS.plan;
   G0.style="plan"+({safe:"s",bal:"d",long:"l"}[P0.style]||"d");G0.kind=P0.kind;G0.games=P0.games;G0.side=P0.side;G0.multi=P0.multi;G0.legs=want;
@@ -2906,13 +2919,13 @@ function planBuild(fill){
     if(!R||R2.bets.length>R.bets.length||(R2.bets.length===R.bets.length&&(R2.rep<R.rep||(R2.rep===R.rep&&R2.n>R.n))))R=R2;
     if(R.bets.length>=N&&!R.rep)break}
   var bets=R.bets,use=R.use,n=R.n;
-  if(!bets.length){PLANOUT={err:"Can't build any bets with these settings.",N:N,K:0,short:true};return}
+  if(!bets.length){PLANOUT={err:"Can't build any bets with these settings.",N:N,K:0,short:true};bqSave();return}
   var K=bets.length,stake=B/K;
-  bets.forEach(function(b,i){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x});
+  bets.forEach(function(b,i){planMk(b,i,K,stake)});
   var dist=R.rep?planSim(bets,stake):planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
   var pa=0,dd=0;bets.forEach(function(b){pa+=b.ch;dd+=b.d});pa/=K;dd/=K;
   var gamesUsed=Object.keys(use).length,shared=Object.keys(use).filter(function(k){return use[k]>1}).length;
-  PLANOUT={bets:bets,K:K,N:N,n:n,want:want,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,rep:R.rep,asked:N,style:P0.style,filled:!!fill,short:K<N,t:Date.now()}}
+  PLANOUT={bets:bets,K:K,N:N,n:n,want:want,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,rep:R.rep,asked:N,style:P0.style,filled:!!fill,short:K<N,t:Date.now(),st:bets.map(function(){return 0})};bqSave()}
 // when a pick is in more than one bet those bets win and lose together, so simulate it: each distinct pick hits or misses once per trial
 function planSim(bets,stake){
   var legs={},K=bets.length,B=stake*K,key=function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")},lk=[];
@@ -2932,6 +2945,7 @@ function planDist(bets,stake){var K=bets.length,out={ahead:0,even:0,some:0,most:
     var r=ret/B;if(r>1.05)out.ahead+=pr;else if(r>=0.95)out.even+=pr;else if(r>0.6)out.some+=pr;else out.most+=pr}
   return out}
 function planHTML(){
+  if(!PLANOUT)bqLoad();
   var o=PLANOUT,G=GENS.par;
   if(!o)return'<p class="sub" style="margin:10px 0 0">Set a budget and how many bets, then tap <b>Build my bundle</b>. You get that many separate bets, each paying '+PLANWORD[G.style]+' if it wins, on different games where we can.</p>';
   var box=o.short?'<div class="warn" style="margin:10px 0"><b>Can\'t fill all '+o.N+' bets.</b> '+(o.K?'Only '+o.K+' fit with different picks. ':'')+'Add more games, or change the risk (medium and high risk have more picks to choose from).<br><span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+(G.games!=="all"?'<button class="btn" data-planall="1">Use all games remaining</button>':"")+'<button class="btn flag" data-planfill="1">Fill all '+o.N+' anyway</button></span><span class="sub" style="display:block;margin-top:6px">Fill all anyway spreads your money over weaker choices: fewer picks per bet, picks repeated across bets, or single picks. It doesn\'t find better bets.</span></div>':"";
@@ -2952,8 +2966,22 @@ function planHTML(){
       '<p style="margin:0 0 6px"><b>How do you make more than you put in?</b> Only by winning more bets than the prices expect, or by a big payout landing. Spreading does not create profit. It spreads your risk: you are less likely to lose everything, and less likely to hit one big win. One bet of $'+usd(o.B)+' has a higher chance to win something but also a bigger chance to lose it all.</p>'+
       '<p style="margin:0"><b>Use it when</b> you want to keep a set amount in play with steadier swings. The average back is below what you put in because the sportsbook takes a cut.</p></div></details>'})()+
    '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Bets that share a game rise and fall together a little, which this math ignores.</p>'+
-   '<div class="pgrid">'+o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("")+'</div>';
+   bqHTML(o);
   return h+'</div></div>'}
+// one bet at a time: open it in your app, tap Placed, and it leaves the list
+function bqHTML(o){
+  var st=o.st||(o.st=o.bets.map(function(){return 0})),left=[],done=[],apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK}));
+  o.bets.forEach(function(b,i){(st[i]===0?left:done).push(i)});
+  var placed=st.filter(function(v){return v===1}).length,gone=st.filter(function(v){return v===2}).length,nx=left.length?o.bets[left[0]]:null;
+  var h='<div class="bqbar"><b>Place your bets one at a time</b><br><span class="sub">'+placed+' placed · $'+usd(placed*o.stake)+' in · '+left.length+' left'+(left.length?' · $'+usd(left.length*o.stake)+' still to place':'')+(gone?' · '+gone+' removed':'')+'</span>'+
+    (left.length?'<p class="sub" style="margin:6px 0 0">Each bet below is its own slip. Tap <b>Open in '+esc(Engine.BOOK_NAMES[BOOK]||"your app")+'</b> to put just that bet on your app\'s slip, set $'+usd(o.stake)+' there, place it, come back and tap <b>Placed</b>. Prices can move, so check the odds your app shows. Next up: <b>Bet '+(left[0]+1)+'</b>, paying about <b>'+am(nx.d)+'</b>.</p>':'<p class="sub" style="margin:6px 0 0"><b>That\'s all of them.</b> '+placed+' bet'+(placed===1?'':'s')+' placed.</p>')+'</div>';
+  h+='<div class="pgrid">'+left.map(function(i,pos){var b=o.bets[i],started=b.legs.some(function(l){return legStarted(l)}),btns=[];
+    if(!started)apps.forEach(function(bk){var L=Engine.betslipLink(b.legs,bk);if(L&&L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(Engine.BOOK_NAMES[bk]||bk)+(L.n<b.legs.length?" ("+L.n+" of "+b.legs.length+")":"")+'</a>')});
+    return'<div class="bqw'+(pos===0?" next":"")+'">'+slipCardW(b.x,"plan"+i)+
+      (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Remove it.</p>':btns.length?'<div class="bqb">'+btns.join("")+'</div>':'<p class="sub" style="margin:0">No app link yet for this bet. Add its picks by hand.</p>')+
+      '<div class="bqb"><button class="btn flag" data-bq="p" data-i="'+i+'"'+(started?" disabled":"")+'>Placed ✓</button><button class="btn rm" data-bq="r" data-i="'+i+'">Remove</button></div></div>'}).join("")+'</div>';
+  if(done.length)h+='<details style="margin:10px 0"><summary class="lnk" style="cursor:pointer">'+placed+' placed'+(gone?' · '+gone+' removed':'')+'</summary><ul class="bqdone" style="list-style:none;padding:0;margin:6px 0">'+done.map(function(i){var b=o.bets[i];return'<li><span>'+(st[i]===1?"✓ Placed":"Removed")+': Bet '+(i+1)+' · '+am(b.d)+' · '+b.legs.length+' pick'+(b.legs.length>1?"s":"")+'</span><button class="btn" data-bq="u" data-i="'+i+'">Undo</button></li>'}).join("")+'</ul></details>';
+  return h}
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
   var G=GENS.par,B=parseFloat($("plB_par").value),N=parseInt($("plN_par").value,10);
