@@ -2956,7 +2956,7 @@ function qPanel(barOnly){
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
   if(barOnly)return;
   if(!total&&!placed&&QLAST<0){el.innerHTML='<p class="sub" style="margin:0 0 10px"><b>No bets yet.</b> Tap <b>Load slip</b> on any parlay, or tap teams, lines and players to build your own. Each bet shows up here as a card you can swipe through, with a button to open it in your app.'+(NEWB?'<br><br><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.':'')+'</p>';return}
-  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Show cards':'▤ Make smaller')+'</button>':'')+'</div>',cards=[];
+  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button>':'')+'</div>',cards=[];
   if(nSlip){var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),d=1,ch=null,sg=false,evs={},stake=parseFloat($("stake").value)||USUAL,started=legs.some(function(l){return legStarted(l)});
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
     AMT.s=stake;
