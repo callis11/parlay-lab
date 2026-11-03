@@ -6,6 +6,8 @@
 //   RESERVE=15000                             stop before credits drop below this, so the live site keeps running
 //   GAMES=POST                                playoff games instead of the regular season (REG, POST or REG,POST); saved in the same season files
 //   ALT_ONLY=2023                             only add the four alternate-line markets to games already in props-2023 (40 credits per game)
+//   OPEN=2025                                 opening snapshot of the 7 main prop markets for games already in props-2025 (70 credits per game),
+//                                             taken 72 h before kickoff but no earlier than Tuesday noon ET of that week; saved to open-2025
 // Saves compact, gzipped files to backtest/raw/ and skips anything already pulled, so it can be re-run safely.
 
 const fs = require("fs"), zlib = require("zlib");
@@ -23,6 +25,7 @@ const PROP_SEASONS = (process.env.PROP_SEASONS || "2025,2024,2023").split(",").m
 const GAMES = (process.env.GAMES || "REG").toUpperCase().split(","), POST = ["WC", "DIV", "CON", "SB"];
 const TYPES = GAMES.flatMap(t => t === "POST" ? POST : [t]);
 const ALT_ONLY = process.env.ALT_ONLY ? +process.env.ALT_ONLY : null, ALTS = FULL.slice(7);
+const OPEN = process.env.OPEN ? +process.env.OPEN : null;
 const BEFORE_MIN = 45; // snapshot 45 minutes before kickoff (inactives are out, lines are close to final)
 
 let remaining = null, used = 0;
@@ -54,6 +57,32 @@ const slim = ev => ({ id: ev.id, commence_time: ev.commence_time, home_team: ev.
 (async () => {
   const sched = (await getCSV(`${NFLVERSE}/schedules/games.csv`)).filter(g => TYPES.includes(g.game_type));
   const slots = season => { const s = {}; sched.filter(g => +g.season === season && g.gameday && +new Date(g.gameday) < Date.now() - 864e5).forEach(g => { const k = etToUtc(g.gameday, g.gametime); (s[k] = s[k] || []).push(g); }); return Object.keys(s).sort().map(k => ({ kick: k, games: s[k] })); };
+
+  // ---- OPEN: opening prices for games already saved, then stop ----
+  if (OPEN) {
+    const src = load("props-" + OPEN), name = "open-" + OPEN, out = load(name); let n = 0;
+    const tueNoon = iso => { // Tuesday 12:00 ET of the week holding this kickoff (NFL weeks run Tue..Mon)
+      const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+      const back = { Tue: 0, Wed: 1, Thu: 2, Fri: 3, Sat: 4, Sun: 5, Mon: 6 }[p.weekday];
+      const d = new Date(Date.UTC(+p.year, +p.month - 1, +p.day)); d.setUTCDate(d.getUTCDate() - back);
+      return etToUtc(d.toISOString().slice(0, 10), "12:00"); };
+    for (const id in src) {
+      const ev = src[id];
+      if (ev.error || !ev.commence_time || out[id]) continue;
+      if (remaining !== null && remaining < RESERVE + MAIN.length * 10) { console.log("Reserve reached, stopping open snapshots."); break; }
+      const at = new Date(Math.max(+new Date(ev.commence_time) - 72 * 36e5, +new Date(tueNoon(ev.commence_time)))).toISOString().replace(/\.\d+Z$/, "Z");
+      try {
+        const j = await get(`${H}/events/${id}/odds?apiKey=${KEY}&date=${at}&bookmakers=${BOOKS}&markets=${MAIN.join(",")}&oddsFormat=american`);
+        out[id] = Object.assign(slim(j.data || {}), { at: j.timestamp, asked: at }); n++;
+      } catch (e) { console.warn("open", id, e.message); out[id] = { id, error: e.status || "fail", asked: at }; }
+      if (n % 10 === 0) save(name, out);
+      if (TEST) break;
+    }
+    save(name, out);
+    const ok = Object.values(out).filter(e => !e.error), withP = ok.filter(e => (e.bookmakers || []).some(b => b.markets.length));
+    console.log("Open", OPEN + ":", ok.length, "games saved (" + withP.length + " had props posted),", Object.values(out).filter(e => e.error).length, "errors, of", Object.keys(src).length + ". Credits used:", used, "Remaining:", remaining);
+    return;
+  }
 
   // ---- ALT_ONLY: add alternate lines to games already saved (same snapshot time), then stop ----
   if (ALT_ONLY) {

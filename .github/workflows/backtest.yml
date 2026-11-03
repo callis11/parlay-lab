@@ -15,6 +15,9 @@ on:
       alt_only:
         description: "Season to add alt lines to (e.g. 2023); blank = normal pull"
         default: ""
+      open_season:
+        description: "Season to pull opening prop prices for (e.g. 2025); blank = normal pull"
+        default: ""
 permissions:
   contents: write
 concurrency:
@@ -39,6 +42,7 @@ jobs:
           RESERVE: ${{ inputs.reserve }}
           GAMES: ${{ inputs.games }}
           ALT_ONLY: ${{ inputs.alt_only }}
+          OPEN: ${{ inputs.open_season }}
       - if: always()
         run: |
           git config user.name "odds-bot"
