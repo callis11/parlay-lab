@@ -517,11 +517,12 @@ body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body
 <div class="tour" id="sentBox" hidden role="dialog" aria-modal="true" aria-label="Your slip"><div class="tbox" id="sentIn"></div></div>
 <div class="tour" id="swapBox" hidden role="dialog" aria-modal="true" aria-label="Change a pick"><div class="tbox" id="swapIn"></div></div>
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
-  <div class="ticon">★</div><h2 class="fh" id="favH">My teams</h2>
-  <p class="fsub" id="favSub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.</p>
-  <h2 class="fh" style="margin-top:6px">New to parlays?</h2>
+  <div class="ticon">★</div><h2 class="fh" id="favH" hidden>Set up ParlayLabs</h2>
+  <h2 class="fh">New to parlays?</h2>
   <p class="fsub">Yes shows the beginner help: what each number means, how a parlay works, how to place it. No keeps the screens simpler.</p>
-  <div class="seg" id="newbSeg" style="display:flex;margin-bottom:12px"><button data-newb="yes">Yes, explain things</button><button data-newb="no">No, I know parlays</button></div>
+  <div class="seg" id="newbSeg" style="display:flex;margin-bottom:14px"><button data-newb="yes" style="flex:1">Yes, explain things</button><button data-newb="no" style="flex:1">No, I know parlays</button></div>
+  <h2 class="fh" style="margin-top:14px">My teams</h2>
+  <p class="fsub" id="favSub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.</p>
   <div id="favRows"></div>
   <h2 class="fh" style="margin-top:14px">My betting apps</h2>
   <p class="fsub">Pick one or more. The slip gets an "Open in …" button for each, and the odds shown come from the one you choose below.</p>
@@ -765,8 +766,7 @@ function newbApply(){document.body.classList.toggle("pro",!NEWB)}newbApply();
 function newbSeg(){document.querySelectorAll("#newbSeg [data-newb]").forEach(function(b){b.setAttribute("aria-pressed",(b.dataset.newb==="yes")===FAVNEWB)})}
 document.addEventListener("click",function(e){var b=e.target.closest("[data-newb]");if(!b)return;FAVNEWB=b.dataset.newb==="yes";newbSeg()});
 function favOpen(first){FAVFIRST=first===true;
-  $("favH").textContent=FAVFIRST?"Set up ParlayLabs":"My teams";
-  $("favSub").textContent=FAVFIRST?"Pick your team for each sport and the betting apps you use. Your team gets its own parlays and comes first everywhere.":"Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.";
+  $("favH").hidden=!FAVFIRST;
   $("favCancel").textContent=FAVFIRST?"Skip":"Cancel";
   $("favRows").innerHTML=FAV_SPORTS.map(function(x){return'<div class="frow"><label for="fav_'+x[0]+'">'+x[1]+'</label><select id="fav_'+x[0]+'"><option>Loading…</option></select></div>'}).join("");
   FAVAPPS=MYAPPS.slice();FAVBOOK=BOOK;favApps();FAVNEWB=NEWB;newbSeg();
