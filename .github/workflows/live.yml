@@ -1,0 +1,44 @@
+name: Live prices
+# Live moneylines for games in progress (1 credit a pull, only while a game is on). Started every 5 minutes
+# during game windows by the Cloudflare timer (schedule.json). With no game on, live-odds.js exits without calling the API.
+on:
+  workflow_dispatch:
+    inputs:
+      sport:
+        description: "nfl or cfb"
+        type: string
+        default: "nfl"
+      force:
+        description: "Pull even when credits are low"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: live-${{ inputs.sport }}
+  cancel-in-progress: true
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: f
+        run: node live-odds.js
+        env:
+          SPORT: ${{ inputs.sport }}
+          FORCE: ${{ inputs.force }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      - if: steps.f.outputs.fetched == 'true'
+        run: |
+          git config user.name "odds-bot"
+          git config user.email "odds-bot@users.noreply.github.com"
+          F=$([ "${{ inputs.sport }}" = "cfb" ] && echo cfb/live.json || echo live.json)
+          git add "$F"
+          git diff --cached --quiet && exit 0
+          git commit -m "Live prices (${{ inputs.sport }})"
+          for i in 1 2 3; do git pull --rebase --autostash origin main && git push && exit 0; sleep 5; done
+          exit 1

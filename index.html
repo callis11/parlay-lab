@@ -803,7 +803,12 @@ function gOpen(g){return+new Date(g.t)>Date.now()||!!(ENG&&ENG.liveSide(g))}
 function gWhen(g){return g.live&&g.live.state==="in"?"🔴 LIVE · "+(g.live.detail||"")+" · "+liveScore(g.live):gTime(g.t)}
 // "DET 24, CHI 7" from a live snapshot (team abbreviations from ESPN)
 function liveScore(L){if(!L||L.hs==null)return"";var h=(L.hs>=L.as),a=(L.aa||"Away")+" "+L.as,hh=(L.ha||"Home")+" "+L.hs;return h?hh+", "+a:a+", "+hh}
-function liveTag(l){return l&&l.live?'<span class="lvtag" title="ESPN live win chance">🔴 LIVE '+Math.round(l.live.wp*100)+'%</span>':""}
+function liveTag(l){return l&&l.live?'<span class="lvtag" title="Live chance to win">🔴 LIVE '+Math.round(l.p*100)+'%</span>':""}
+// "FanDuel live −310 (2:15 PM)" when we have the app's real live price, else "est. live price −310"
+function hm(t){return new Date(t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}
+function livePrice(l){var V=l.live;return V.real?(Engine.BOOK_NAMES[V.book]||V.book)+" live "+fmt(l.a)+" ("+hm(V.pat)+")":"est. live price "+fmt(l.a)}
+// Where the live % came from: "lower of ESPN 71% and the live price 68%" or "ESPN's live win chance"
+function liveWhy(l){var V=l.live;return V.nv!=null?"the lower of ESPN's live win chance ("+Math.round(V.wp*100)+"%) and the live price with its cut removed ("+Math.round(V.nv*100)+"%)":"ESPN's live win chance (no live price in the last 12 minutes)"}
 function gkey(g,t){return ENG.gkey(g,t)}
 function gameLeg(g,t){return ENG.gameLeg(g,t)}
 // Best price for this exact pick among the apps the user has (★ › My betting apps); null if we only know one price
@@ -838,10 +843,10 @@ function legStarted(L){var t=legT(L);if(t==null||t>Date.now())return false;
   // A live pick (moneyline on a started game, built from ESPN's live win %) stays only while that team still clears the live bar and the data is fresh
   if(L.live&&L.kind==="g"&&/^ml-/.test(L.t)){var g=GAMES.filter(function(x){return x.id===L.ev})[0];return!(g&&ENG.liveOK(g,L.t==="ml-a"?"a":"h"))}
   return true}
-var STARTED_MSG="That game has already started, so its pre-game price is gone. A started game can only be added from its game card, as the moneyline on the team ESPN's live win % still likes (25%+).";
+var STARTED_MSG="That game has already started, so its pre-game price is gone. A started game can only be added from its game card, as the moneyline on a team still 25%+ to win live.";
 function gpick(g,t){var L=g.legs[t],k=gkey(g,t),on=SLIP[k]&&SLIP[k].t===t;
   if(+new Date(g.t)<=Date.now()){var LL=gameLeg(g,t);
-    if(LL.live)return '<button class="pick live" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(LL.n)+'<small class="sph">ESPN '+Math.round(LL.p*100)+'% to win</small></span><small>est. '+fmt(LL.a)+'</small></button>';
+    if(LL.live)return '<button class="pick live" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(LL.n)+'<small class="sph">'+Math.round(LL.p*100)+'% to win (live)</small></span><small>'+(LL.live.real?"live ":"est. ")+fmt(LL.a)+'</small></button>';
     return '<button class="pick off" disabled><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:/^1/.test(t)?L.n.replace(" 1H",""):L.n)+'</span><small>'+(/^ml-/.test(t)?(g.live&&g.live.state==="in"?"under 25% live":"no live data"):"started")+'</small></button>'}
   return '<button class="pick" data-g="'+g.id+'" data-t="'+t+'" aria-pressed="'+!!on+'"><span>'+esc(t==="ov"?"Over "+g.total:t==="un"?"Under "+g.total:t==="1ov"?"Over "+L.pt:t==="1un"?"Under "+L.pt:L.n.replace(" 1H",""))+(/sp-/.test(t)&&L.pt!=null?'<small class="sph">'+spHintShort(L.pt)+'</small>':"")+'</span><small>'+fmt(L.a)+'</small></button>'}
 // Game-line types on the board for a game: full game, plus first half when the books have it (college basketball)
@@ -880,7 +885,7 @@ function renderGames(){
 function gameCard(g,open){
   var st=+new Date(g.t)<=Date.now(),lv=g.live&&g.live.state==="in";
   return '<div class="card'+(lv?" islive":"")+'" id="gc-'+esc(g.id)+'"><h3>'+g.away+' <span>at</span> '+g.home+' <span>· '+(open?when(g.t):new Date(g.t).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}))+(g.alt?" · "+esc(g.alt)+" line":"")+'</span></h3>'+liveLine(g)+'<div class="gcbar">'+winBar(g)+'</div>'+
-    (st?'<p class="sub lvnote">'+(lv?"Game started: only the moneyline on a team ESPN still gives 25%+ to win can go in a parlay, at an estimated live price. Pre-game spreads, totals and player lines are gone.":g.live&&g.live.state==="post"?"Final.":"Game started. Live scores come from ESPN on this phone; none yet for this game.")+'</p>':"")+
+    (st?'<p class="sub lvnote">'+(lv?"Game started: only the moneyline on a team still 25%+ to win live (the lower of ESPN and the live price) can go in a parlay. Pre-game spreads, totals and player lines are gone.":g.live&&g.live.state==="post"?"Final.":"Game started. Live scores come from ESPN on this phone; none yet for this game.")+'</p>':"")+
     '<div class="line"><b>Spread</b>'+gpick(g,"sp-a")+gpick(g,"sp-h")+'</div><div class="line"><b>Money</b>'+gpick(g,"ml-a")+gpick(g,"ml-h")+'</div><div class="line"><b>Total</b>'+gpick(g,"ov")+gpick(g,"un")+'</div>'+
     (g.h1?'<div class="line"><b>1H Spread</b>'+gpick(g,"1sp-a")+gpick(g,"1sp-h")+'</div><div class="line"><b>1H Total</b>'+gpick(g,"1ov")+gpick(g,"1un")+'</div>':"")+matchup(g).replace("<details>",open?"<details open>":"<details>")+'</div>';
 }
@@ -956,7 +961,7 @@ function piece(l){
   var m2=g&&DATA&&DATA.games[g.id]||{};
   var RL=l.kind==="p"&&pmap()[l.k]&&pmap()[l.k].role;
   if(l.live)return'<div class="piece live" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+' '+liveTag(l)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
-    factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Est. live price "+fmt(l.a)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"ESPN live win chance "+Math.round(l.p*100)+"%","price moves every play, check the app"])+'</div>'+
+    factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",livePrice(l)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"Live chance "+Math.round(l.p*100)+"%"+(l.live.nv!=null?" (ESPN "+Math.round(l.live.wp*100)+"%, price "+Math.round(l.live.nv*100)+"%)":" (ESPN)"),"price moves every play, check the app"])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to win</small>":"")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
   return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+(RL?' · <span class="rtg">'+esc(roleTag(RL))+'</span>':"")+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Odds "+fmt(l.a)],[g?gTime(g.t):"",l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",hh])+'</div>'+
@@ -1096,7 +1101,7 @@ function genPool(cx){
   var st=STYLE[G.style],out=[];
   if(G.kind!=="p")gl.forEach(function(g){var started=+new Date(g.t)<=now;GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(started&&!L.live)return;if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
   var mk=cx==="ply"&&G.mk&&G.mk.length?G.mk:null,ou=cx==="ply"?G.ou||"both":"over";
-  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(p.label)<0)return;p.rungs.forEach(function(r){
+  if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy||+new Date(p.g.t)<=now)return; /* player lines of a started game are never offered */if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(p.label)<0)return;p.rungs.forEach(function(r){
     // Edge signs (NFL): Safe and Balanced refuse picks whose signs add up to -2 or worse (they trail the book in every replayed season)
     var bad=function(L){return G.style!=="long"&&L.sg&&Engine.edgeTotal(L.sg)<=-2};
     if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&!bad(UL)&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8&&pu>=0.8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
@@ -1238,7 +1243,7 @@ function slipFlags(legs){
   var n=legs.length,evs={},who={},red=[],soft=[],now=Date.now();
   legs.forEach(function(l){evs[l.ev]=1;
     if(l.p!=null&&l.p<0.45)red.push(l.n+" is only "+pct(l.p)+" to hit");
-    if(l.live)soft.push(l.n+" is a live pick: "+pct(l.p)+" is ESPN's live win chance ("+liveScore(l.live)+", "+(l.live.detail||"in progress")+") and "+fmt(l.a)+" is our estimate of the live price. Live prices move every play, so check the app before you bet");
+    if(l.live)soft.push(l.n+" is a live pick ("+liveScore(l.live)+", "+(l.live.detail||"in progress")+"): "+pct(l.p)+" is "+liveWhy(l)+", and the price is "+(l.live.real?(Engine.BOOK_NAMES[l.live.book]||l.live.book)+"'s live price at "+hm(l.live.pat):"our estimate (no live price yet)")+". Live prices move every play, so check the app before you bet");
     else if(l.time&&+new Date(l.time)<=now)red.push(l.n+": that game has started");
     if(l.kind==="p"){var pp=pmap()[l.k];
       if(pp){var RR=pp.role;if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(RR&&RR.gp===0)red.push(pp.player+" hasn't played a snap this season, so his numbers are from last season");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
@@ -1388,12 +1393,15 @@ function roleChip(R){if(!R)return"";return'<span class="chip'+(R.gp===0||(R.s3!=
 function legStory(l){
   var pct=function(x){return Math.round(x*100)+"%"},S={role:[],price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
   if(l.live){var LV=l.live,tmL=/-a$/.test(l.t)?m.away:m.home;
-    S.price.push("Estimated live price "+fmt(l.a)+": worked out from ESPN's win chance with a normal live cut taken off. Your app's live price will differ, and it moves every play, so check it before you bet");
+    S.price.push(LV.real?(Engine.BOOK_NAMES[LV.book]||LV.book)+" live price "+fmt(l.a)+" at "+hm(LV.pat)+" (we pull live prices every 5 minutes while a game is on). It moves every play, so check the app before you bet":"Estimated live price "+fmt(l.a)+": no live price in the last 12 minutes, so this is worked out from ESPN's win chance with a normal live cut taken off. Your app's live price will differ, so check it before you bet");
+    if(l.px&&Object.keys(l.px).length>1)S.price.push("Live at your apps: "+MYAPPS.filter(function(k){return l.px[k]!==undefined}).map(function(k){return Engine.BOOK_NAMES[k]+" "+fmt(l.px[k])}).join(" · "));
     S.recent.push("Live: "+liveScore(LV)+(LV.detail?" · "+LV.detail:"")+" (ESPN, checked "+new Date(LV.at||Date.now()).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+")");
     S.matchup.push("The pre-game line no longer applies once the game starts; nothing here uses it");
-    S.how.push("This % is ESPN's live win probability for "+(tmL||"this team")+", updated from this phone about every minute while the game is on. Our pre-game model, the team's history and the book's price are not used once a game starts");
+    S.how.push("ESPN's live win chance for "+(tmL||"this team")+": "+pct(LV.wp)+" (checked from this phone about every minute)");
+    if(LV.nv!=null)S.how.push("The live price with the app's cut removed: "+pct(LV.nv)+". We use the lower of the two, so a pick never looks safer than either one says");
+    S.how.push("Our pre-game model and the team's history are not used once a game starts");
     S.how.push("A started game stays in a parlay only while this % is 25% or more (and the generators keep their own bar: Safe 60%+, Balanced 45%+, Long shot 25%+). The moment it drops under, the pick leaves every parlay");
-    S.sum="Why "+pct(l.p)+": ESPN's live model says "+(tmL||"this team")+" win from here ("+liveScore(LV)+(LV.detail?", "+LV.detail:"")+") about "+pct(l.p)+" of the time.";
+    S.sum="Why "+pct(l.p)+": "+(tmL||"this team")+" "+(LV.hs!=null?"("+liveScore(LV)+(LV.detail?", "+LV.detail:"")+") ":"")+"win from here about "+pct(l.p)+" of the time: "+liveWhy(l)+".";
     return S}
   var bb0=bestFor(l);S.price.push("Odds "+fmt(l.a)+(bb0&&dec(bb0.a)>dec(l.a)+1e-9?" (best among your apps: "+bb0.name+" "+fmt(bb0.a)+")":""));
   if(l.px&&Object.keys(l.px).length>1)S.price.push("At your apps: "+MYAPPS.filter(function(k){return l.px[k]!==undefined}).map(function(k){return Engine.BOOK_NAMES[k]+" "+fmt(l.px[k])}).join(" · "));
@@ -1496,7 +1504,9 @@ function teamColor(abbr,side){var m=TC[SPORT]||{};return m[abbr]||(side==="a"?"#
 // One line of live state for a started game: "🔴 LIVE · Q3 8:12 · DET 24, CHI 7 · ESPN: Lions 80% to win" (patched in place every minute, see livePatch)
 function liveLine(g){var L=LIVE.g[g.id];if(!L||+new Date(g.t)>Date.now())return'<div data-livechip="'+esc(g.id)+'"></div>';
   var wp=L.wp||{},lead=wp.h!=null&&wp.a!=null?(wp.h>=wp.a?[g.home,wp.h]:[g.away,wp.a]):null;
-  return'<div class="livesc" data-livechip="'+esc(g.id)+'">'+(L.state==="in"?"🔴 LIVE · "+esc(L.detail||"")+" · "+esc(liveScore(L))+(lead?" · ESPN: "+esc(lead[0])+" "+Math.round(lead[1]*100)+"% to win":" · no live win % yet"):L.state==="post"?"Final · "+esc(liveScore(L)):"Starting soon")+'</div>'}
+  return'<div class="livesc" data-livechip="'+esc(g.id)+'">'+(L.state==="in"?"🔴 LIVE · "+esc(L.detail||"")+" · "+esc(liveScore(L))+(lead?" · ESPN: "+esc(lead[0])+" "+Math.round(lead[1]*100)+"% to win":" · no live win % yet")+liveMLtxt(g,L):L.state==="post"?"Final · "+esc(liveScore(L)):"Starting soon")+'</div>'}
+function liveMLtxt(g,L){var O=L.odds,b=O&&O.books&&(O.books[BOOK]?[BOOK,O.books[BOOK]]:O.books.fanduel?["fanduel",O.books.fanduel]:null);if(!b||Date.now()-new Date(O.at)>=12*6e4)return"";
+  return" · "+(Engine.BOOK_NAMES[b[0]]||b[0])+" live ML "+esc(g.away)+" "+fmt(b[1].a)+", "+esc(g.home)+" "+fmt(b[1].h)+" ("+hm(O.at)+")"}
 function winBar(g){
   var m=DATA&&DATA.games[g.id]||{},pa=(g.p0||g.p)["ml-a"],ph=(g.p0||g.p)["ml-h"],lv=g.live&&g.live.state==="in"&&g.live.wp&&g.live.wp.a!=null;
   if(lv){pa=g.live.wp.a;ph=g.live.wp.h}if(pa==null||ph==null)return"";
@@ -1742,7 +1752,7 @@ function renderTeamLower(){
   $("teamNote").textContent=r.g?"Same-game parlays from "+r.g.away+" at "+r.g.home+", so your book's payout will be lower than shown.":"No game this week.";
   if(r.g&&+new Date(r.g.t)<=Date.now()){var LG=gameLeg(r.g,m.away===v?"ml-a":"ml-h"),lvG=r.g.live&&r.g.live.state==="in";
     $("teamNote").textContent="This game has started, so its pre-game parlays are gone."+(lvG?" The only live pick is the moneyline, and only while ESPN gives the team 25%+ to win.":" Live scores come from ESPN on this phone; none yet for this game.");
-    $("pr-team").innerHTML=LG.live?'<div class="card islive">'+liveLine(r.g)+'<div class="line"><b>Live</b>'+gpick(r.g,LG.t)+'</div><p class="sub lvnote">Tap to add it to your slip. '+esc(teamName(v))+' at '+Math.round(LG.p*100)+'% is ESPN\'s live win chance; '+fmt(LG.a)+' is our estimate of the live price. Prices move every play, so check the app.</p></div>':'<p class="empty">'+(lvG?esc(teamName(v))+" are under 25% to win on ESPN's live model, so they can't go in a parlay right now.":"Nothing to pick from this game right now.")+'</p>'}
+    $("pr-team").innerHTML=LG.live?'<div class="card islive">'+liveLine(r.g)+'<div class="line"><b>Live</b>'+gpick(r.g,LG.t)+'</div><p class="sub lvnote">Tap to add it to your slip. '+esc(teamName(v))+' at '+Math.round(LG.p*100)+'% is '+esc(liveWhy(LG))+'; the price is '+esc(livePrice(LG))+'. Prices move every play, so check the app.</p></div>':'<p class="empty">'+(lvG?esc(teamName(v))+" are under 25% to win live (ESPN or the live price), so they can't go in a parlay right now.":"Nothing to pick from this game right now.")+'</p>'}
   else renderPresetRow("pr-team",r.l,"t");
   var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
   $("teamProps").innerHTML=tp.length?playerGroups(tp).map(playerCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
@@ -1818,7 +1828,7 @@ function renderBuild(){
   var why=function(x){return'<div class="bwhy">'+storyHTML(legStory(x.leg))+'</div>'};
   if(!top)$("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
     var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
-    var nm=x.p?x.p.player:L.n,line=(x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:""))+(L.live?" · 🔴 live, est. price":"");
+    var nm=x.p?x.p.player:L.n,line=(x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:""))+(L.live?" · 🔴 "+livePrice(L):"");
     return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
       '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small></span>'+
       '<span class="bpc" style="color:'+hitColor(L.p)+'">'+Math.round((L.p||0)*100)+'%</span>'+
@@ -2092,14 +2102,15 @@ var LIVE={g:{},at:0,busy:false,timer:null,sig:"",fail:0,dirty:false};
 function liveStarted(){var n=Date.now();return GAMES.filter(function(g){var t=+new Date(g.t);return t<=n&&t>n-4.5*36e5})}
 // Which started teams qualify, and roughly how likely they are (5-pt steps): when this changes the page rebuilds
 function liveSig(){var cut=Date.now()-Engine.LIVE_MAX_AGE;return liveStarted().map(function(g){var L=LIVE.g[g.id];if(!L||L.state!=="in"||!L.wp||(L.at||0)<cut)return g.id+":-";
-  return g.id+":"+["a","h"].map(function(s){var w=L.wp[s];return w==null?"-":w<Engine.LIVE_MIN?"x":Math.round(w*20)}).join("/")}).join("|")}
+  var O=L.odds,bk=O&&O.books&&(O.books[BOOK]||O.books.fanduel),fresh=bk&&Date.now()-new Date(O.at)<12*6e4;
+  return g.id+":"+["a","h"].map(function(s){var w=L.wp[s];if(w==null)return"-";if(fresh){var pa=1/dec(bk.a),ph=1/dec(bk.h),nv=(s==="a"?pa:ph)/(pa+ph);w=Math.min(w,nv)}return w<Engine.LIVE_MIN?"x":Math.round(w*20)}).join("/")+(fresh?":"+bk.a+"/"+bk.h:"")}).join("|")}
 function liveFetch(force){
   if(LIVE.busy)return;var gs=liveStarted();if(!gs.length)return;
   if(LIVE.dirty&&!liveBusyUI()){LIVE.dirty=false;renderAll();return}
   if(!force&&Date.now()-LIVE.at<45e3)return;
   LIVE.busy=true;var path=ESPN_PATH[SPORT],base="https://site.api.espn.com/apis/site/v2/sports/"+path,grp=SPORT==="cfb"?"&groups=80":SPORT==="cbb"?"&groups=50":"";
   var days={};gs.forEach(function(g){days[scDay(g.t)]=1});
-  Promise.all(Object.keys(days).map(function(d){return scGet(base+"/scoreboard?dates="+d+grp+"&limit=500").catch(function(){return null})})).then(function(boards){
+  liveOdds().then(function(){return Promise.all(Object.keys(days).map(function(d){return scGet(base+"/scoreboard?dates="+d+grp+"&limit=500").catch(function(){return null})}))}).then(function(boards){
     if(boards.every(function(b){return!b}))throw new Error("reach");
     var byId={},byTeams={};boards.forEach(function(b){((b&&b.events)||[]).forEach(function(e){var c=e.competitions&&e.competitions[0];if(!c)return;
       var h=c.competitors.filter(function(x){return x.homeAway==="home"})[0],a=c.competitors.filter(function(x){return x.homeAway==="away"})[0];if(!h||!a)return;
@@ -2110,12 +2121,15 @@ function liveFetch(force){
     var jobs=[];
     gs.forEach(function(g){var m=scGame(g.id),o=null;if(!m)return;
       if(m.gid&&byId[m.gid])o=byId[m.gid];else{var A=ESPN_ABBR[m.away]||m.away,H=ESPN_ABBR[m.home]||m.home;o=byTeams[A+"@"+H+"|"+scDay(g.t)]||null}
-      if(!o)return;o.at=Date.now();LIVE.g[g.id]=o;
+      if(!o)return;o.at=Date.now();if(LIVE.odds&&LIVE.odds[g.id])o.odds=LIVE.odds[g.id];LIVE.g[g.id]=o;
       // No win % on the scoreboard: ask ESPN's probabilities feed for the latest play (two tiny calls: how many pages, then the last page)
       if(o.state==="in"&&!o.wp){var pu="https://sports.core.api.espn.com/v2/sports/"+path.replace("/","/leagues/")+"/events/"+o.id+"/competitions/"+o.id+"/probabilities?limit=1";
         jobs.push(scGet(pu).then(function(r){var n=r&&r.pageCount;if(!n)return null;return n===1?r:scGet(pu+"&page="+n)}).then(function(r){var it=r&&r.items&&r.items[r.items.length-1];if(it&&it.homeWinPercentage!=null)o.wp={h:+it.homeWinPercentage,a:+it.awayWinPercentage}}).catch(function(){}))}});
     return Promise.all(jobs)}).then(function(){LIVE.fail=0}).catch(function(){LIVE.fail++})
   .then(function(){LIVE.at=Date.now();LIVE.busy=false;liveApply();liveAuto()})}
+// Live sportsbook moneylines (live.json, pulled every 5 min by GitHub while a game is on; NFL and college football)
+function liveOdds(){if(SPORT!=="nfl"&&SPORT!=="cfb")return Promise.resolve();return fetch(DIR+"live.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(!j||!j.events)return;
+  var m={};Object.keys(j.events).forEach(function(id){m[id]={at:j.fetchedAt,books:j.events[id].books}});LIVE.odds=m;Object.keys(m).forEach(function(id){if(LIVE.g[id])LIVE.g[id].odds=m[id]})}).catch(function(){})}
 function liveBusyUI(){return document.visibilityState!=="visible"||$("panel").classList.contains("open")||!!($("swapBox")&&!$("swapBox").hidden)}
 // After a check: rebuild the page if which teams qualify (or their %) changed; wait if the slip or a sheet is open; always refresh the live score lines
 function liveApply(){if(liveSig()!==LIVE.sig){if(liveBusyUI())LIVE.dirty=true;else{renderAll();return}}livePatch()}
@@ -2589,7 +2603,7 @@ function renderSlip(){
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">'+(legs.some(function(l){return l.live})?'That\'s our number from stats and history, except the live pick'+(legs.filter(function(l){return l.live}).length>1?'s, whose %s are':', whose % is')+' ESPN\'s live win chance. ':'That\'s our number from stats and history. ')+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· '+(l.live?"its live win chance fell under the bar, remove it":"game started, remove it")+'</small>':l.live?' <small class="lvs">· '+liveTag(l)+' est. live price, check the app</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· '+(l.live?"its live win chance fell under the bar, remove it":"game started, remove it")+'</small>':l.live?' <small class="lvs">· '+liveTag(l)+' '+esc(livePrice(l))+', check the app</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
   $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);

@@ -4,7 +4,7 @@
   function dec(a) { return a > 0 ? 1 + a / 100 : 1 + 100 / -a; }
   function amFromDec(d) { var a = d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); return a; }
   // Live legs: lowest ESPN win % a started game's team may have to stay in a parlay (the generators add their own style bar on top), and how old live data may be
-  var LIVE_MIN = 0.25, LIVE_MAX_AGE = 10 * 60e3;
+  var LIVE_MIN = 0.25, LIVE_MAX_AGE = 10 * 60e3, LIVE_PRICE_AGE = 12 * 60e3;
   // Estimated live moneyline from a win %: a live book prices a little under fair (about a 3-pt cut on the favorite's side)
   function liveA(wp) { return amFromDec(1 / Math.min(0.985, Math.max(0.03, wp) + 0.03)); }
   function nick(n) { return n.split(" ").pop(); }
@@ -156,9 +156,20 @@
     // A started game can stay in a later parlay only as a moneyline on the team ESPN's live win % still likes (opts.live = {eventId: {state, wp:{a,h}, hs, as, detail, at}}).
     // The chance IS ESPN's live win % (no pre-game model, no history); the price is an estimate from that % with a normal live cut, so the app's own live price will differ.
     // Pre-game spreads, totals and props of a started game are never offered (their numbers are gone once the game starts).
-    function liveOK(g, side) { var L = g.live; if (!L || L.state !== "in" || !L.wp) return false; var w = L.wp[side];
-      return w !== undefined && w !== null && w >= LIVE_MIN && Date.now() - (L.at || 0) < LIVE_MAX_AGE; }
-    function liveSide(g) { var a = liveOK(g, "a"), h = liveOK(g, "h"); if (a && h) return g.live.wp.h >= g.live.wp.a ? "h" : "a"; return h ? "h" : a ? "a" : null; }
+    // Live chance for one side: the LOWER of ESPN's live win % and the live sportsbook price with its cut removed
+    // (g.live.odds = {at, books:{fanduel:{a,h}}}, from live.json, used only when under LIVE_PRICE_AGE old).
+    // Price = this book's real live price when we have it, else an estimate from the win %.
+    function liveInfo(g, side) { var L = g.live; if (!L || L.state !== "in" || !L.wp || Date.now() - (L.at || 0) >= LIVE_MAX_AGE) return null;
+      var wp = L.wp[side]; if (wp === undefined || wp === null) return null;
+      var O = L.odds, fresh = O && O.books && Date.now() - +new Date(O.at) < LIVE_PRICE_AGE, px = null, a = null, nv = null, bk = null;
+      if (fresh) { px = {}; Object.keys(O.books).forEach(function (k) { var b = O.books[k]; if (b && b[side] !== undefined) px[k] = b[side]; });
+        var mine = O.books[book] ? book : O.books.fanduel ? "fanduel" : Object.keys(O.books)[0], b = mine && O.books[mine];
+        if (b && b.a !== undefined && b.h !== undefined) { bk = mine; a = b[side]; var pa = 1 / dec(b.a), ph = 1 / dec(b.h); nv = (side === "a" ? pa : ph) / (pa + ph); }
+        if (!Object.keys(px).length) px = null; }
+      var p = nv === null ? wp : Math.min(wp, nv);
+      return { p: p, wp: wp, nv: nv, a: a === null ? liveA(wp) : a, real: a !== null, book: bk, px: px, at: fresh ? O.at : null }; }
+    function liveOK(g, side) { var I = liveInfo(g, side); return !!I && I.p >= LIVE_MIN; }
+    function liveSide(g) { var a = liveOK(g, "a"), h = liveOK(g, "h"); if (a && h) return liveInfo(g, "h").p >= liveInfo(g, "a").p ? "h" : "a"; return h ? "h" : a ? "a" : null; }
     function liveGame(g) { return !up(g) && !!liveSide(g); }
     // Team display name: college uses the school (and AP rank) from ESPN; pro leagues use the nickname
     function tname(full) { return (data && data.names && data.names[full]) || (opts.full ? full : nick(full)); }
@@ -223,9 +234,9 @@
       });
     function gkey(g, t) { var h = t.charAt(0) === "1" ? "1" : "", u = t.replace(/^1/, ""); return "G|" + g.id + "|" + h + (u.slice(0, 2) === "sp" ? "sp" : u.slice(0, 2) === "ml" ? "ml" : "tot"); }
     function gameLeg(g, t) { var L = g.legs[t], side = t === "ml-a" ? "a" : t === "ml-h" ? "h" : null;
-      if (side && g.live && liveOK(g, side)) { var wp = g.live.wp[side];
-        return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: liveA(wp), ev: g.id, time: g.t, p: wp, p0: wp, best: null, px: null, links: null,
-          live: { wp: wp, hs: g.live.hs, as: g.live.as, ha: g.live.ha, aa: g.live.aa, detail: g.live.detail, at: g.live.at } }; }
+      if (side && g.live && liveOK(g, side)) { var I = liveInfo(g, side);
+        return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: I.a, ev: g.id, time: g.t, p: I.p, p0: I.p, best: null, px: I.px, links: null,
+          live: { wp: I.wp, nv: I.nv, real: I.real, book: I.book, pat: I.at, hs: g.live.hs, as: g.live.as, ha: g.live.ha, aa: g.live.aa, detail: g.live.detail, at: g.live.at } }; }
       return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], px: g.best[t] ? g.best[t].px : null, links: g.links[t] }; }
 
     // ---------- props ----------
@@ -272,7 +283,7 @@
       // Skip moneylines so lopsided they barely pay (common in college)
       var GU = G.filter(up), GL = G.filter(liveGame);
       var fav = GU.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; })
-        .concat(GL.map(function (g) { var s = liveSide(g); return { g: g, s: s, ml: liveA(g.live.wp[s]), live: true }; })) // started games: the live leader, at its live chance
+        .concat(GL.map(function (g) { var s = liveSide(g); return { g: g, s: s, ml: liveInfo(g, s).a, live: true }; })) // started games: the live leader, at its live chance
         .filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
       var favSP = fav.filter(function (f) { return !f.live; }); // spreads are pre-game numbers, so never for a started game
       var low = GU.slice().sort(function (a, b) { return a.total - b.total; }), out = [];
@@ -458,7 +469,7 @@
       out.push({ group: "Game lines only", slips: gamePresets() });
       return out;
     }
-    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, underLeg: underLeg, rungName: rungName, liveOK: liveOK, liveSide: liveSide, gamePresets: gamePresets, playerPresets: playerPresets,
+    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, underLeg: underLeg, rungName: rungName, liveOK: liveOK, liveSide: liveSide, liveInfo: liveInfo, gamePresets: gamePresets, playerPresets: playerPresets,
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 

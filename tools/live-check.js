@@ -25,11 +25,15 @@ for(const sp of (process.env.ONLY?[process.env.ONLY]:SP)){const nm=sp.replace('?
   const T=T0+40*6e4,started=games.filter(g=>+new Date(g.t)<=T&&+new Date(g.t)>T-4*36e5),scen={};
   const S=started.filter(g=>+new Date(g.t)===T0).slice(0,3);S.forEach((g,i)=>{scen[g.id]=[{h:.94,a:.06,hs:28,as:3},{h:.62,a:.38,hs:17,as:14},{h:.92,a:.08,hs:31,as:7}][i]});
   const closeId=S[1]&&S[1].id,blowId=S[0]&&S[0].id,collapseId=S[2]&&S[2].id;
-  for(const mode of ['espn','down']){
+  const hasPx=sp===''||sp==='?cfb';
+  for(const mode of hasPx?['espn','stale','down']:['espn','down']){
     p=await b.newPage({viewport:{width:390,height:844}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
     let drop=false;
     await p.route('**/site.api.espn.com/**',r=>{if(mode==='down')return r.abort();const sc=JSON.parse(JSON.stringify(scen));if(drop&&closeId)sc[closeId]={h:.2,a:.8,hs:17,as:24};r.fulfill({contentType:'application/json',body:JSON.stringify(board(started,meta,sc))})});
     await p.route('**/sports.core.api.espn.com/**',r=>r.abort());
+    // live.json: close game priced home -110 / away +100: price says home 51% (lower than ESPN's 62%, so 51% wins); away 49% by price, ESPN 38% (38% wins)
+    await p.route(/\/live\.json/,r=>{const ev={};if(closeId)ev[closeId]={t:'',books:{fanduel:{a:100,h:-110},draftkings:{a:105,h:-115}}};if(blowId)ev[blowId]={t:'',books:{fanduel:{a:1400,h:-5000}}};
+      const at=new Date(T-(mode==='stale'?20:1)*6e4).toISOString();r.fulfill({contentType:'application/json',body:JSON.stringify({fetchedAt:at,events:ev})})});
     await p.clock.install({time:new Date(T)});
     await p.goto('http://localhost:8765/'+sp);await p.evaluate(()=>{localStorage.age21='yes';localStorage.tour1='seen';localStorage.setup1='done';localStorage.removeItem('slip_nfl');localStorage.removeItem('slip_nba');localStorage.removeItem('slip_cfb');localStorage.removeItem('slip_cbb')});
     await p.goto('http://localhost:8765/'+sp);await p.clock.runFor(4000);await p.waitForTimeout(800);
@@ -37,7 +41,7 @@ for(const sp of (process.env.ONLY?[process.env.ONLY]:SP)){const nm=sp.replace('?
     for(let i=0;i<20&&!(await p.evaluate(()=>LIVE.at>0&&!LIVE.busy));i++){await p.clock.runFor(1000);await p.waitForTimeout(250)}
     const check=async(label)=>p.evaluate(({mode,closeId,blowId,collapseId})=>{const now=Date.now(),gt={};GAMES.forEach(g=>gt[g.id]=+new Date(g.t));PROPS.forEach(x=>gt[x.ev]=+new Date(x.g.t));
       const started=id=>gt[id]!=null&&gt[id]<=now,bad=[],live=[];let n={slips:0,pool:0,build:0};
-      const chk=(where,l)=>{if(!started(l.ev))return;const ok=l.live&&l.kind==='g'&&/^ml-/.test(l.t)&&l.p>=Engine.LIVE_MIN&&mode==='espn'&&!legStarted(l);if(ok)live.push(where+': '+l.n+' '+Math.round(l.p*100)+'% '+l.a);else bad.push(where+': '+l.n+(l.live?' (live '+Math.round(l.p*100)+'%)':''))};
+      const chk=(where,l)=>{if(!started(l.ev))return;const ok=l.live&&l.kind==='g'&&/^ml-/.test(l.t)&&l.p>=Engine.LIVE_MIN&&mode!=='down'&&!legStarted(l);if(ok)live.push(where+': '+l.n+' '+Math.round(l.p*100)+'% '+l.a);else bad.push(where+': '+l.n+(l.live?' (live '+Math.round(l.p*100)+'%)':''))};
       try{slateList().forEach(s=>{(s.list()||[]).forEach(sl=>{if(!sl)return;n.slips++;(sl.l||[]).forEach(l=>chk('slate '+s.label+' / '+(sl.n||''),l))})})}catch(e){bad.push('slateList error '+e.message)}
       ['par','ply','tm'].forEach(cx=>{try{if(!GENS[cx])return;GENS[cx].games='all';const P=genPool(cx);(P.pool||[]).forEach(x=>{n.pool++;chk('generator '+cx+' '+GENS[cx].style,x.leg)})}catch(e){bad.push('genPool '+cx+' '+e.message)}});
       try{BLD.mode='full';BLD.game='';BLD.win='';buildRows().forEach(r=>{n.build++;chk('build',r.leg)})}catch(e){bad.push('buildRows error '+e.message)}
@@ -48,15 +52,19 @@ for(const sp of (process.env.ONLY?[process.env.ONLY]:SP)){const nm=sp.replace('?
       try{renderGames();document.querySelectorAll('#games .card').forEach(c=>{const id=c.id.replace('gc-','');if(!started(id))return;c.querySelectorAll('button.pick:not([disabled])').forEach(bt=>{if(!/ml-/.test(bt.dataset.t)||!bt.classList.contains('live'))bad.push('game card enabled '+bt.dataset.t)})})}catch(e){bad.push('renderGames '+e.message)}
       return{n,bad:bad.slice(0,8),nbad:bad.length,live:live.slice(0,6),nlive:live.length,sig:LIVE.sig,fail:LIVE.fail,at:LIVE.at}},{mode,closeId,blowId,collapseId});
     let r=await check('first');
-    let okLive=mode!=='espn'||r.nlive>0;
+    let okLive=mode==='down'||r.nlive>0;
     // slip: the live leg from the close game can be added; after ESPN drops that team to 20% and the next minute's check, it leaves
     let slipNote='';
+    // real price used when fresh, estimate when stale; the away team (ESPN 38%, price ~19%) must not be offered when the price is fresh
+    if(hasPx&&mode!=='down'&&closeId){const px=await p.evaluate((id)=>{const g=GAMES.filter(x=>x.id===id)[0];const L=gameLeg(g,'ml-h'),A=gameLeg(g,'ml-a');return{real:L.live&&L.live.real,a:L.a,p:Math.round(L.p*100),awayLive:!!A.live,awayP:A.live?Math.round(A.p*100):null}},closeId);
+      const want=mode==='espn'?(px.real===true&&px.a===-110&&px.p===51&&px.awayLive&&px.awayP===38):(px.real===false&&px.p===62&&px.awayLive);
+      slipNote+=' | price '+mode+': real='+px.real+' '+px.a+' '+px.p+'% away '+px.awayP+'%';if(!want)okLive=false}
     if(mode==='espn'&&closeId){
       const s1=await p.evaluate(({id,cid})=>{const g=GAMES.filter(x=>x.id===id)[0],gc=GAMES.filter(x=>x.id===cid)[0];if(!g||!gc)return 'no game '+id+' of '+GAMES.length;try{const L=gameLeg(g,'ml-h'),La=gameLeg(gc,'ml-a');SLIP[L.k]=L;renderSlip();return (L.live?'live '+Math.round(L.p*100)+'% '+L.a:'NOT LIVE')+' | collapsing away leg started='+legStarted(La)+' | home started='+legStarted(L)}catch(e){return 'ERR '+e.stack.slice(0,300)}},{id:closeId,cid:collapseId});
       drop=true;await p.clock.runFor(61000);await p.waitForTimeout(800);
       const s2=await p.evaluate((id)=>{const g=GAMES.filter(x=>x.id===id)[0];if(!g)return{err:'gone '+id+' GAMES='+GAMES.length+' url='+location.href+' '+GAMES.map(x=>x.id.slice(0,6)).join(',')};const L=gameLeg(g,'ml-h');const inPools=['par','ply','tm'].some(cx=>GENS[cx]&&genPool(cx).pool.some(x=>x.leg.ev===id&&x.leg.t==='ml-h'));const inSlates=slateList().some(s=>(s.list()||[]).some(sl=>sl&&sl.l.some(l=>l.ev===id&&l.t==='ml-h')));
         renderSlip();const txt=($("panel")||{}).textContent||'';return {started:legStarted(L),inPools,inSlates,wp:g.live&&g.live.wp&&g.live.wp.h,removeMsg:/remove it/.test(txt)}},closeId);
-      slipNote=' | slip: '+s1+(s2.err?' ERR '+s2.err:'')+' → after drop to 20%: started='+s2.started+' inPools='+s2.inPools+' inSlates='+s2.inSlates+' wp='+s2.wp+' removeMsg='+s2.removeMsg;
+      slipNote+=' | slip: '+s1+(s2.err?' ERR '+s2.err:'')+' → after drop to 20%: started='+s2.started+' inPools='+s2.inPools+' inSlates='+s2.inSlates+' wp='+s2.wp+' removeMsg='+s2.removeMsg;
       if(!/^live/.test(s1)||!/collapsing away leg started=true/.test(s1)||!s2.started||s2.inPools||s2.inSlates||!s2.removeMsg)okLive=false;
     }
     const ok=r.nbad===0&&okLive&&!errs.length;if(!ok)fails++;
