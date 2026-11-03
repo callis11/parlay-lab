@@ -184,6 +184,9 @@ th{color:var(--muted);font-weight:600}
 .hero .lines b{color:var(--ink);font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:700;margin-left:4px}
 .mv{display:inline-block;font-size:12px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:6px;border:1px solid currentColor}
 .mv.up,.mv.dn{color:var(--flag)}
+/* Bottom panel: a slightly see-through dark band so the gray words never sit on the field's gray lines */
+.hero .hbot{margin:12px -16px -14px;padding:2px 16px 12px;background:rgba(6,20,11,.78);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);border-top:1px solid rgba(255,255,255,.07)}
+.hero .hbot .lines{margin-top:8px}
 .hero .go{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 .hero .go button{font:inherit;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:20px;color:var(--flag);background:none;border:0;padding:6px 0;cursor:pointer}
 .gcbar{margin:-2px 0 6px}
@@ -1481,8 +1484,8 @@ function heroCard(sp0){
   return'<div class="hero"><div class="hl">'+esc(sp0.lab)+'</div><div class="top"><span class="cd">'+countdown(g.t)+'</span><span class="tm">'+gTime(g.t)+' ET</span></div>'+((+new Date(g.t).toLocaleString("en-US",{timeZone:"America/New_York",hour:"numeric",hour12:false})%24)<9?'<div class="hl" style="margin-top:2px">Early start'+(m.neutral?" · neutral site, likely overseas":"")+'</div>':"")+
     '<div class="tn" style="color:'+ca+';'+tnSize(nmA)+'">'+esc(nmA)+'</div>'+(isPro&&cityA?'<div class="city">'+esc(cityA)+'</div>':"")+
     '<div class="at">AT</div><div class="tn h" style="color:'+ch+';'+tnSize(nmH)+'">'+esc(nmH)+'</div>'+(isPro&&cityH?'<div class="city h">'+esc(cityH)+'</div>':"")+
-    winBar(g)+'<div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+spreadNote(fav,fav===(m.home||g.home)?(m.away||g.away):(m.home||g.home),line,g.total)+heroTrends(m)+
-    '<div class="go"><span class="sub" style="margin:0">'+(g.alt?esc(g.alt)+" line":esc((Engine.BOOK_NAMES[BOOK]||""))+" line")+'</span><button data-goto="'+esc(g.id)+'">Game page ›</button></div></div>';
+    winBar(g)+'<div class="hbot"><div class="lines"><span>Spread<b>'+esc(fav)+" "+(line>0?"+":"")+line+'</b>'+mv+'</span><span>O/U<b>'+g.total+'</b></span></div>'+spreadNote(fav,fav===(m.home||g.home)?(m.away||g.away):(m.home||g.home),line,g.total)+heroTrends(m)+
+    '<div class="go"><span class="sub" style="margin:0">'+(g.alt?esc(g.alt)+" line":esc((Engine.BOOK_NAMES[BOOK]||""))+" line")+'</span><button data-goto="'+esc(g.id)+'">Game page ›</button></div></div></div>';
 }
 // Spotlight: always the hometown team's game (Lions / Pistons / Michigan State); if they're off, the game of the week
 function gameScore(g){var sp=Math.abs(g.legs["sp-h"].pt||0),sc=(g.total||0)/(HOOPS?3:1)-2.2*sp/(HOOPS?2:1);[g.away,g.home].forEach(function(n){var r=/^#(\d+)/.exec(n||"");if(r)sc+=(HOOPS?60:40)-+r[1]});return sc}
