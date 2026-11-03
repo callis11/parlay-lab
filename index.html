@@ -609,7 +609,7 @@ body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body
   <div id="genMount_ply"></div>
   <div class="chiprow" id="pWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters">
-    <select id="fGame" aria-label="Game"><option value="">All games</option></select>
+    <select id="fGame" aria-label="Game"><option value="">Games remaining</option></select>
     <select id="fMkt" aria-label="Market"><option value="">All markets</option></select>
     <select id="fSort" aria-label="Sort"><option value="hit">Most likely to hit</option><option value="value">Best price vs our estimate</option><option value="name">Player name</option></select>
   </div>
@@ -1069,7 +1069,7 @@ function genUI(cx){
   if(sel){
     // older saves picked a team; switch them to that team's game
     if(G.games.slice(0,2)==="t:"){var tt=G.games.slice(2),gg=GAMES.filter(function(g){var m=DATA.games[g.id]||{};return m.away===tt||m.home===tt})[0];if(gg){var mm=DATA.games[gg.id];G.games="g:"+gg.id;G.side=mm.away===tt?"a":"h"}else G.games="all"}
-    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">All games</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+'<option value="multi">Pick several games…</option>';
+    var now=Date.now(),sl0=slateList().filter(function(x){return x.id===PST.slate})[0],o='<option value="all">Games remaining</option>'+(cx==="par"&&sl0&&sl0.games?'<option value="slate">'+esc(sl0.label)+' games ('+sl0.games.length+')</option>':"")+'<option value="multi">Pick several games…</option>';
     GAMES.filter(gOpen).slice().sort(byTimeRank).forEach(function(g){o+='<option value="g:'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+gWhen(g)+'</option>'});
     sel.innerHTML=o;sel.value=G.games;if(sel.value!==G.games){G.games="all";sel.value="all"}
     var mb=$("gMulti_"+cx);
@@ -1208,7 +1208,7 @@ function genRun(cx){
   // one game with only game lines can make at most a side + the total
   if(cx==="tm"&&!(G.multi||[]).length&&!P.pool.some(function(x){return x.leg.kind==="p"})&&n>2){n=2;toast("Only game lines for this game, so this one is 2 picks: a side plus the total.")}
   if(G.games==="multi"&&!(G.multi||[]).length){toast("Tap at least one game to build from.",true);return}
-  if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try All games.",true);return}
+  if(!P.games.length){toast(cx==="tm"?"This game has started or isn't on the board.":"No upcoming games for that choice. Try Games remaining.",true);return}
   var avoid=last.map(function(x){return x.key}),got=genPick(P.pool,n,avoid,cx),useSt=G.style,useN=n,auto="";
   if(!got){
     // Can't build what was asked: try the other styles at the same legs, then fewer legs, and say what changed and why
@@ -1661,7 +1661,7 @@ function kickWin(g){var now=Date.now(),d=new Date(g.t),far=+d-now>5*864e5,dt=d.t
 // Draws "All games · Sun 1 PM 8 · Sun 4 PM 3…" into el; returns the selection (cleared if that window is gone)
 function winChips(el,games,sel,attr){var st={},n={};games.forEach(function(g){var k=kickWin(g),t=+new Date(g.t);if(!(k in st)||t<st[k])st[k]=t;n[k]=(n[k]||0)+1});
   var wins=Object.keys(st).sort(function(a,b){return st[a]-st[b]});if(wins.indexOf(sel)<0)sel="";
-  el.hidden=wins.length<2;el.innerHTML=[["","All games",games.length]].concat(wins.map(function(k){return[k,k,n[k]]})).map(function(c){return'<button role="tab" data-'+attr+'="'+esc(c[0])+'" aria-selected="'+(c[0]===sel)+'">'+esc(c[1])+(c[2]>1?"<small>"+c[2]+"</small>":"")+'</button>'}).join("");
+  el.hidden=wins.length<2;el.innerHTML=[["","Games remaining",games.length]].concat(wins.map(function(k){return[k,k,n[k]]})).map(function(c){return'<button role="tab" data-'+attr+'="'+esc(c[0])+'" aria-selected="'+(c[0]===sel)+'">'+esc(c[1])+(c[2]>1?"<small>"+c[2]+"</small>":"")+'</button>'}).join("");
   var on=el.querySelector('[aria-selected="true"]');if(on&&sel&&on.scrollIntoView)on.scrollIntoView({block:"nearest",inline:"center"});return sel}
 var FLIPTO=null,TEAMGAMES=[],TGAME=null,TPICKED=false,TWIN="",PWIN="";
 function teamName(abbr){var n="";GAMES.forEach(function(g){var m=DATA&&DATA.games[g.id];if(m&&m.away===abbr)n=g.away;if(m&&m.home===abbr)n=g.home});return n||abbr}
@@ -1835,11 +1835,11 @@ function topListHTML(){
     sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
     sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10)+
     (NOPROPS?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
-  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full board has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try All games.</p>'}
+  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full board has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
-  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(gOpen).slice().sort(byTimeRank).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+gWhen(g)+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
+  bg.innerHTML='<option value="">Games remaining</option>'+GAMES.filter(gOpen).slice().sort(byTimeRank).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+gWhen(g)+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
   var bm=$("bMulti");bm.hidden=BLD.game!=="multi";
   if(BLD.game==="multi"){BLD.multi=BLD.multi.filter(function(id){return GAMES.some(function(g){return g.id===id&&gOpen(g)})});
     bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(gOpen).slice().sort(byTimeRank).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+gWhen(g)+'</small></button>'}).join("")}
@@ -2676,7 +2676,7 @@ function renderAll(){
   renderParlays();renderTeam();renderResults();liveAuto();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
-  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>Date.now()}).sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+gTime(g.t)+"</option>"}).join("");fg.value=v;
+  var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">Games remaining</option>'+GAMES.filter(function(g){return+new Date(g.t)>Date.now()}).sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+gTime(g.t)+"</option>"}).join("");fg.value=v;
   var b=(ODDS&&ODDS.lines||[]).length;
   $("src").textContent=b?"Lines: "+Engine.BOOK_NAMES[BOOK]+" via The Odds API, updated "+new Date(ODDS.fetchedAt).toLocaleString()+". Lines move, so confirm with your sportsbook.":"";
   renderSlip();
@@ -2898,7 +2898,7 @@ function planBuild(){
   // not enough bets at this many picks? try fewer picks per bet and keep whichever fills the most bets
   for(var n2=want-1;n2>=2&&R.bets.length<N;n2--){var R2=planTry(pool,N,n2);if(R2.bets.length>R.bets.length)R=R2}
   var bets=R.bets,use=R.use,n=R.n;
-  if(!bets.length){PLANOUT={err:"Not enough picks in these games to build slips at this price. Try All games or a different style."};return}
+  if(!bets.length){PLANOUT={err:"Not enough picks in these games to build slips at this price. Try Games remaining or a different style."};return}
   var K=bets.length,stake=B/K;
   bets.forEach(function(b,i){var x=slipInfo({n:"Slip "+(i+1)+" of "+K,d:"One of your "+K+" slips. Each slip is its own bet of $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x});
   var dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});

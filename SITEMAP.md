@@ -10,7 +10,7 @@ What every screen, button, word and number on ParlayLabs is, so an AI can review
 Pages read as text glue small pieces together, which can make numbers look wrong. On the phone they are separate badges:
 - `Spread DET -3 0.5 → MIN opened DET -3.5` = spread is Lions −3, a badge says the line moved 0.5 toward the Vikings, and it opened at −3.5. It is **not** −30.5.
 - `52%to hit · adj. from 57%` = big "52%" then small "to hit".
-- `All games15`, `Sun 1 PM8` = a chip and its game count (15, 8).
+- `Games remaining15`, `Sun 1 PM8` = a chip and its game count (15, 8).
 - Leg circles show icons (TD, S for spread, ML, O/U), which read as stray letters like "TD TD S S".
 - Some content only loads after a tap (cards open with "Tap to open", stories open with ⓘ), so a text scan misses it.
 
@@ -59,7 +59,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 College (NCAAF, NCAAB) has no **Players** tab: game lines only (ML, spread, total; NCAAB also first half). NFL and NBA have all five tabs.
 
 ### Parlays
-- **⚡ ParlayLabs Generator** (tap "Open"): Picks 2 3 4 5 or **6+** (up to 15) · Style **Safe / Balanced / Long shot** · Bets **Both / Players / Game lines** (not in college) · Game (All games, Pick several games…, or one game). **Generate a parlay** builds one and explains every pick; **Generate another** gives the next best. Each pick has **⇄ Change** (same as on the slip); the card then says you changed it and shows your version's % and payout. If the style can't build, a yellow ↪ note says what it switched to and why.
+- **⚡ ParlayLabs Generator** (tap "Open"): Picks 2 3 4 5 or **6+** (up to 15) · Style **Safe / Balanced / Long shot** · Bets **Both / Players / Game lines** (not in college) · Game (Games remaining, Pick several games…, or one game). **Generate a parlay** builds one and explains every pick; **Generate another** gives the next best. Each pick has **⇄ Change** (same as on the slip); the card then says you changed it and shows your version's % and payout. If the style can't build, a yellow ↪ note says what it switched to and why.
 - **Slate chips:** Best of Week, each kickoff window (e.g. Sun 1 PM, Sun 4 PM, Sun Night, Mon Night; college Sat Noon / 3:30 / Night; basketball each tip-off half hour), and your ★ team's game. Started games are never in any parlay.
 - **Top 3 / Show all · Expand all · Any picks / 2–3 / 4+ · All types / Player props / Game lines / Mixed.**
 - **Card:** tags (own line), style · N picks · props/lines, big %, "hits about 1 time in N" + break-even, name (e.g. Best 2-Pick, Best Shot at +300, TDs + Spreads), pick circles, price, "$10 wins $X", this season / past seasons record for this type, **ⓘ How we got this %** (flips to the step-by-step math), **⇄ Change** on each pick inside an opened card (kept on the phone; "Undo changes" goes back to ours), **Load slip**.
