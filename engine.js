@@ -191,7 +191,7 @@
         return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
       });
       if (!rungs.length) return;
-      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy,
+      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy, role: p.role,
         label: p.label, td: p.td, avg: p.avg, recent: p.recent, rungs: rungs,
         best: Math.max.apply(null, rungs.map(function (r) { return r.ev === null || r.n < 6 || r.a > 400 ? -9 : r.ev; })),
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });

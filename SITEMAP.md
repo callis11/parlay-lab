@@ -66,6 +66,7 @@ College (NCAAF, NCAAB) has no **Players** tab: game lines only (ML, spread, tota
 Every available pick ranked (Most likely first / Biggest payout first), filters by kickoff window and game, type **All / Players / TDs / Game lines** (NBA no TDs; college no type filter). Tap a row to add or remove; **ⓘ** opens the pick's story: The price · Recent form · Past seasons · Matchup · How we got the %. A live parlay summary sits at the top.
 
 ### Players (NFL, NBA)
+NFL player cards show a role chip ("TE1 starter · 70% of snaps"; red if no snaps this season or under 40%). Every NFL pick story starts with **Role and playing time**: depth chart spot (ESPN), % of snaps last 3 / season, snaps by game, games with half or more of the snaps this season and career (our stand-in for starts).
 Players-only generator (adds an **All markets** checklist and **Both / Overs / Unders**), then a list of player props by game and market, sorted by Most likely to hit / Best price vs our estimate / Player name. Shows hit rates like "Hit 8 of last 10".
 
 ### Games

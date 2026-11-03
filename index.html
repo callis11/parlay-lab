@@ -267,6 +267,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:5px;vertical-align:1px}
 .hb.pr{background:var(--green);color:var(--green-ink)}.hb.wk{background:var(--red);color:#fff}
 .hb.gr{background:#36D399;color:#06281A}.hb.so{background:#5B9BFF;color:#06142E}.hb.rf{background:transparent;color:#FF6B5E;box-shadow:inset 0 0 0 1.5px #FF6B5E}
+.rtg{color:var(--flag);font-weight:700}
 .hun{margin:8px 0;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:color-mix(in srgb,var(--muted) 10%,transparent);font-size:13px;color:var(--muted)}.hun b{color:var(--ink)}.hun ul{margin:4px 0 4px 18px;padding:0}.hun small{font-size:12px}
 .rfn{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:rgba(255,107,94,.12);font-size:13px;line-height:1.35}.rfn b{color:#FF6B5E}.rfn ul{margin:4px 0 0;padding-left:18px}
 .clv{font-size:12px;font-weight:600;color:var(--muted)}.clv.up{color:#36D399}.clv.dn{color:#FF6B5E}
@@ -901,7 +902,8 @@ function piece(l){
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
   var mu=g?(DATA&&DATA.games[g.id]&&DATA.games[g.id].away||g.away)+" @ "+(DATA&&DATA.games[g.id]&&DATA.games[g.id].home||g.home)+" · "+gTime(g.t):"";
   var m2=g&&DATA&&DATA.games[g.id]||{};
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
+  var RL=l.kind==="p"&&pmap()[l.k]&&pmap()[l.k].role;
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+(RL?' · <span class="rtg">'+esc(roleTag(RL))+'</span>':"")+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Odds "+fmt(l.a)],[g?gTime(g.t):"",l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",hh])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
@@ -943,7 +945,7 @@ function playerGroups(list){
 }
 function playerCard(G){
   var ps=G.ps,p0=ps[0],main=ps.filter(function(p){return!p.td})[0]||p0,pc="#8A97A8";
-  var inj=(p0.injury?'<span class="chip alert">'+esc(p0.injury)+'</span>':"")+(p0.missedLast?'<span class="chip alert">Missed last game</span>':"")+(p0.windF&&p0.windF<1?'<span class="chip">Windy: estimates lowered</span>':"");
+  var inj=roleChip(p0.role)+(p0.injury?'<span class="chip alert">'+esc(p0.injury)+'</span>':"")+(p0.missedLast?'<span class="chip alert">Missed last game</span>':"")+(p0.windF&&p0.windF<1?'<span class="chip">Windy: estimates lowered</span>':"");
   var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p0.team],v=T&&p0.opp&&T.pvs&&T.pvs[p0.player]&&T.pvs[p0.player][p0.opp];
   if(v&&v[0]+v[1]>=2)inj+='<span class="chip">vs '+esc(p0.opp)+': '+v[0]+" of "+(v[0]+v[1])+' overs</span>';
   var secs=ps.map(function(p){
@@ -1181,7 +1183,9 @@ function slipFlags(legs){
     if(l.p!=null&&l.p<0.45)red.push(l.n+" is only "+pct(l.p)+" to hit");
     if(l.time&&+new Date(l.time)<=now)red.push(l.n+": that game has started");
     if(l.kind==="p"){var pp=pmap()[l.k];
-      if(pp){if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
+      if(pp){var RR=pp.role;if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(RR&&RR.gp===0)red.push(pp.player+" hasn't played a snap this season, so his numbers are from last season");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
+        if(RR&&RR.gp>0&&l.side!=="under"&&RR.s3!=null&&RR.s3<0.4)soft.push(pp.player+" plays only "+Math.round(RR.s3*100)+"% of snaps lately"+(RR.dc&&!RR.st?" ("+RR.dc+", a backup)":"")+", so he gets few chances to hit the over");
+        if(RR&&RR.gp>=3&&RR.sl-RR.sa>=0.2)soft.push(pp.player+"'s role grew: "+Math.round(RR.sl*100)+"% of snaps last game vs "+Math.round(RR.sa*100)+"% this season, so his older numbers may undersell him");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
         var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&l.p>=0.8&&rs[0]/rs[1]<l.p-0.15)soft.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons")+". In 2023–25 replays, picks we rated 80%+ with a record like this hit about 75%, so treat "+pct(l.p)+" as a bit high");
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
@@ -1312,12 +1316,24 @@ function recTxt(x,k){var a=x&&x[k];if(!a)return null;var s=a[0]+"–"+a[1]+(a[2]
 function linesNote(x){var a=x&&(x.ats||x.ou);if(!a||!x.n)return"";var k=a[0]+a[1]+(a[2]||0);return k<0.8*x.n?" (lines for "+k+" of "+x.n+" games)":""}
 function thTeam(t){return DATA&&DATA.th&&DATA.th.teams&&DATA.th.teams[t]||null}
 function thLabel(k){return DATA&&DATA.th?DATA.th[k]:k==="cur"?"this season":"last season"}
+// ---------- Player role (NFL): depth chart spot (ESPN), snap share and 50%+-snap games (Pro Football Reference), from roles.js ----------
+function roleTag(R,sep){if(!R)return"";var a=[];if(R.dc)a.push(R.dc+" "+(R.st?"starter":"backup"));if(R.gp===0)a.push("no snaps this season");else if(R.s3!=null)a.push(Math.round(R.s3*100)+"% of snaps");return a.join(sep||" · ")}
+function roleLines(R){var a=[];
+  if(R.dc)a.push("Depth chart: "+R.dc+" ("+(R.st?"starter":"backup")+")");
+  if(R.gp===0)a.push("Hasn't played a snap this season, so his recent numbers are from last season");
+  else if(R.s3!=null){a.push("Plays "+Math.round(R.s3*100)+"% of his side's snaps (last 3 games), "+Math.round(R.sa*100)+"% this season");
+    if(R.last5&&R.last5.length>1)a.push("Snaps by game, oldest to newest: "+R.last5.map(function(x){return x+"%"}).join(", "));
+    a.push("Played half or more of the snaps in "+R.g50+" of "+R.gp+" games this season");}
+  if(R.cg)a.push("Career: half or more of the snaps in "+R.c50+" of "+R.cg+" games since 2013");
+  return a}
+function roleChip(R){if(!R)return"";return'<span class="chip'+(R.gp===0||(R.s3!=null&&R.s3<0.4)?" alert":"")+'">'+esc(roleTag(R))+'</span>'}
 function legStory(l){
-  var pct=function(x){return Math.round(x*100)+"%"},S={price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
+  var pct=function(x){return Math.round(x*100)+"%"},S={role:[],price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
   S.price.push("Odds "+fmt(l.a)+(l.best&&l.best.a!==undefined&&dec(l.best.a)>dec(l.a)+1e-9?" (best "+l.best.book+" "+fmt(l.best.a)+")":""));
   S.price.push("Book's chance "+pct(1/dec(l.a))+(l.p0!=null&&l.kind==="g"?", "+pct(l.p0)+" with its cut removed":""));
   if(l.kind==="p"){
     var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0],U=l.side==="under";
+    if(pp&&pp.role){S.role=roleLines(pp.role);S.tag=roleTag(pp.role,", ")}
     if(r&&r.n){var sr=sideRec(l,r);S.recent.push(sr.word+sr.hits+" of his last "+sr.n+" games");
       if(pp.avg!==null&&!pp.td)S.recent.push("Averages "+pp.avg+" (this pick needs "+(U?"under "+l.line:(Math.floor(l.line)+1)+"+")+")");
       if(pp.recent&&pp.recent.length&&!pp.td)S.recent.push("Last 5: "+pp.recent.join(", "));
@@ -1361,10 +1377,10 @@ function legStory(l){
   if(S.sum&&l.a){var bk=1/dec(l.a),df=l.p-bk;S.sum+=df>=0.03?" We rate it a bit higher than the price.":df<=-0.03?" We rate it a bit lower than the price, so the price isn\'t in your favor.":" Our number and the price agree."}
   return S;
 }
-var STORY_H={price:"The price",recent:"Recent form",past:"Past seasons",matchup:"Matchup",how:"How we got the %"};
-function storyHTML(S){return'<div class="story">'+(S.sum?'<p class="stsum">'+esc(S.sum)+'</p>':"")+["price","recent","past","matchup","how"].filter(function(k){return S[k].length}).map(function(k){return'<div class="sty"><b>'+STORY_H[k]+'</b><ul>'+S[k].map(function(x){return"<li>"+esc(x)+"</li>"}).join("")+'</ul></div>'}).join("")+'</div>'}
+var STORY_H={role:"Role and playing time",price:"The price",recent:"Recent form",past:"Past seasons",matchup:"Matchup",how:"How we got the %"};
+function storyHTML(S){return'<div class="story">'+(S.sum?'<p class="stsum">'+esc(S.sum)+'</p>':"")+["role","price","recent","past","matchup","how"].filter(function(k){return S[k].length}).map(function(k){return'<div class="sty"><b>'+STORY_H[k]+'</b><ul>'+S[k].map(function(x){return"<li>"+esc(x)+"</li>"}).join("")+'</ul></div>'}).join("")+'</div>'}
 // one-line version for generator legs
-function storyLine(S){return[].concat(S.recent.slice(0,1),S.past.slice(0,1),S.matchup.slice(0,1)).filter(function(x){return!/^No /.test(x)}).join(" · ")}
+function storyLine(S){return[].concat(S.recent.slice(0,1),S.past.slice(0,1),S.matchup.slice(0,1)).concat(S.tag?[S.tag]:[]).filter(function(x){return!/^No /.test(x)}).join(" · ")}
 function legBreakdown(l){
   return'<div class="wl"><div class="wlh">'+icon(icoKey(l),hitColor(l.p),true)+'<b>'+esc(l.n)+'</b><span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span></div>'+storyHTML(legStory(l))+'</div>';
 }

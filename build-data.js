@@ -288,6 +288,10 @@ async function main() {
   const rows = sched.filter(g => g.result !== "" && (+g.season === SEASON || +g.season === SEASON - 1)).map(g => ({ d: g.gameday, cur: +g.season === SEASON, h: g.home_team, a: g.away_team,
     hs: +g.home_score, as: +g.away_score, sp: g.spread_line === "" ? null : -g.spread_line, tot: g.total_line === "" ? null : +g.total_line }));
   const gl = Object.values(games), th = require("./teamhist.js").build(rows, gl.flatMap(g => [g.away, g.home]), gl.map(g => [g.away, g.home]), { curLabel: String(SEASON), prevLabel: String(SEASON - 1) });
+  // Player roles (depth chart + snap share + 50%+-snap games this year and career), attached to each prop
+  try { const R = await require("./roles.js").build(NFLVERSE, SEASON, norm, getText); fs.writeFileSync("roles.json", JSON.stringify(R));
+    for (const p of props) { const r = R.p[norm(p.player)]; if (r && (!p.team || !r.team || r.team === p.team || r.dteam === p.team)) p.role = Object.assign({ wk: R.snapsWeek }, r); } }
+  catch (e) { console.warn("roles skipped:", e.message); }
   fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props, th }));
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");
