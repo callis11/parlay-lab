@@ -2636,5 +2636,6 @@ renderBookSel();
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
 Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "238bd7d7dd4a49e083e09efb8d2bf06f"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
