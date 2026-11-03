@@ -104,3 +104,10 @@ Prices: The Odds API (FanDuel by default). Player history: nflverse (NFL), ESPN 
 
 ## Asking another AI to review
 Give it this file plus the site link, ask it to use the site on a phone-size screen, and tell it the page's text glues badges together (see the top section). Andrew can attach screenshots of any screen.
+
+## Double-up planner (Parlays tab, under the generator, Nov 3)
+- Collapsible card. Inputs: Budget $ (default 100), Bets (2 to 15, default 10), Picks per bet (2 to 4), Games (all still to come, or one slate). **Build my plan** makes N separate parlays that each pay about +100 (decimal 1.92 to 2.3), each stake = budget / bets.
+- Picks are spread over as many different games as the slate allows (a game is used by more than one bet only when there are too few games); no pick repeats.
+- Shows the plan's odds (exact, each bet its own coin flip): ahead (back more than 105% of budget), about break even (95 to 105%), lose some (60 to 95%), lose most (60% or less), average back, and one bet of the full budget for comparison. Then each bet (tap to open its picks, **Load slip** to send it to the slip).
+- Honest note on screen: spreading out makes results steadier but does not raise the average; same-game bets are treated as independent.
+

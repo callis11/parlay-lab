@@ -252,6 +252,10 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - ★ page › **My usual bet**: $1/5/10/25/50/100 buttons or a custom amount ($1 to $10,000), saved per phone in `localStorage.usual` (default 10; included in "Move my data"). `USUAL`, `usd()`, `usualWins(d, prefix)`, `usualUI()`, `setUsual()` in index.html. Every "wins $X" (generator cards, named slips, Build, price rows via `winsOn10`, boost line) and the slip's Stake box use it. Results, track records and calibration stay at $10 on purpose. Tour and legend examples still say $10.
 - Next: Double-up planner (budget + number of bets, separate ~+100 parlays on different games, honest odds for the whole plan; see "QUEUED: Double-up planner").
 
+## Double-up planner (Nov 3)
+- index.html: `STYLE.dbl` (payout 1.92 to 2.3, legs 50%+), `GENS.plan`, `planBuild()` (greedy: per bet, `genRank` over the pool minus used picks and games over a per-game cap, best slip chance with a 0.9 penalty per already-used game), `planDist()` (exact 2^K enumeration, K up to 15, independent bets), `renderPlan()` (called from `renderAll`, mount `#planMount`). Settings in `localStorage.plan1<sport>`.
+- Not done yet: planner for the Players generator's props only, a saved/shared plan, grading a plan on Results as one unit, a "go bigger" option for plus-money targets. Same-game correlation across bets is ignored (said on screen).
+
 ## Zero-stat players grade as 0, not void (Nov 3)
 - Bug: a player with no row in nflverse weekly stats was always voided ("didn't play"), but TEs/RBs who played with no catches or carries (Sam Roush 37 snaps, Emanuel Wilson special teams only) have no stat row. Books grade those as 0.
 - Fix in `picks.js` `gradeLeg`: NFL also loads `snap_counts_<year>.csv`; a player with any offense, defense or special-teams snaps and no stat row grades as 0 (over = lost, under = won, anytime TD = lost). No snaps = true DNP = void (Uchenna Nwosu). If a game has no snap data yet, the leg stays pending instead of voiding. NBA and college unchanged.

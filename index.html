@@ -124,6 +124,10 @@ th{color:var(--muted);font-weight:600}
 .chiprow button small{font-weight:500;opacity:.75;margin-left:4px}
 .ptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
 .ptools select{flex:1;min-width:120px}
+.plan{border:1px solid var(--line);border-radius:8px;background:var(--surface);margin:10px 0;padding:0}.plan>summary{cursor:pointer;padding:12px 14px;font-weight:700;list-style:none}.plan>summary::-webkit-details-marker{display:none}.plan .pb{padding:0 14px 14px}
+.plan .prow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}.plan .prow label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}.plan .prow input,.plan .prow select{font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);min-width:0}
+.plan table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.plan td{padding:6px 4px;border-bottom:1px solid var(--line)}.plan td.r{text-align:right;font-weight:700}
+.plan .pbet{border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:8px 10px}.plan .pbet b.big{font-size:17px}.plan .pl{font-size:13px;margin:3px 0;display:flex;justify-content:space-between;gap:8px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -564,6 +568,7 @@ select,input,textarea{font-size:max(16px,1em)}
     <li><b>Tap Open in FanDuel</b> (or your app). Your picks land on its slip and you place the bet there. We never take money.</li></ol>
     <small class="sub">Words like ML, spread or −138? Tap <b>ⓘ</b> at the top, slide 2.</small></div>
   <div id="genMount_par"></div>
+  <div id="planMount"></div>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
@@ -2647,7 +2652,7 @@ function renderSync(){
 
 function renderAll(){
   build();slipRestore();renderMyTeam();renderGames();renderProps();renderBuild();
-  renderParlays();renderTeam();renderResults();liveAuto();
+  renderParlays();try{renderPlan()}catch(e){if(window.console)console.error(e)}renderTeam();renderResults();liveAuto();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
   var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>Date.now()}).sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+gTime(g.t)+"</option>"}).join("");fg.value=v;
@@ -2848,6 +2853,68 @@ $("mvGo").onclick=function(){var t=$("mvIn").value.trim();if(!/^PLMOVE1:/.test(t
       if(localStorage.getItem(k)===null){localStorage.setItem(k,d[k]);added++}});
     toast("Brought over "+merged+" bet"+(merged===1?"":"s")+" and "+added+" setting"+(added===1?"":"s")+". Reloading…");setTimeout(function(){location.reload()},1200)}
   catch(e){toast("That code didn't work. Copy the whole thing and try again.",true)}};
+
+// ---------- Double-up planner ----------
+// Budget + number of bets -> N separate parlays that each pay about +100, spread over different games, plus the honest odds for the whole plan.
+STYLE.dbl={lo:0.5,amin:-700,amax:200,dmin:1.92,dmax:2.3,name:"Double-up"};
+GENS.plan={legs:2,style:"dbl",kind:"mix",games:"all",side:"both"};
+var PLAN={budget:100,bets:10,picks:2,slate:"all"},PLANOUT=null;
+try{var _pl=JSON.parse(localStorage.getItem("plan1"+SPORT)||"null");if(_pl)Object.assign(PLAN,_pl)}catch(e){}
+function planKey(x){return x.leg.k+"|"+(x.leg.t||"")+"|"+(x.leg.line||"")}
+function planBuild(){
+  var N=Math.max(2,Math.min(15,Math.round(PLAN.bets))),n=Math.max(2,Math.min(4,Math.round(PLAN.picks))),B=PLAN.budget;
+  GENS.plan.legs=n;var P=genPool("plan"),pool=P.pool,allow=null;
+  if(PLAN.slate!=="all"){var sl=slateList().filter(function(x){return x.id===PLAN.slate})[0];if(sl&&sl.games){allow={};sl.games.forEach(function(g){allow[g.id]=1})}}
+  if(allow)pool=pool.filter(function(x){return allow[x.ev]});
+  var evs={};pool.forEach(function(x){evs[x.ev]=1});var G=Object.keys(evs).length||1,cap=Math.max(1,Math.ceil(N*n/G)),use={},usedLeg={},bets=[];
+  for(var i=0;i<N;i++){
+    var pl=pool.filter(function(x){return!usedLeg[planKey(x)]&&(use[x.ev]||0)<cap});
+    var rk=pl.length>=n?genRank(pl,n,"plan").filter(function(r){return r.inRange}).slice(0,60):[],best=null;
+    rk.forEach(function(r){var LL=r.legs.map(function(x){return x.leg}),C=slipChance(LL,"");if(C.ch===null)return;
+      var pen=0;r.legs.forEach(function(x){pen+=use[x.ev]||0});var sc=C.ch*Math.pow(0.9,pen);if(!best||sc>best.sc)best={sc:sc,ch:C.ch,r:r,LL:LL}});
+    if(!best)break;
+    var d=1;best.LL.forEach(function(l){d*=dec(l.a)});
+    best.r.legs.forEach(function(x){usedLeg[planKey(x)]=1;use[x.ev]=(use[x.ev]||0)+1});
+    bets.push({legs:best.LL,ch:best.ch,d:d})}
+  if(!bets.length){PLANOUT={err:"Not enough picks in these games to build a double-up bet. Try more games, or 2 picks per bet."};return}
+  var K=bets.length,stake=B/K,dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
+  var pa=0,dd=0;bets.forEach(function(b){pa+=b.ch;dd+=b.d});pa/=K;dd/=K;
+  var gamesUsed=Object.keys(use).length,shared=Object.keys(use).filter(function(k){return use[k]>1}).length;
+  PLANOUT={bets:bets,K:K,N:N,n:n,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,asked:N}}
+// exact distribution of what comes back, treating each bet as its own coin flip (enumerates 2^K outcomes, K <= 15)
+function planDist(bets,stake){var K=bets.length,out={ahead:0,even:0,some:0,most:0},B=stake*K;
+  for(var m=0;m<(1<<K);m++){var pr=1,ret=0;for(var i=0;i<K;i++){if(m>>i&1){pr*=bets[i].ch;ret+=stake*bets[i].d}else pr*=1-bets[i].ch}
+    var r=ret/B;if(r>1.05)out.ahead+=pr;else if(r>=0.95)out.even+=pr;else if(r>0.6)out.some+=pr;else out.most+=pr}
+  return out}
+function renderPlan(){
+  var el=$("planMount");if(!el)return;var S=slateList().filter(function(x){return x.games&&x.id.slice(0,2)==="s:"});
+  var o=PLANOUT,h='<details class="plan"'+(o||PLAN.open?" open":"")+'><summary>🎯 Double-up planner <small style="font-weight:400;color:var(--muted)">· many small bets that each aim to double</small></summary><div class="pb">'+
+   '<p class="sub" style="margin:0 0 4px">Spread a budget over several separate bets that each pay about <b>+100</b> (win what you bet), on different games where we can, so one upset can\'t sink the whole plan.</p>'+
+   '<div class="prow"><label>Budget $<input id="plB" type="number" inputmode="decimal" min="2" value="'+PLAN.budget+'" style="width:84px"></label>'+
+   '<label>Bets<input id="plN" type="number" inputmode="numeric" min="2" max="15" value="'+PLAN.bets+'" style="width:64px"></label>'+
+   '<label>Picks per bet<select id="plP">'+[2,3,4].map(function(v){return'<option'+(PLAN.picks===v?" selected":"")+'>'+v+'</option>'}).join("")+'</select></label></div>'+
+   '<div class="prow"><label style="flex:1">Games<select id="plS"><option value="all">All games still to come</option>'+S.map(function(x){return'<option value="'+esc(x.id)+'"'+(PLAN.slate===x.id?" selected":"")+'>'+esc(x.label)+' ('+x.count+' games)</option>'}).join("")+'</select></label><button class="btn flag" id="plGo">Build my plan</button></div>';
+  if(o&&o.err)h+='<p class="warn">'+esc(o.err)+'</p>';
+  else if(o){
+    var D=o.dist,pc=function(x){return x>0&&x<0.01?"under 1%":Math.round(x*100)+"%"},mp=o.mean/o.B;
+    h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b>'+(o.K<o.asked?' <span class="sub">(only '+o.K+' of '+o.asked+' fit: not enough picks at this price)</span>':"")+'<br><span class="sub">'+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
+     '<table><tr><td>Come out ahead (more than $'+usd(o.B*1.05)+' back)</td><td class="r" style="color:var(--green)">'+pc(D.ahead)+'</td></tr>'+
+     '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
+     '<tr><td>Lose most of it (back $'+usd(o.B*0.6)+' or less)</td><td class="r" style="color:var(--red)">'+pc(D.most)+'</td></tr>'+
+     '<tr><td>Average back</td><td class="r">$'+usd(o.mean)+' of $'+usd(o.B)+'</td></tr></table>'+
+     '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' bet at about +100: about a <b>'+Math.round(o.one.p*100)+'%</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
+     '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. On average you get back about '+Math.round(mp*100)+'% of what you put in; the rest is the sportsbook\'s cut. Only picks that beat their price help, and we never promise that. Bets that share a game rise and fall together a little, which this math ignores.</p>'+
+     o.bets.map(function(b,i){var key="plan"+i;PRE[key]=b.legs;
+       return'<details class="pbet"><summary><b class="big" style="color:'+pctColor(b.ch)+'">'+Math.round(b.ch*100)+'%</b> <span class="sub">to hit · '+am(b.d)+' · $'+usd(o.stake)+' wins $'+usd(o.stake*(b.d-1))+'</span></summary>'+
+        b.legs.map(function(l){var m=DATA&&DATA.games&&DATA.games[l.ev]||{};return'<div class="pl"><span><b>'+esc(l.n)+'</b>'+(m.away?'<br><small class="sub">'+esc(m.away+" @ "+m.home)+'</small>':"")+'</span><span style="color:'+hitColor(l.p)+';font-weight:700">'+Math.round(l.p*100)+'%</span></div>'}).join("")+
+        '<button class="btn flag" data-pre="'+key+'" style="margin-top:6px">Load slip</button></details>'}).join("")}
+  h+='</div></details>';el.innerHTML=h}
+$("planMount").addEventListener("click",function(e){
+  if(e.target.id!=="plGo")return;var B=parseFloat($("plB").value),N=parseInt($("plN").value,10);
+  if(!(B>=2&&B<=100000)){toast("Enter a budget of at least $2.",true);return}if(!(N>=2&&N<=15)){toast("Pick 2 to 15 bets.",true);return}
+  PLAN.budget=B;PLAN.bets=N;PLAN.picks=+$("plP").value;PLAN.slate=$("plS").value;PLAN.open=1;try{localStorage.setItem("plan1"+SPORT,JSON.stringify(PLAN))}catch(x){}
+  try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
+  renderPlan()});
 usualUI();$("stake").value=String(USUAL);
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});
