@@ -285,3 +285,7 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Code: QUEUE/qAdd(legs,name,stake,quiet)/qChip/qOpen/qHTML/qAct next to planMk in index.html. Queue items can carry their own stake (bundle) else My usual bet.
 
 - Bundle results are a table (classes qtab/qrow/qth/qp/qo; NOT .brow/.bp, those already exist for another feature). Row opens to the full slip card (x.open=true). Needs `display:grid!important` on the summary because a global rule overrides it.
+
+- Bundle layout now: heading -> table -> yellow "ⓘ How this works" (all odds/explainer text) -> "+ Add all N bets to my queue" at the bottom, right above Close generator.
+- ⇄ Change works on bundle bets (swap source "plan": swapOpen/swapPick + planRecalc redoes odds, % and the outcome table, and resets "added to queue").
+- Gotcha: the global "opening a details.pc scrolls it to the middle" handler skips cards inside .qrow, otherwise 10 pre-opened cards scroll the page to the bottom of the table on load.

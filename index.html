@@ -131,7 +131,7 @@ th{color:var(--muted);font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.qchip{position:fixed;right:12px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:40;background:var(--flag);color:#1a1400;border:0;border-radius:20px;padding:9px 14px;font:inherit;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.45)}.qchip[hidden]{display:none}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.qtab{border:1px solid var(--line);border-radius:8px;margin:10px 0;background:var(--surface)}.qth,.qtab .qrow>summary{display:grid!important;grid-template-columns:22px 1fr 62px;gap:8px;align-items:start;padding:9px 10px}.qth{font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--line)}.qth span:last-child,.qrow .qo{text-align:right}.qrow{border-bottom:1px solid var(--line)}.qrow:last-child{border-bottom:0}.qrow>summary{cursor:pointer;list-style:none}.qrow>summary::-webkit-details-marker{display:none}.qrow[open]>summary{background:color-mix(in srgb,var(--flag) 10%,transparent)}.qrow .qn{color:var(--muted);font-weight:700}.qrow .qp{display:flex;flex-direction:column;gap:2px;font-size:13px;min-width:0}.qrow .qo{display:flex;flex-direction:column}.qrow .qo b{font-size:16px}.qrow .qo small{font-size:12px;font-weight:700}.bqbar{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin:10px 0}.bqbar .row2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bqw{display:flex;flex-direction:column;gap:6px;min-width:0}.bqw:has(details[open]){grid-column:1/-1}.bqw .bqb{display:flex;gap:6px;flex-wrap:wrap}.bqw .bqb .btn{flex:1 1 auto;text-align:center}.bqw.next{outline:2px solid var(--flag);outline-offset:2px;border-radius:8px}.bqdone li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
+html,body{overflow-anchor:none}.qchip{position:fixed;right:12px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:40;background:var(--flag);color:#1a1400;border:0;border-radius:20px;padding:9px 14px;font:inherit;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.45)}.qchip[hidden]{display:none}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.qtab{border:1px solid var(--line);border-radius:8px;margin:10px 0;background:var(--surface)}.qth,.qtab .qrow>summary{display:grid!important;grid-template-columns:22px 1fr 62px;gap:8px;align-items:start;padding:9px 10px}.qth{font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--line)}.qth span:last-child,.qrow .qo{text-align:right}.qrow{border-bottom:1px solid var(--line);margin-top:0;border-top:0;padding-top:0}.hw{border-top:0;margin:6px 0 4px;padding-top:0}.hw>summary{list-style:none}.hw>summary::-webkit-details-marker{display:none}.hwl{font-size:14px;padding:6px 0}.hwb{padding-bottom:6px}.qrow:last-child{border-bottom:0}.qrow>summary{cursor:pointer;list-style:none}.qrow>summary::-webkit-details-marker{display:none}.qrow[open]>summary{background:color-mix(in srgb,var(--flag) 10%,transparent)}.qrow .qn{color:var(--muted);font-weight:700}.qrow .qp{display:flex;flex-direction:column;gap:2px;font-size:13px;min-width:0}.qrow .qo{display:flex;flex-direction:column}.qrow .qo b{font-size:16px}.qrow .qo small{font-size:12px;font-weight:700}.bqbar{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin:10px 0}.bqbar .row2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bqw{display:flex;flex-direction:column;gap:6px;min-width:0}.bqw:has(details[open]){grid-column:1/-1}.bqw .bqb{display:flex;gap:6px;flex-wrap:wrap}.bqw .bqb .btn{flex:1 1 auto;text-align:center}.bqw.next{outline:2px solid var(--flag);outline-offset:2px;border-radius:8px}.bqdone li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
 @media (min-width:640px){.pgrid{grid-template-columns:repeat(3,1fr)}}
 .pc{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:6px;min-width:0}
 .pc[data-tag="safe"]{border-top-color:var(--green)}
@@ -1518,10 +1518,10 @@ function slipCard(x,key){
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw"><span class="hlp">'+pctWord(x.ch)+'<br></span>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
-    '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap||x.gen?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
+    '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap||x.gen||x.plan!=null?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
-    '<div class="row"><span class="mt">Tap the top of the card to close</span><span style="display:flex;gap:6px">'+(x.noSwap?"":'<button class="btn" data-qadd="'+key+'" data-qn="'+escA(slipName(p.n))+'">+ Queue</button>')+'<button class="btn flag" data-pre="'+key+'">Load slip</button></span></div></div></details>';
+    '<div class="row"><span class="mt">Tap the top of the card to close</span><span style="display:flex;gap:6px">'+(x.noSwap||x.plan!=null?"":'<button class="btn" data-qadd="'+key+'" data-qn="'+escA(slipName(p.n))+'">+ Queue</button>')+'<button class="btn flag" data-pre="'+key+'">Load slip</button></span></div></div></details>';
 }
 function slipCardW(x,key){return whyWrap(slipCard(x,key),x.s.l,x.s.n)}
 // ---------- spotlight game (hero) ----------
@@ -2538,6 +2538,7 @@ function swapOpen(t){
   var legs,at;
   if(t.dataset.swap==="slip"){legs=Object.keys(SLIP).map(function(k){return SLIP[k]});at=Object.keys(SLIP).indexOf(t.dataset.k)}
   else if(t.dataset.swap==="card"){legs=PCUR[t.dataset.sig];if(!legs)return;at=+t.dataset.j}
+  else if(t.dataset.swap==="plan"){var pb=PLANOUT&&PLANOUT.bets[+t.dataset.i];if(!pb)return;legs=pb.legs;at=+t.dataset.j}
   else{var it=genSaved(t.dataset.cx)[+t.dataset.i];if(!it)return;legs=it.legs.map(function(x){return x.leg});at=+t.dataset.j}
   var L=legs[at];if(!L)return;
   if(legStarted(L)){toast(STARTED_MSG,true);return}
@@ -2571,6 +2572,7 @@ function swapPick(ix){
   if(!SWAP)return;var NL=SWAP.cand[ix];if(!NL)return;
   if(legStarted(NL)){toast(STARTED_MSG,true);return}
   if(SWAP.from==="card"){var sg=SWAP.sig,E=PEDIT[sg]||{};E[SWAP.at]=legRef(NL);PEDIT[sg]=E;pEditSave();POPEN=sg;swapClose();renderParlays();pReopen(sg)}
+  else if(SWAP.from==="plan"){var pb2=PLANOUT&&PLANOUT.bets[SWAP.i];if(!pb2){swapClose();return}pb2.legs[SWAP.at]=NL;planRecalc(PLANOUT);swapClose();genUI("par")}
   else if(SWAP.from==="slip"){var S2={};Object.keys(SLIP).forEach(function(k){if(k===SWAP.k)S2[NL.k]=NL;else S2[k]=SLIP[k]});SLIP=S2;swapClose();renderSlip()}
   else{var cx=SWAP.cx,last=genSaved(cx),it=last[SWAP.i];if(!it){swapClose();return}
     it.legs[SWAP.at]={leg:NL,why:legWhy({leg:NL})};Object.assign(it,genNums(it.legs.map(function(x){return x.leg})));it.chg=(it.chg||0)+1;
@@ -2840,7 +2842,7 @@ function route(){
 }
 $("scBtn").addEventListener("click",function(){checkScores(false)});
 // Opening a parlay card: bring it to the middle of the screen (top of the screen if it's taller than the screen)
-document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open)return;
+document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open||d.closest(".qrow"))return;
   setTimeout(function(){var r=d.getBoundingClientRect(),vh=window.innerHeight,bar=($("sum")&&$("sum").offsetHeight)||60,room=vh-bar;
     var y=r.height<room-40?window.scrollY+r.top-(room-r.height)/2:window.scrollY+r.top-12;window.scrollTo({top:Math.max(0,y),behavior:"smooth"})},60)},true);
 // "New here?" card: first few visits until hidden or a bet is saved
@@ -2933,7 +2935,16 @@ function qAct(a,i){
   if(a==="c"){QUEUE=QUEUE.filter(function(q){return q.st===0})}
   else{var q=QUEUE[i];if(!q)return;q.st=a==="p"?1:a==="r"?2:0;if(a==="p")toast("Placed. "+QUEUE.filter(function(z){return z.st===0}).length+" left.")}
   qSave();qChip();$("qIn").innerHTML=qHTML();if(a==="p"||a==="r")$("qIn").scrollTop=0}
-function planMk(b,i,K,stake){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x}
+function planMk(b,i,K,stake){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.plan=i;x.sig="";b.x=x}
+// after you change a pick, redo every number that depends on it
+function planRecalc(o){
+  var use={},cnt={},K=o.bets.length;
+  o.bets.forEach(function(b,i){var d=1;b.legs.forEach(function(l){d*=dec(l.a);use[l.ev]=(use[l.ev]||0)+1;var k=l.k+"|"+(l.t||"")+"|"+(l.line||"");cnt[k]=(cnt[k]||0)+1});
+    var C=slipChance(b.legs,"");b.d=d;if(C.ch!==null)b.ch=C.ch;planMk(b,i,K,o.stake)});
+  o.rep=Object.keys(cnt).filter(function(k){return cnt[k]>1}).length;o.games=Object.keys(use).length;
+  var evBets={};o.bets.forEach(function(b,i){b.legs.forEach(function(l){(evBets[l.ev]=evBets[l.ev]||{})[i]=1})});o.shared=Object.keys(evBets).filter(function(e){return Object.keys(evBets[e]).length>1}).length;
+  o.dist=o.rep?planSim(o.bets,o.stake):planDist(o.bets,o.stake);var m=0,pa=0,dd=0;o.bets.forEach(function(b){m+=b.ch*b.d*o.stake;pa+=b.ch;dd+=b.d});
+  o.mean=m;o.one={p:pa/K,d:dd/K};o.sent=0;bqSave()}
 // the checklist survives closing the app: save the plan (without the card objects) and the placed/removed marks
 var BQKEY="bundle_"+SPORT;
 function bqSave(){try{if(!PLANOUT||!PLANOUT.bets){localStorage.removeItem(BQKEY);return}
@@ -2983,8 +2994,9 @@ function planHTML(){
   var box=o.short?'<div class="warn" style="margin:10px 0"><b>Can\'t fill all '+o.N+' bets.</b> '+(o.K?'Only '+o.K+' fit with different picks. ':'')+'Add more games, or change the risk (medium and high risk have more picks to choose from).<br><span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+(G.games!=="all"?'<button class="btn" data-planall="1">Use all games remaining</button>':"")+'<button class="btn flag" data-planfill="1">Fill all '+o.N+' anyway</button></span><span class="sub" style="display:block;margin-top:6px">Fill all anyway spreads your money over weaker choices: fewer picks per bet, picks repeated across bets, or single picks. It doesn\'t find better bets.</span></div>':"";
   if(o.err)return box+'<p class="warn">'+esc(o.err)+'</p>';
   var D=o.dist,pc=function(x){return x>0&&x<0.01?"under 1%":Math.round(x*100)+"%"},mp=o.mean/o.B,h='<div class="plan nb"><div class="pb">'+box;
-  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Low risk",bal:"Medium risk",long:"High risk"}[o.style]||"Medium risk")+': '+PLANWORD[o.style]+' each'+(o.filled?' <span class="sub">(filled to '+o.K+' by spreading, see below)</span>':"")+'<br><span class="sub">'+(o.n===1?'single picks, no parlay · ':o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+(o.rep?o.rep+' pick'+(o.rep>1?'s are':' is')+' in more than one bet, so those bets win or lose together · ':'')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+bqBar(o)+
+  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Low risk",bal:"Medium risk",long:"High risk"}[o.style]||"Medium risk")+': '+PLANWORD[o.style]+' each'+(o.filled?' <span class="sub">(filled to '+o.K+' by spreading, see below)</span>':"")+'<br><span class="sub">'+(o.n===1?'single picks, no parlay · ':o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+(o.rep?o.rep+' pick'+(o.rep>1?'s are':' is')+' in more than one bet, so those bets win or lose together · ':'')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
    (o.games<=2?'<p class="warn" style="margin:6px 0"><b>Heads up:</b> these bets use only '+o.games+' game'+(o.games>1?'s':'')+'. If that game goes badly (a blowout, bad weather, an injury) many bets lose together, so your real risk is higher than the odds below show. Use more games to really spread it.</p>':"")+
+   bqHTML(o)+'<details class="hw"><summary class="whyb hwl">ⓘ How this works</summary><div class="hwb">'+
    '<table><tr><td>Come out ahead (back more than $'+usd(o.B*1.05)+')</td><td class="r" style="color:var(--green)">'+pc(D.ahead)+'</td></tr>'+
    '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
    '<tr><td>Lose most of it (back $'+usd(o.B*0.6)+' or less)</td><td class="r" style="color:var(--red)">'+pc(D.most)+'</td></tr>'+
@@ -2992,13 +3004,13 @@ function planHTML(){
    '<p class="gnote" style="margin:6px 0"><b>If you made this exact plan 100 times:</b> about '+Math.round(D.ahead*100)+' would end ahead, '+Math.round(D.even*100)+' near even, '+Math.round(D.some*100)+' lose some, and '+Math.round(D.most*100)+' lose most of it. Averaged over all 100, you would get back about $'+usd(o.mean)+' of every $'+usd(o.B)+'.</p>'+
    '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' bet at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
    (function(){var avgP=o.one.p,avgD=o.one.d,need=Math.ceil(o.K/avgD-1e-9),back=D.ahead+D.even;
-     return'<details class="whyb2" style="margin:8px 0"><summary class="lnk" style="cursor:pointer">ⓘ How does this work?</summary><div class="gnote" style="margin:6px 0">'+
+     return'<div class="gnote" style="margin:6px 0">'+
       '<p style="margin:0 0 6px"><b>Each bet is its own bet.</b> The big % on each bet (about '+Math.round(avgP*100)+'% here) is the chance <i>that bet</i> wins. It is not the chance for the whole plan.</p>'+
       '<p style="margin:0 0 6px"><b>What you need:</b> each bet pays '+am(avgD)+', so a win returns about $'+usd(o.stake*avgD)+' on a $'+usd(o.stake)+' bet. You get your $'+usd(o.B)+' back when about <b>'+need+' of '+o.K+'</b> bets win, and you profit when more than that win. Our math puts "money back or better" at about <b>'+Math.round(back*100)+'%</b> and "ahead" at about <b>'+Math.round(D.ahead*100)+'%</b>.</p>'+
       '<p style="margin:0 0 6px"><b>How do you make more than you put in?</b> Only by winning more bets than the prices expect, or by a big payout landing. Spreading does not create profit. It spreads your risk: you are less likely to lose everything, and less likely to hit one big win. One bet of $'+usd(o.B)+' has a higher chance to win something but also a bigger chance to lose it all.</p>'+
-      '<p style="margin:0"><b>Use it when</b> you want to keep a set amount in play with steadier swings. The average back is below what you put in because the sportsbook takes a cut.</p></div></details>'})()+
+      '<p style="margin:0"><b>Use it when</b> you want to keep a set amount in play with steadier swings. The average back is below what you put in because the sportsbook takes a cut.</p></div>'})()+
    '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Bets that share a game rise and fall together a little, which this math ignores.</p>'+
-   bqHTML(o);
+   '</div></details>'+bqBar(o);
   return h+'</div></div>'}
 // bundle bets go to the same bet queue as everything else
 function bqBar(o){
@@ -3009,13 +3021,14 @@ function bqHTML(o){
   return'<div class="qtab"><div class="qth"><span>#</span><span>Picks</span><span>Pays · Hits</span></div>'+o.bets.map(function(b,i){
     b.x.open=true;var ch=b.ch;
     return'<details class="qrow"><summary><span class="qn">'+(i+1)+'</span><span class="qp">'+b.legs.map(function(l){return'<span>'+esc(l.n)+'</span>'}).join("")+'</span><span class="qo"><b>'+am(b.d)+'</b>'+(ch!=null?'<small style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%</small>':'')+'</span></summary><div class="pgrid" style="grid-template-columns:1fr;padding:0 0 8px">'+slipCardW(b.x,"plan"+i)+'</div></details>'}).join("")+'</div><p class="sub" style="margin:6px 0 0">Tap a row to open that bet\'s full card: every pick\'s stats, why we picked it, and the payout.</p>'}
+document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qrow")&&t.open)setTimeout(function(){t.scrollIntoView({block:"start"})},0)},true);
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
   var G=GENS.par,B=parseFloat($("plB_par").value),N=parseInt($("plN_par").value,10);
   if(!(B>=2&&B<=100000)){toast("Enter a budget of at least $2.",true);return}if(!(N>=2&&N<=15)){toast("Pick 2 to 15 bets.",true);return}
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
   try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
-  genUI("par");if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
+  genUI("par");setTimeout(function(){var go=$("genGo_par");if(go&&go.scrollIntoView)go.scrollIntoView({block:"start"})},0);if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
 usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);qChip();
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});

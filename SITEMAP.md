@@ -119,3 +119,4 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Bet bundle: "+ Add all N bets to my queue" button (top of the results, always visible) feeds the shared Bet queue.
 - Bet queue: "+ Queue" on parlay cards and slip panel; yellow "Bet queue (n)" chip opens the one-by-one place list (Open in app / Placed / Remove).
 - Bet bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
+- Bet bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
