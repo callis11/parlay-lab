@@ -275,12 +275,11 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
 
 
-## Bundle checklist (place bets one at a time)
-- After "Build my bundle", each bet is its own card with: Open in <app> (one link per app you picked, only that bet's picks), **Placed ✓**, **Remove**. Placed/removed bets leave the list (collapsed "N placed" list with Undo). The top bar shows placed / $ in / left / next bet's odds.
-- Why: an app link can only fill ONE slip, so a whole bundle can't be loaded at once (it would merge into one giant parlay).
-- Code: planMk, bqSave/bqLoad (localStorage key `bundle_<sport>`, expires after 3 days), bqAct, bqHTML in index.html. Bets with a started game show "can't be placed".
+## Bundle -> bet queue
+- After "Build my bundle" the cards are view-only and a **Send all N bets to my queue** button (data-qbundle) adds each bet (with its own stake = budget/N) to the shared bet queue and opens it. The old separate bundle checklist was removed; bqSave/bqLoad (localStorage `bundle_<sport>`) still keep the built bundle across reloads.
+- Reason: an app link can only fill ONE slip, so bets are placed one at a time from the queue.
 
 ## Bet queue (any bets, placed one at a time)
 - **+ Queue** on every parlay card (open card row + preset cards) and **+ Add this slip to my bet queue** in the slip panel (clears the slip). Yellow **Bet queue (n)** chip (bottom right) opens the queue modal: per bet Open in <app> / Placed ✓ / Remove, finished list with Undo + Clear finished.
 - Stake shown = My usual bet (★). Saved in localStorage `queue_<sport>` (3 days). Duplicate bets are blocked; started games can't be placed.
-- Code: QUEUE/qAdd/qChip/qOpen/qHTML/qAct next to planMk in index.html. Bundle mode has its own checklist (bqHTML) — they could be merged later (e.g. bundle gets "Send to queue").
+- Code: QUEUE/qAdd(legs,name,stake,quiet)/qChip/qOpen/qHTML/qAct next to planMk in index.html. Queue items can carry their own stake (bundle) else My usual bet.
