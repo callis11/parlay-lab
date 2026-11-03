@@ -1356,8 +1356,8 @@ function legStory(l){
     if(pp){if(pp.oppF>=1.04)S.matchup.push(pp.opp+" allow more than average here ("+(U?"bad":"good")+" for this pick)");else if(pp.oppF&&pp.oppF<=0.96)S.matchup.push(pp.opp+" are tough here ("+(U?"good":"bad")+" for this pick)");
       if(pp.windF&&pp.windF<1)S.matchup.push("Wind expected, which cuts passing numbers");
       if(pp.injury)S.matchup.push("Injury report: "+pp.injury);else if(pp.missedLast)S.matchup.push("Missed his team's last game")}
-    var w=r&&r.n?Math.round(100*r.n/(r.n+15)):0;
-    S.how.push(w?"His record gets "+w+"% of the weight and the book's price the rest (more games, more weight on him)":"Book's price only");
+    var w=r&&r.n?Math.round(100*r.n/(r.n+Engine.HIST_K)):0;
+    S.how.push(w?"Starts from the book's price; his own record nudges it "+w+"% of the way toward his hit rate (replays show the book's number is the better guide, so the record only nudges)":"Book's price only");
     var pcal=l.pc!=null?l.pc:l.p;
     if(l.p0!=null&&Math.abs(l.p0-pcal)>=0.01)S.how.push("Graded results for picks like this tuned it from "+pct(l.p0)+" to "+pct(pcal));
     if(l.sg&&l.sg.length){var tot=Engine.edgeTotal(l.sg);l.sg.forEach(function(e){S.how.push((e.pts>0?"+":"\u2212")+Math.abs(e.pts)+(Math.abs(e.pts)===1?" pt \u00b7 ":" pts \u00b7 ")+e.t)});

@@ -1,40 +1,40 @@
 {
- "builtAt": "2026-11-01T17:29:24.683Z",
+ "builtAt": "2026-11-03T12:35:09.469Z",
  "seasons": {
   "2021": {
    "weeks": 22,
    "games": 285,
    "propGames": 0,
    "legs": 1642,
-   "slips": 384
+   "slips": 409
   },
   "2022": {
    "weeks": 22,
    "games": 284,
    "propGames": 0,
    "legs": 3294,
-   "slips": 356
+   "slips": 386
   },
   "2023": {
    "weeks": 22,
    "games": 285,
    "propGames": 285,
    "legs": 41494,
-   "slips": 1253
+   "slips": 1306
   },
   "2024": {
    "weeks": 22,
    "games": 285,
    "propGames": 285,
    "legs": 104106,
-   "slips": 1315
+   "slips": 1376
   },
   "2025": {
    "weeks": 22,
    "games": 285,
    "propGames": 285,
    "legs": 182468,
-   "slips": 1330
+   "slips": 1400
   }
  },
  "legs": {
@@ -99,360 +99,360 @@
     "n": 677,
     "w": 299,
     "profit": -745.34,
-    "exp": 304.27,
+    "exp": 318.21,
     "book": 336.27
    },
    "Anytime TD|dog": {
     "n": 13735,
     "w": 2381,
     "profit": -11312.5,
-    "exp": 2399.32,
+    "exp": 2349.85,
     "book": 2579.22
    },
    "Passing TDs|dog": {
     "n": 559,
     "w": 218,
     "profit": -136.1,
-    "exp": 216.25,
+    "exp": 208.7,
     "book": 221.96
    },
    "Passing TDs under|fav": {
     "n": 772,
     "w": 445,
     "profit": -571.87,
-    "exp": 444.72,
+    "exp": 454.4,
     "book": 481.56
    },
    "Passing TDs|fav": {
     "n": 468,
     "w": 270,
     "profit": -292.28,
-    "exp": 273.83,
+    "exp": 267.4,
     "book": 286.77
    },
    "Passing TDs under|even": {
     "n": 314,
     "w": 154,
     "profit": -72.13,
-    "exp": 144.55,
+    "exp": 149.35,
     "book": 158.2
    },
    "Passing yards|even": {
     "n": 2087,
     "w": 1030,
     "profit": -962.09,
-    "exp": 1028.03,
+    "exp": 1013.17,
     "book": 1078.64
    },
    "Passing yards under|even": {
     "n": 1449,
     "w": 719,
     "profit": -808.27,
-    "exp": 724.45,
+    "exp": 733.9,
     "book": 761.53
    },
    "Receiving yards|even": {
     "n": 11056,
     "w": 5346,
     "profit": -6948.22,
-    "exp": 5333.25,
+    "exp": 5280.95,
     "book": 5704.89
    },
    "Receiving yards under|even": {
     "n": 7879,
     "w": 4009,
     "profit": -2494.76,
-    "exp": 4008.45,
+    "exp": 4038.71,
     "book": 4139.97
    },
    "Receptions|fav": {
     "n": 5017,
     "w": 2838,
     "profit": -4749.83,
-    "exp": 2858.87,
+    "exp": 2921.55,
     "book": 3134.25
    },
    "Receptions under|even": {
     "n": 2622,
     "w": 1289,
     "profit": -419.87,
-    "exp": 1266.57,
+    "exp": 1235.21,
     "book": 1310.96
    },
    "Receptions|even": {
     "n": 3190,
     "w": 1400,
     "profit": -3701.62,
-    "exp": 1412.1,
+    "exp": 1473.97,
     "book": 1583.14
    },
    "Receptions under|fav": {
     "n": 3578,
     "w": 2078,
     "profit": -883.25,
-    "exp": 2115.03,
+    "exp": 2007.96,
     "book": 2131
    },
    "Rushing yards|even": {
     "n": 4847,
     "w": 2293,
     "profit": -4027.88,
-    "exp": 2298.78,
+    "exp": 2331.76,
     "book": 2501.78
    },
    "Rushing yards under|even": {
     "n": 3582,
     "w": 1866,
     "profit": -298.47,
-    "exp": 1850.52,
+    "exp": 1825.62,
     "book": 1881.66
    },
    "Receptions|dog": {
     "n": 17895,
     "w": 3386,
     "profit": -44830,
-    "exp": 3395.41,
+    "exp": 3918.61,
     "book": 4281.57
    },
    "Passing TDs|even": {
     "n": 394,
     "w": 188,
     "profit": -170.16,
-    "exp": 187.24,
+    "exp": 183.9,
     "book": 196.44
    },
    "Receiving yards under|fav": {
     "n": 73,
     "w": 34,
     "profit": -119.13,
-    "exp": 37.39,
+    "exp": 38.91,
     "book": 40.69
    },
    "Receptions under|dog": {
     "n": 937,
     "w": 380,
     "profit": -635.6,
-    "exp": 397.64,
+    "exp": 386.5,
     "book": 407.36
    },
    "Anytime TD|fav": {
     "n": 558,
     "w": 311,
     "profit": -386.77,
-    "exp": 309.61,
+    "exp": 317.99,
     "book": 333.47
    },
    "Passing TDs under|dog": {
     "n": 277,
     "w": 97,
     "profit": -361.8,
-    "exp": 107.14,
+    "exp": 109.01,
     "book": 112.93
    },
    "Rushing yards under|fav": {
     "n": 97,
     "w": 64,
     "profit": 136.92,
-    "exp": 53.82,
+    "exp": 53.16,
     "book": 56.04
    },
    "Passing TDs under|big fav": {
     "n": 80,
     "w": 58,
     "profit": -3.63,
-    "exp": 54.98,
+    "exp": 55.46,
     "book": 58.34
    },
    "Receiving yards|fav": {
     "n": 6798,
     "w": 3928,
     "profit": -5260.97,
-    "exp": 3914.6,
+    "exp": 3955.37,
     "book": 4255.93
    },
    "Passing TDs|big fav": {
     "n": 23,
     "w": 14,
     "profit": -36.47,
-    "exp": 14.92,
+    "exp": 15.43,
     "book": 16.69
    },
    "Passing yards|dog": {
     "n": 5639,
     "w": 1138,
     "profit": -6287.3,
-    "exp": 1114.25,
+    "exp": 1113.22,
     "book": 1216.03
    },
    "Receiving yards|big fav": {
     "n": 9250,
     "w": 7299,
     "profit": -4713.57,
-    "exp": 7318.75,
+    "exp": 7242.73,
     "book": 7687.01
    },
    "Receiving yards|dog": {
     "n": 34998,
     "w": 6433,
     "profit": -55406.2,
-    "exp": 6417.84,
+    "exp": 6453.78,
     "book": 7317.23
    },
    "Passing yards|big fav": {
     "n": 2733,
     "w": 2144,
     "profit": -1863.29,
-    "exp": 2149.12,
+    "exp": 2138.94,
     "book": 2294.98
    },
    "Passing yards|fav": {
     "n": 1366,
     "w": 799,
     "profit": -974.6,
-    "exp": 797.2,
+    "exp": 794.84,
     "book": 859.27
    },
    "Rushing yards|fav": {
     "n": 2639,
     "w": 1500,
     "profit": -2470.96,
-    "exp": 1501.51,
+    "exp": 1547.41,
     "book": 1653.1
    },
    "Rush + rec yards|even": {
     "n": 1611,
     "w": 792,
     "profit": -1250.43,
-    "exp": 795.8,
+    "exp": 796.68,
     "book": 858.71
    },
    "Rush + rec yards under|even": {
     "n": 1613,
     "w": 819,
     "profit": -762.28,
-    "exp": 816.11,
+    "exp": 815.23,
     "book": 859.64
    },
    "Rush + rec yards|fav": {
     "n": 2,
     "w": 2,
     "profit": 16.39,
-    "exp": 1.1,
+    "exp": 1.09,
     "book": 1.1
    },
    "Receptions|big fav": {
     "n": 7778,
     "w": 6156,
     "profit": -4489.06,
-    "exp": 6158.02,
+    "exp": 6138.85,
     "book": 6529.43
    },
    "Rushing yards|dog": {
     "n": 13566,
     "w": 2337,
     "profit": -28960.8,
-    "exp": 2350.15,
+    "exp": 2522.81,
     "book": 2770.44
    },
    "Rushing yards|big fav": {
     "n": 3987,
     "w": 3100,
     "profit": -2764.32,
-    "exp": 3085.54,
+    "exp": 3155.77,
     "book": 3330.79
    },
    "Anytime TD|big fav": {
     "n": 29,
     "w": 21,
     "profit": -7.98,
-    "exp": 20.23,
+    "exp": 20.61,
     "book": 21.53
    },
    "Receptions under|big fav": {
     "n": 6,
     "w": 5,
     "profit": 9.26,
-    "exp": 4.07,
+    "exp": 3.93,
     "book": 4.33
    },
    "Rushing yards under|big fav": {
     "n": 3,
     "w": 2,
     "profit": -3.34,
-    "exp": 2.09,
+    "exp": 2.14,
     "book": 2.28
    }
   },
   "byP": {
    "0": {
-    "n": 22812,
-    "w": 1441,
-    "profit": -66864,
-    "exp": 1640.41,
-    "book": 2054.25
+    "n": 22108,
+    "w": 1393,
+    "profit": -57483,
+    "exp": 1399.04,
+    "book": 1908.77
    },
    "1": {
-    "n": 29681,
-    "w": 4282,
-    "profit": -48702,
-    "exp": 4326.41,
-    "book": 5131.91
+    "n": 27569,
+    "w": 3622,
+    "profit": -54279.5,
+    "exp": 4021.26,
+    "book": 4467.64
    },
    "2": {
-    "n": 20175,
-    "w": 5200,
-    "profit": -21300.5,
-    "exp": 4991.9,
-    "book": 5830.05
+    "n": 19318,
+    "w": 4608,
+    "profit": -22234,
+    "exp": 4788.07,
+    "book": 5225.54
    },
    "3": {
-    "n": 15864,
-    "w": 5844,
-    "profit": -12649.76,
-    "exp": 5531.99,
-    "book": 6370.32
+    "n": 15664,
+    "w": 5417,
+    "profit": -12672.2,
+    "exp": 5470.49,
+    "book": 5907.12
    },
    "4": {
-    "n": 28769,
-    "w": 13894,
-    "profit": -15919.83,
-    "exp": 13255.62,
-    "book": 14699.18
+    "n": 32478,
+    "w": 15061,
+    "profit": -24984.25,
+    "exp": 15088.93,
+    "book": 16331.69
    },
    "5": {
-    "n": 31759,
-    "w": 16511,
-    "profit": -19555.85,
-    "exp": 17085.43,
-    "book": 17602.65
+    "n": 33181,
+    "w": 17659,
+    "profit": -12862.2,
+    "exp": 17670.71,
+    "book": 18403.3
    },
    "6": {
-    "n": 11846,
-    "w": 7426,
-    "profit": -6997.84,
-    "exp": 7638.66,
-    "book": 7913.67
+    "n": 11003,
+    "w": 7056,
+    "profit": -7689,
+    "exp": 7119.96,
+    "book": 7588.85
    },
    "7": {
-    "n": 10339,
-    "w": 7693,
-    "profit": -6099.59,
-    "exp": 7769.91,
-    "book": 8176.88
+    "n": 10418,
+    "w": 7816,
+    "profit": -6282.18,
+    "exp": 7818.66,
+    "book": 8316.72
    },
    "8": {
-    "n": 10095,
-    "w": 8489,
-    "profit": -5258.11,
-    "exp": 8557.43,
-    "book": 8951.74
+    "n": 9648,
+    "w": 8178,
+    "profit": -5057.25,
+    "exp": 8166.24,
+    "book": 8629.42
    },
    "9": {
-    "n": 1128,
-    "w": 1004,
-    "profit": -566.21,
-    "exp": 1027.77,
-    "book": 1056.84
+    "n": 1081,
+    "w": 974,
+    "profit": -370.11,
+    "exp": 991.74,
+    "book": 1008.44
    }
   },
   "byMarket": {
@@ -481,143 +481,159 @@
     "n": 14999,
     "w": 3012,
     "profit": -12452.59,
-    "exp": 3033.44,
+    "exp": 3006.66,
     "book": 3270.48
    },
    "Passing TDs": {
     "n": 1444,
     "w": 690,
     "profit": -635.01,
-    "exp": 692.24,
+    "exp": 675.44,
     "book": 721.86
    },
    "Passing TDs under": {
     "n": 1443,
     "w": 754,
     "profit": -1009.42,
-    "exp": 751.4,
+    "exp": 768.21,
     "book": 811.02
    },
    "Passing yards": {
     "n": 11825,
     "w": 5111,
     "profit": -10087.28,
-    "exp": 5088.6,
+    "exp": 5060.17,
     "book": 5448.91
    },
    "Passing yards under": {
     "n": 1449,
     "w": 719,
     "profit": -808.27,
-    "exp": 724.45,
+    "exp": 733.9,
     "book": 761.53
    },
    "Receiving yards": {
     "n": 62102,
     "w": 23006,
     "profit": -72328.96,
-    "exp": 22984.44,
+    "exp": 22932.84,
     "book": 24965.06
    },
    "Receiving yards under": {
     "n": 7952,
     "w": 4043,
     "profit": -2613.89,
-    "exp": 4045.83,
+    "exp": 4077.63,
     "book": 4180.65
    },
    "Receptions": {
     "n": 33880,
     "w": 13780,
     "profit": -57770.52,
-    "exp": 13824.41,
+    "exp": 14452.99,
     "book": 15528.39
    },
    "Receptions under": {
     "n": 7143,
     "w": 3752,
     "profit": -1929.45,
-    "exp": 3783.31,
+    "exp": 3633.6,
     "book": 3853.65
    },
    "Rushing yards": {
     "n": 25039,
     "w": 9230,
     "profit": -38223.96,
-    "exp": 9235.99,
+    "exp": 9557.75,
     "book": 10256.11
    },
    "Rushing yards under": {
     "n": 3682,
     "w": 1932,
     "profit": -164.89,
-    "exp": 1906.43,
+    "exp": 1880.93,
     "book": 1939.98
    },
    "Rush + rec yards": {
     "n": 1613,
     "w": 794,
     "profit": -1234.03,
-    "exp": 796.89,
+    "exp": 797.77,
     "book": 859.81
    },
    "Rush + rec yards under": {
     "n": 1613,
     "w": 819,
     "profit": -762.28,
-    "exp": 816.11,
+    "exp": 815.23,
     "book": 859.64
    }
   }
  },
  "slips": {
   "Best 2-Leg": {
-   "n": 482,
-   "w": 225,
-   "profit": -551.61,
-   "exp": 248.61,
-   "legs": 964,
-   "expRaw": 247.91
+   "n": 492,
+   "w": 226,
+   "profit": -622.65,
+   "exp": 239.51,
+   "legs": 984,
+   "expRaw": 239.04
   },
   "Best 3-Leg": {
-   "n": 471,
-   "w": 142,
-   "profit": -953.44,
-   "exp": 169.84,
-   "legs": 1413,
-   "expRaw": 168.39
+   "n": 477,
+   "w": 156,
+   "profit": -653.63,
+   "exp": 158.61,
+   "legs": 1431,
+   "expRaw": 157.37
   },
   "Best Shot at +100": {
-   "n": 425,
-   "w": 181,
-   "profit": -550.44,
-   "exp": 214.76,
-   "legs": 865,
-   "expRaw": 214.01
+   "n": 437,
+   "w": 187,
+   "profit": -599.16,
+   "exp": 205.08,
+   "legs": 905,
+   "expRaw": 204.61
   },
   "Best Shot at +300": {
-   "n": 467,
-   "w": 109,
-   "profit": -424.54,
-   "exp": 133.43,
-   "legs": 1167,
-   "expRaw": 132.11
+   "n": 477,
+   "w": 113,
+   "profit": -402.67,
+   "exp": 117.27,
+   "legs": 1051,
+   "expRaw": 116.58
   },
   "Best Shot at +600": {
-   "n": 268,
-   "w": 36,
-   "profit": -269.49,
-   "exp": 46.29,
-   "legs": 897,
-   "expRaw": 46.29
+   "n": 259,
+   "w": 39,
+   "profit": -69.86,
+   "exp": 36.61,
+   "legs": 758,
+   "expRaw": 36.61
+  },
+  "Best 10-Leg of the Week": {
+   "n": 99,
+   "w": 2,
+   "profit": -655.35,
+   "exp": 2.41,
+   "legs": 990,
+   "expRaw": 2.38
+  },
+  "Best 15-Leg of the Week": {
+   "n": 84,
+   "w": 1,
+   "profit": -352.74,
+   "exp": 0.32,
+   "legs": 1260,
+   "expRaw": 0.31
   },
   "Lions + Favorites": {
    "n": 38,
    "w": 19,
    "profit": 137.77,
-   "exp": 12.17,
+   "exp": 12.09,
    "legs": 114,
-   "expRaw": 12.17
+   "expRaw": 12.09
   },
   "Lions Cover + Total": {
    "n": 38,
@@ -628,193 +644,193 @@
    "expRaw": 9.42
   },
   "Lions Long Shot": {
-   "n": 81,
-   "w": 14,
-   "profit": 1523.27,
-   "exp": 5.59,
-   "legs": 324,
-   "expRaw": 4.79
+   "n": 82,
+   "w": 11,
+   "profit": 956.28,
+   "exp": 5.11,
+   "legs": 328,
+   "expRaw": 4.47
   },
   "The Safe 3": {
    "n": 94,
    "w": 50,
    "profit": -13.61,
-   "exp": 46.93,
+   "exp": 46.39,
    "legs": 282,
-   "expRaw": 46.93
+   "expRaw": 46.39
   },
   "Spread Trio": {
    "n": 90,
    "w": 14,
    "profit": 1.9,
-   "exp": 11.19,
+   "exp": 11.23,
    "legs": 270,
-   "expRaw": 11.19
+   "expRaw": 11.23
   },
   "Unders Special": {
    "n": 96,
    "w": 17,
    "profit": 219.67,
-   "exp": 12.01,
+   "exp": 12,
    "legs": 288,
-   "expRaw": 12.01
+   "expRaw": 12
   },
   "Longshot 4-Leg": {
    "n": 85,
    "w": 11,
    "profit": 10.14,
-   "exp": 10.38,
+   "exp": 10.5,
    "legs": 340,
-   "expRaw": 10.38
+   "expRaw": 10.5
   },
   "Favorites Trio": {
-   "n": 77,
+   "n": 76,
    "w": 28,
-   "profit": -75.69,
-   "exp": 28.59,
-   "legs": 231,
-   "expRaw": 28.59
+   "profit": -65.69,
+   "exp": 28.1,
+   "legs": 228,
+   "expRaw": 28.1
   },
   "Safe 4": {
-   "n": 137,
-   "w": 34,
-   "profit": -417.84,
-   "exp": 52.04,
-   "legs": 548,
-   "expRaw": 52.04
+   "n": 138,
+   "w": 52,
+   "profit": 6.51,
+   "exp": 46.01,
+   "legs": 552,
+   "expRaw": 46.01
   },
   "Favorites + Floors 5": {
    "n": 115,
-   "w": 31,
-   "profit": -115.06,
-   "exp": 33.7,
+   "w": 38,
+   "profit": 43.18,
+   "exp": 30.62,
    "legs": 575,
-   "expRaw": 33.7
+   "expRaw": 30.62
   },
   "Value 3": {
-   "n": 131,
-   "w": 13,
-   "profit": -418.18,
-   "exp": 24.16,
-   "legs": 393,
-   "expRaw": 24.16
+   "n": 133,
+   "w": 20,
+   "profit": 182.15,
+   "exp": 17.75,
+   "legs": 399,
+   "expRaw": 17.75
   },
   "TDs + Spreads": {
    "n": 138,
    "w": 19,
-   "profit": 329.42,
-   "exp": 13.73,
+   "profit": 242.83,
+   "exp": 13.94,
    "legs": 552,
-   "expRaw": 13.73
+   "expRaw": 13.94
   },
   "Longshot 5": {
    "n": 116,
    "w": 2,
-   "profit": -426.73,
-   "exp": 3.87,
+   "profit": -291.17,
+   "exp": 2.77,
    "legs": 580,
-   "expRaw": 3.87
+   "expRaw": 2.77
   },
   "Favorite Control": {
-   "n": 254,
-   "w": 60,
-   "profit": -564.71,
-   "exp": 71.68,
-   "legs": 762,
-   "expRaw": 69.33
+   "n": 252,
+   "w": 72,
+   "profit": -76.45,
+   "exp": 70.64,
+   "legs": 756,
+   "expRaw": 67.63
   },
   "High Floor": {
-   "n": 228,
-   "w": 85,
-   "profit": -349,
-   "exp": 94.52,
-   "legs": 684,
-   "expRaw": 93.48
+   "n": 236,
+   "w": 93,
+   "profit": -239.41,
+   "exp": 89.35,
+   "legs": 708,
+   "expRaw": 88.61
   },
   "Value": {
-   "n": 252,
-   "w": 31,
-   "profit": -538.64,
-   "exp": 49.2,
-   "legs": 756,
-   "expRaw": 46.97
-  },
-  "Shootout": {
-   "n": 252,
-   "w": 27,
-   "profit": 82.28,
-   "exp": 33.99,
-   "legs": 1008,
-   "expRaw": 26.29
+   "n": 254,
+   "w": 40,
+   "profit": -422.72,
+   "exp": 43.72,
+   "legs": 762,
+   "expRaw": 41.77
   },
   "High-Floor 3": {
-   "n": 60,
-   "w": 20,
-   "profit": -136.98,
-   "exp": 28.74,
-   "legs": 180,
-   "expRaw": 28.74
+   "n": 58,
+   "w": 25,
+   "profit": -35.93,
+   "exp": 24.41,
+   "legs": 174,
+   "expRaw": 24.41
+  },
+  "Best Value 3": {
+   "n": 53,
+   "w": 10,
+   "profit": 145.88,
+   "exp": 8.36,
+   "legs": 159,
+   "expRaw": 8.36
   },
   "TD Trio": {
    "n": 66,
-   "w": 15,
-   "profit": 48.68,
-   "exp": 14.7,
+   "w": 14,
+   "profit": -12.63,
+   "exp": 14.55,
    "legs": 198,
-   "expRaw": 14.66
+   "expRaw": 14.52
   },
   "Yardage 4-Leg": {
    "n": 66,
-   "w": 4,
-   "profit": -82.32,
-   "exp": 7.46,
+   "w": 6,
+   "profit": 162.6,
+   "exp": 5.4,
    "legs": 264,
-   "expRaw": 7.38
+   "expRaw": 5.4
   },
   "Lions Safe": {
    "n": 49,
-   "w": 13,
-   "profit": 51.71,
-   "exp": 12.3,
+   "w": 15,
+   "profit": 158.78,
+   "exp": 11.41,
    "legs": 196,
-   "expRaw": 10.83
+   "expRaw": 10.16
   },
   "Lions Shootout": {
-   "n": 45,
-   "w": 11,
-   "profit": 630.74,
-   "exp": 6.74,
-   "legs": 180,
-   "expRaw": 4.84
+   "n": 37,
+   "w": 6,
+   "profit": 101.77,
+   "exp": 5.13,
+   "legs": 148,
+   "expRaw": 4.18
   },
-  "Best Value 3": {
-   "n": 17,
-   "w": 4,
-   "profit": 82.33,
-   "exp": 3.32,
-   "legs": 51,
-   "expRaw": 3.3
+  "Shootout": {
+   "n": 242,
+   "w": 42,
+   "profit": 693.91,
+   "exp": 34.53,
+   "legs": 968,
+   "expRaw": 28.12
   }
  },
  "teamParlays": {},
  "cards": {
   "pieces": {
    "n": 15336,
-   "w": 10501,
-   "ours": 10526.1,
-   "book": 11148.7
+   "w": 10537,
+   "ours": 10481.3,
+   "book": 11171.8
   },
   "straights": {
    "n": 8219,
-   "w": 4084,
-   "ours": 4705.7,
-   "book": 4359
+   "w": 4247,
+   "ours": 4308.1,
+   "book": 4275.4
   },
   "tds": {
    "n": 4140,
-   "w": 1584,
-   "ours": 1534.5,
-   "book": 1683.8
+   "w": 1593,
+   "ours": 1608.2,
+   "book": 1709.8
   }
  },
  "games": {

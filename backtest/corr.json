@@ -1,5 +1,5 @@
 {
- "builtAt": "2026-11-01T17:29:24.683Z",
+ "builtAt": "2026-11-03T12:35:09.469Z",
  "note": "rho = how strongly two legs from the same game win or lose together (0 = independent). n = past pairs.",
  "pairs": {
   "side-dog+tot-o": {

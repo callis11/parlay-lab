@@ -110,6 +110,9 @@
   // book's price in every replayed season 2023-25. Each is a few points added to the % after calibration; the book's price
   // stays the backbone. Returns [{pts, t}] in plain English. ctx: {wind, dome, home, tsp (own team's spread), rest, week}
   var EDGE_CAP = 6;
+  // How much a player's own record counts vs the book's price: n/(n+HIST_K). Study Nov 3 (174K picks): picks hit at the book's
+  // rate whatever the record said; n/(n+15) was the least accurate weight tested, n/(n+120) is within a hair of book-only.
+  var HIST_K = 120;
   function edgeSigns(p, side, r, ctx) {
     var S = [], over = side !== "under", un = !over, lab = p.label || "", pr = /Pass|Rece/.test(lab), rec = /Receiv/.test(lab);
     var windy = !ctx.dome && ctx.wind >= 15, breezy = !ctx.dome && ctx.wind >= 10 && ctx.wind < 15, w = ctx.wind;
@@ -222,9 +225,9 @@
         var p0;
         var ua = r.under ? r.under[book] : undefined, pu, pu0;
         var sg = null, sgU = null, pc, pcU;
-        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib);
+        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + HIST_K); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib);
           if (ectx) { sgU = edgeSigns(p, "under", r, Object.assign({ imp: impU, closeA: ua }, ectx)); pcU = pu; pu = Math.max(0.02, Math.min(0.97, pu + edgeTotal(sgU) / 100)); } }
-        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
+        if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + HIST_K); pa = w * r.p + (1 - w) * imp; p0 = pa;
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a, flag: flag }), opts.calib);
           if (ectx) { sg = edgeSigns(p, "over", r, Object.assign({ imp: imp, closeA: a }, ectx)); pc = pa; pa = Math.max(0.02, Math.min(0.97, pa + edgeTotal(sg) / 100)); }
           ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
@@ -472,6 +475,6 @@
     return { f: f, pairs: out };
   }
 
-  var Engine = { make: make, edgeSigns: edgeSigns, edgeTotal: edgeTotal, EDGE_CAP: EDGE_CAP, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, edgeSigns: edgeSigns, edgeTotal: edgeTotal, EDGE_CAP: EDGE_CAP, HIST_K: HIST_K, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);
