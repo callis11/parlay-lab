@@ -301,3 +301,9 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - The old long slip view (estimate, shop prices, boost, picks list, Save my bet receipt flow) is still there but collapsed under **ⓘ Prices, boost & save this bet** (`#slipMore`).
 - Amounts do NOT transfer to FanDuel/DraftKings: their links only carry the picks. Only BetRivers single-pick links have a `{wagerAmount}` slot, which `Engine.betslipLink(legs,book,stake)` now fills. Cards say "type $X in your app".
 - Bet cards also have **Wager $ / To win $** boxes side by side (type either, the other follows; `qWT`, input handler `data-wg/data-tw`, commit on `change` without re-rendering the carousel so the keyboard stays up) and **+ Also bet each pick alone (N singles)** (`qSingles`): adds each pick to the queue as its own single, splitting the card's wager equally (min $1), skips started games and duplicates. Idea source: Andrew's FanDuel betslip screenshot (Wager/To Win, Straight Bets). Not built from that list yet: market subtitle + kickoff time + same-game tag per pick, "prices pulled N min ago" warning, Remove all link.
+
+## ONE slip style only (Nov 3, 6:45 PM, Andrew: "I don't want the old slip at all")
+- The old long slip (estimate/shop prices/boost/picks/Save-my-bet receipt box) is hidden for good (`#slipMore{display:none!important}`; its elements stay in the DOM because code still reads `#stake` etc.). Lost with it for now: the Boost picker/boost math and the shop-the-prices box. Could come back as lines on the cards if he asks.
+- **Load slip** on any parlay no longer replaces the slip: it adds the bet as a card (`qAdd`) and opens the bottom panel. The "+ Queue" buttons are gone. Tapping picks still builds the first card "Your slip · building".
+- "Did you place this bet? > Yes: save it" now saves straight to My bets (`betSave`), no receipt box.
+- Empty state text lives in `qPanel()`.
