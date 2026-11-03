@@ -495,7 +495,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
 .tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
 .tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
-.shop{margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.4}.bestp{color:#3DDC84;font-weight:600}
+.shop{margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.4}.bestp{color:#3DDC84;font-weight:600}.shop.boost{border-color:var(--flag)}.stake select{padding:6px;font-size:14px}
 .esg{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11px;line-height:1;margin-top:1px;letter-spacing:.3px}.esg.up{color:#3DDC84}.esg.dn{color:#FF7A6B}
 .tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
 .start1{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}.start1 ol{margin:6px 0 4px;padding-left:20px}.start1 li{margin:3px 0}
@@ -667,7 +667,7 @@ select,input,textarea{font-size:max(16px,1em)}
 <div class="bar"><div class="in">
   <div class="panel" id="panel">
     <div id="legs"></div>
-    <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
+    <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><label for="boost" style="margin-left:6px">Boost</label><select id="boost" title="Profit boost token from your app"><option value="0">none</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="33">33%</option><option value="50">50%</option><option value="100">100%</option></select><button class="btn" id="clear">Clear slip</button></div>
     <button class="btn flag" id="placeOpen" style="width:100%;margin:10px 0 0">✓ Save my bet</button>
     <div class="placed" id="placeBox" hidden><b>Save my bet</b>
       <p class="sub" style="margin:4px 0 6px">Placed it in your app? Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
@@ -796,6 +796,11 @@ function bestDec(l){var b=bestFor(l);return dec(b&&dec(b.a)>dec(l.a)?b.a:l.a)}
 function shopHTML(legs,stake){var d=1,bd=1,by={};legs.forEach(function(l){d*=dec(l.a);var b=bestFor(l),a=b&&dec(b.a)>dec(l.a)?b:{book:BOOK,a:l.a,name:Engine.BOOK_NAMES[BOOK]||BOOK};bd*=dec(a.a);(by[a.name]=by[a.name]||[]).push(shortLeg(l)+" ("+fmt(a.a)+")")});
   if(bd<=d*1.005)return"";var apps=Object.keys(by);stake=stake||10;
   return'<div class="shop"><b>Shop the prices:</b> $'+stake.toFixed(0)+' wins <b>$'+(stake*(bd-1)).toFixed(2)+'</b> at the best app for each pick, vs $'+(stake*(d-1)).toFixed(2)+' all at '+esc(Engine.BOOK_NAMES[BOOK]||BOOK)+'.'+(apps.length>1?' '+apps.map(function(k){return'<br>· <b>'+esc(k)+':</b> '+esc(by[k].join(", "))}).join(""):' All picks are best at <b>'+esc(apps[0])+'</b>.')+'</div>'}
+// Profit boost (the token your app gives you): boosts the profit, not the stake. Saved per phone. Apps cap the boosted winnings.
+var BOOST=0;try{BOOST=+(localStorage.getItem("boost")||0)||0}catch(e){}
+function boostDec(d){return 1+(d-1)*(1+BOOST/100)}
+function boostHTML(ch,d,stake){if(!BOOST||!d||d<=1)return"";var db=boostDec(d),v=ch!=null?priceVerdict(ch,db):null;stake=stake||10;
+  return'<div class="shop boost"><b>With your '+BOOST+'% boost:</b> $'+stake.toFixed(0)+' wins <b>$'+(stake*(db-1)).toFixed(2)+'</b> ('+am(db)+') instead of $'+(stake*(d-1)).toFixed(2)+'.'+(v?' Break-even drops to '+pct(v.be)+(v.k==="good"?' and ours is '+pct(ch)+': <b class="pos">this bet is in your favor.</b>':v.k==="fair"?', about our '+pct(ch)+': a fair bet.':', still above our '+pct(ch)+'.'):"")+' <small>Apps cap boosted winnings; check your token.</small></div>'}
 function shortLeg(l){return l.n.replace(/\s+(receiving|rushing|passing)\s+y(ar)?ds/i," $1 yds").replace(/\banytime TD\b/,"TD")}
 function propLeg(p,r){return ENG.propLeg(p,r)}
 function rungName(p,r){return ENG.rungName(p,r)}
@@ -2370,7 +2375,7 @@ function renderPresetRow(el,list,prefix){
   if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=bestDec(l)});
-    var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"";
+    var ch=Engine.chance(p.l),shop=(bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"")+(BOOST&&!sg?(function(){var db=boostDec(d),v=ch!=null?priceVerdict(ch,db):null;return'<span class="d">With your '+BOOST+'% boost: $10 wins $'+(10*(db-1)).toFixed(2)+(v&&v.k==="good"?' · <b class="pos">in your favor</b>':v&&v.k==="fair"?' · about fair':'')+'</span><br>'})():"");
     return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
 function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false")}
@@ -2487,7 +2492,7 @@ function renderSlip(){
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
   $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
@@ -2620,6 +2625,7 @@ $("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePS
 
 ["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
+$("boost").value=String(BOOST);$("boost").addEventListener("change",function(){BOOST=+$("boost").value||0;try{localStorage.setItem("boost",String(BOOST))}catch(e){}renderSlip();try{renderParlays()}catch(e){}});
 // Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
 // Works inside the home-screen app, where pull-to-refresh isn't available.
 $("refreshBtn").addEventListener("click",function(){
