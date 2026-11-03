@@ -512,6 +512,7 @@ select,input,textarea{font-size:max(16px,1em)}
 body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body.pro .bfoot,body.pro .hhint,body.pro .lvnote,body.pro .legend,body.pro #tagline,body.pro .hun>small{display:none!important}
 .fbk{text-align:center;margin:18px 0 6px;font-size:15px}.fbk a{color:var(--flag);font-weight:700;text-decoration:none}.fbk small{color:var(--muted);font-size:12px}
 .qc{padding:9px 10px;gap:5px}.qc h4{font-size:13px}.qc .ql{padding:2px 0;font-size:13px}.qc .qbig b{font-size:20px}.qc .qx{top:0;right:0;width:34px;height:34px}.qwt input{padding:6px 10px}.qwt label{gap:2px;font-size:11px}.qamt button{padding:6px 0;font-size:13px}.qlinks{gap:6px}.qlinks .qlk{flex-direction:column;flex-wrap:nowrap;min-height:46px;gap:0;padding:4px 6px}.qlinks .qlk b{font-size:15px}.qc .bqb .btn{padding:9px}.qc .qsing{padding:6px;font-size:12px}.qc .sub{font-size:12px}.qhead{margin:0 0 4px}.qc .qnote{font-size:11px}
+.qex{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.qex>.qpr{flex:1 1 40%}.qex>.qpr[open]{flex-basis:100%}.qex>.qsing{flex:1 1 40%}.qex>.qpr>summary{padding:6px 0!important;text-align:left}.qamt button{padding:5px 0}.qwt input{padding:5px 10px;font-size:16px}.qc{gap:4px}.qc .bqb .btn{padding:8px}#clearAll,#slipClose{padding:8px}.qlinks .qlk{min-height:42px}
 </style>
 </head>
 <body>
@@ -2931,12 +2932,13 @@ var QLAST=-1;
 function qOpen(){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();setTimeout(function(){var e=$("qPanel");if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest"});$("panel").scrollTop=0},0)}
 // the queue lives in the slip panel at the bottom: swipe left/right through the bets
 function qWT(sel,stake,d){return'<div class="qwt" data-sel="'+sel+'" data-d="'+d+'"><label>Wager $<input inputmode="decimal" data-wg="1" value="'+(Math.round(stake*100)/100)+'" aria-label="Wager in dollars"></label><label>To win $<input inputmode="decimal" data-tw="1" value="'+(Math.round(stake*(d-1)*100)/100)+'" aria-label="Amount to win in dollars"></label></div>'}
-function qNote(stake){return'<div class="sub qnote" style="margin:0">Open your app, then type <b>$'+usd(stake)+'</b> there. Apps don\'t take the amount from a link.</div>'}
+function qNote(stake){return''}
 var QCOMPACT=false;try{QCOMPACT=localStorage.getItem('qcompact')==='1'}catch(e){}var QMO={};
 var QPO=false;
+function qExtra(price,sing){return'<div class="qex">'+price+sing+'</div>'}
 function qPrice(legs,d,ch,stake,sg){var opts=$("boost").innerHTML.replace(/ selected(="[^"]*")?/g,"").replace('value="'+BOOST+'"','value="'+BOOST+'" selected'),sh="",bo="";
   try{if(!sg)sh=shopHTML(legs,stake)}catch(e){}try{bo=boostHTML(ch,d,stake)}catch(e){}
-  return'<details class="qpr"'+(QPO?" open":"")+' style="margin:0;border:0;padding:0"><summary class="whyb hwl" style="padding:4px 0">ⓘ Best prices &amp; boost'+(BOOST?" ("+BOOST+"%)":"")+'</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px"><label class="sub" style="margin:0;display:flex;align-items:center;gap:8px">Your profit boost <select data-cboost="1" class="sel" style="font:inherit;font-size:16px">'+opts+'</select></label>'+sh+bo+(sg?'<p class="sub" style="margin:0">Same-game picks: your app sets its own price, so compare there.</p>':'')+'</div></details>'}
+  return'<details class="qpr"'+(QPO?" open":"")+' style="margin:0;border:0;padding:0"><summary class="whyb hwl" style="padding:4px 0">ⓘ Prices &amp; boost'+(BOOST?" ("+BOOST+"%)":"")+'</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px"><label class="sub" style="margin:0;display:flex;align-items:center;gap:8px">Your profit boost <select data-cboost="1" class="sel" style="font:inherit;font-size:16px">'+opts+'</select></label>'+sh+bo+(sg?'<p class="sub" style="margin:0">Same-game picks: your app sets its own price, so compare there.</p>':'')+'</div></details>'}
 document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qpr"))QPO=t.open;if(t.classList&&t.classList.contains("qmini"))QMO[t.dataset.i]=t.open},true);
 document.addEventListener("change",function(e){var t=e.target;if(t.dataset&&t.dataset.cboost){$("boost").value=t.value;$("boost").dispatchEvent(new Event("change"))}});
 function qAmt(sel){return'<div class="qamt" role="group" aria-label="Bet amount">'+[1,5,10,15,20,50,100].map(function(v){return'<button data-qamt="'+v+'" data-i="'+sel+'" aria-pressed="'+(Math.abs(AMT[sel]-v)<1e-9)+'">$'+v+'</button>'}).join("")+'</div>'}
@@ -2966,8 +2968,8 @@ function qPanel(barOnly){
       qWT("s",stake,d)+qAmt("s")+
       (started?'<p class="warn" style="margin:0">A game in this slip has started. Remove that pick.</p>':qLinks(legs,stake,'data-sendbook="{bk}"'))+
       '<div class="bqb"><button class="btn flag" data-qa="ps"'+(started?" disabled":"")+'>✓ Bet added</button></div>'+
-      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b>'+(sg?' · same-game: your app sets its own price':'')+'</div>':'')+
-      qNote(stake)+qPrice(legs,d,ch,stake,sg)+(legs.length>1?'<button class="qsing" data-qsingles="s">+ Also bet each pick alone ('+legs.length+' singles)</button>':'')+'</div>')}
+      (ch!=null?'<div class="sub qnote" style="margin:0">Estimate <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b>'+(sg?' · same-game: app sets its price':'')+' · type <b class="qamtn">$'+usd(stake)+'</b> in your app</div>':'')+
+      qNote(stake)+qExtra(qPrice(legs,d,ch,stake,sg),(legs.length>1?'<button class="qsing" data-qsingles="s">+ Bet each alone ('+legs.length+')</button>':''))+'</div>')}
   left.forEach(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),d=1,stake=q.stake||USUAL,ch=null;
     q.legs.forEach(function(l){d*=dec(l.a)});try{ch=slipChance(q.legs,"").ch}catch(e){}AMT["q"+i]=stake;
     cards.push('<div class="qc'+(!nSlip&&pos===0?" first":"")+'"><button class="qx" data-qa="r" data-i="'+i+'" aria-label="Delete this bet">✕</button><h4>Bet '+(pos+1)+' of '+left.length+(q.n&&!/^Bundle bet/.test(q.n)?' · '+esc(q.n):'')+'</h4>'+
@@ -2976,8 +2978,8 @@ function qPanel(barOnly){
       qWT("q"+i,stake,d)+qAmt("q"+i)+
       (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Delete it.</p>':qLinks(q.legs,stake,'data-qbook="{bk}" data-i="'+i+'"'))+
       '<div class="bqb"><button class="btn flag" data-qa="p" data-i="'+i+'"'+(started?" disabled":"")+'>✓ Bet added</button></div>'+
-      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b></div>':'')+
-      qNote(stake)+qPrice(q.legs,d,ch,stake,(function(){var e={},g=false;q.legs.forEach(function(l){if(e[l.ev])g=true;e[l.ev]=1});return g})())+(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Also bet each pick alone ('+q.legs.length+' singles)</button>':'')+'</div>')});
+      (ch!=null?'<div class="sub qnote" style="margin:0">Estimate <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b> · type <b class="qamtn">$'+usd(stake)+'</b> in your app</div>':'')+
+      qExtra(qPrice(q.legs,d,ch,stake,(function(){var e={},g=false;q.legs.forEach(function(l){if(e[l.ev])g=true;e[l.ev]=1});return g})()),(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Bet each alone ('+q.legs.length+')</button>':''))+'</div>')});
   if(cards.length)h+='<div class="'+(QCOMPACT?'qlist':'qtrack')+'">'+cards.join("")+'</div>'+(!QCOMPACT&&cards.length>1?'<p class="sub" style="margin:0 0 4px;text-align:right">swipe for the next bet ›</p>':'');
   else h+='<p class="sub" style="margin:0 0 6px">'+(placed?'All placed. Nice.':'Queue is empty.')+'</p>';
   var foot=[];if(placed)foot.push('✓ '+placed+' placed <button class="lnk" data-qa="c" style="padding:0 0 0 6px">Clear</button>');if(QLAST>=0&&QUEUE[QLAST]&&QUEUE[QLAST].st!==0)foot.push('<button class="lnk" data-qa="u" data-i="'+QLAST+'" style="padding:0">Undo last</button>');
@@ -2999,7 +3001,7 @@ document.addEventListener("input",function(e){var t=e.target;if(!(t.dataset&&(t.
   if(t.dataset.wg){st=v;tw=v*(d-1);box.querySelector("[data-tw]").value=String(Math.round(tw*100)/100)}
   else{tw=v;st=d>1?v/(d-1):0;box.querySelector("[data-wg]").value=String(Math.round(st*100)/100)}
   st=Math.round(st*100)/100;qStakeSet(sel,st);var c=box.closest(".qc");
-  var big=c.querySelector(".qbig span");if(big)big.textContent="$"+usd(st)+" wins $"+usd(st*(d-1));var nb=c.querySelector(".qnote b");if(nb)nb.textContent="$"+usd(st);
+  var big=c.querySelector(".qbig span");if(big)big.textContent="$"+usd(st)+" wins $"+usd(st*(d-1));var nb=c.querySelector(".qamtn");if(nb)nb.textContent="$"+usd(st);
   c.querySelectorAll("[data-qamt]").forEach(function(b){b.setAttribute("aria-pressed",String(Math.abs(+b.dataset.qamt-st)<1e-9))})});
 document.addEventListener("change",function(e){var t=e.target;if(t.dataset&&(t.dataset.wg||t.dataset.tw)){qSave();renderSlip0();qPanel(true)}});
 function qSingles(sel){var legs=sel==="s"?Object.keys(SLIP).map(function(k){return SLIP[k]}):(QUEUE[+sel.slice(1)]||{}).legs;if(!legs||legs.length<2)return;
