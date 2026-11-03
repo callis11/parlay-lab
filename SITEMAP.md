@@ -44,6 +44,10 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 - Under each game card's spread: "DET must win by 4+ · MIN can lose by 3 or less (or win)". Every pick story starts with a one-line "Why 77%: …" summary.
 - Theme: football = mowed-field green, basketball = hardwood brown.
 
+## Beginner or experienced (★ › New to parlays?)
+- Asked on first open (Set up ParlayLabs) and on the ★ page: **Yes, explain things** (default) or **No, I know parlays**. Saved on the phone.
+- **No** = simpler screens: no tagline, no "New here? Start in 3 taps" card, no first-time tour, no "How to read these cards", no spread hints ("must win by 4+"), no "hits about 1 time in 5" words, no Top list section notes, no explanation paragraphs on Build and Results, and a short slip (chance, break-even verdict, payout; no "How to place it", no "Every pick must win", no "$10 wins $X alone" per pick). All numbers, tags, Red flags, Heads up lines and "How we got this %" stay.
+
 ## Header (every sport)
 - **Sport tabs:** NFL · NBA · NCAAF · NCAAB.
 - **↻** reloads the newest version and odds (tell Andrew to tap it after a change).

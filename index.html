@@ -508,6 +508,8 @@ select,input,textarea{font-size:max(16px,1em)}
 .esg{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11px;line-height:1;margin-top:1px;letter-spacing:.3px}.esg.up{color:#3DDC84}.esg.dn{color:#FF7A6B}
 .tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
 .start1{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}.start1 ol{margin:6px 0 4px;padding-left:20px}.start1 li{margin:3px 0}
+/* Experienced mode (★ › New to parlays? No): beginner help text is hidden. Tag help with class "hlp". */
+body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body.pro .bfoot,body.pro .hhint,body.pro .lvnote,body.pro .legend,body.pro #tagline,body.pro .hun>small{display:none!important}
 .fbk{text-align:center;margin:18px 0 6px;font-size:15px}.fbk a{color:var(--flag);font-weight:700;text-decoration:none}.fbk small{color:var(--muted);font-size:12px}
 </style>
 </head>
@@ -517,6 +519,9 @@ select,input,textarea{font-size:max(16px,1em)}
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
   <div class="ticon">★</div><h2 class="fh" id="favH">My teams</h2>
   <p class="fsub" id="favSub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.</p>
+  <h2 class="fh" style="margin-top:6px">New to parlays?</h2>
+  <p class="fsub">Yes shows the beginner help: what each number means, how a parlay works, how to place it. No keeps the screens simpler.</p>
+  <div class="seg" id="newbSeg" style="display:flex;margin-bottom:12px"><button data-newb="yes">Yes, explain things</button><button data-newb="no">No, I know parlays</button></div>
   <div id="favRows"></div>
   <h2 class="fh" style="margin-top:14px">My betting apps</h2>
   <p class="fsub">Pick one or more. The slip gets an "Open in …" button for each, and the odds shown come from the one you choose below.</p>
@@ -586,7 +591,7 @@ select,input,textarea{font-size:max(16px,1em)}
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
   <h2>Build your own</h2>
-  <p class="sub">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
+  <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
   <div class="seg bmode" id="bMode"><button data-bmode="top">Top list</button><button data-bmode="full">Full board</button></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
@@ -614,11 +619,11 @@ select,input,textarea{font-size:max(16px,1em)}
 
 <section id="v-results" role="tabpanel" aria-labelledby="t-results" hidden>
   <h2 id="wkH">Weekly report card</h2>
-  <p class="sub" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
+  <p class="sub hlp" id="wkSub">Every Monday: how last week's picks did, the best hit, the toughest miss, and whether we beat the closing line. It finishes filling in once Monday night's box scores post.</p>
   <div id="resWeek"></div>
   <div id="mySec"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:8px">My bets <button class="btn" id="scBtn" style="font-size:15px">🔄 Check scores</button></h2>
-  <p class="sub" id="scStat" style="margin:0 0 6px"></p><p class="sub" style="margin:0 0 6px">✓ won · ✗ lost · … waiting on the game</p>
-  <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Tap <b>🔄 Check scores</b> any time for live scores and finished games (while one of your games is on, it checks again every 2 minutes). The site also checks on its own after each game window. Each pick is marked ✓ or ✗ and the bet Won or Lost for you. The buttons are there if you want to set it yourself.</p>
+  <p class="sub" id="scStat" style="margin:0 0 6px"></p><p class="sub hlp" style="margin:0 0 6px">✓ won · ✗ lost · … waiting on the game</p>
+  <p class="sub hlp">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Tap <b>🔄 Check scores</b> any time for live scores and finished games (while one of your games is on, it checks again every 2 minutes). The site also checks on its own after each game window. Each pick is marked ✓ or ✗ and the bet Won or Lost for you. The buttons are there if you want to set it yourself.</p>
   <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
     <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the picks, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
     <label class="btn flag" style="display:inline-block">Pick screenshots<input type="file" id="shotIn" accept="image/*" multiple hidden></label> <button class="btn" id="shotPaste">📋 Paste screenshot</button> <span class="sub" id="shotStat"></span>
@@ -631,25 +636,25 @@ select,input,textarea{font-size:max(16px,1em)}
     <textarea id="impCode" rows="3" style="width:100%;font:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)"></textarea>
     <button class="btn" id="impBtn" style="margin-top:6px">Add</button></details></div>
   <h2>How our picks did</h2>
-  <p class="sub">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
+  <p class="sub hlp">Every auto-built slip on the Parlays page is saved at FanDuel's price when its first game kicks off, then graded from official box scores, usually a day or two after the game.</p>
   <div id="resSummary"></div>
   <h2>Beating the closing line</h2>
-  <p class="sub">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
+  <p class="sub hlp">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
   <div id="resCLV"></div>
   <h2>Edge signs</h2>
-  <p class="sub">Some situations beat the book's price in every replayed season (unders in wind, unders for underdogs, rested players at home…) and some trail it (overs in wind, overs for big underdogs, stars the public loves). Each pick's signs add or take off a few points; ▲ and ▼ show the total. This is how the signs are doing on real picks since Nov 3.</p>
+  <p class="sub hlp">Some situations beat the book's price in every replayed season (unders in wind, unders for underdogs, rested players at home…) and some trail it (overs in wind, overs for big underdogs, stars the public loves). Each pick's signs add or take off a few points; ▲ and ▼ show the total. This is how the signs are doing on real picks since Nov 3.</p>
   <div id="resEdges"></div>
   <h2>FanDuel vs DraftKings</h2>
-  <p class="sub">The same pick (same side, same line) at both apps, checked at the same moment before kickoff. A better price doesn't change the chance to hit; it just pays more when it does.</p>
+  <p class="sub hlp">The same pick (same side, same line) at both apps, checked at the same moment before kickoff. A better price doesn't change the chance to hit; it just pays more when it does.</p>
   <div id="resBooks"></div>
   <h2>Game report cards</h2>
-  <p class="sub" id="cardsSub">For every game we lock our top-rated picks at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
+  <p class="sub hlp" id="cardsSub">For every game we lock our top-rated picks at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
   <div id="cardFilt" class="row" style="margin:0 0 8px"></div>
   <div id="resCards"></div>
   <h2>By section</h2>
   <div id="resGroups"></div>
   <h2>What's working</h2>
-  <p class="sub">Which slip types make money, and how each kind of bet actually hits compared with our estimate. Once a kind of bet has 15+ results, future estimates and slips are adjusted toward what really happened.</p>
+  <p class="sub hlp">Which slip types make money, and how each kind of bet actually hits compared with our estimate. Once a kind of bet has 15+ results, future estimates and slips are adjusted toward what really happened.</p>
   <div id="resLearn"></div>
   <div id="resBack"></div>
   <h2>Recent slips</h2>
@@ -684,13 +689,13 @@ select,input,textarea{font-size:max(16px,1em)}
     <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><label for="boost" style="margin-left:6px">Boost</label><select id="boost" title="Profit boost token from your app"><option value="0">none</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="33">33%</option><option value="50">50%</option><option value="100">100%</option></select><button class="btn" id="clear">Clear slip</button></div>
     <button class="btn flag" id="placeOpen" style="width:100%;margin:10px 0 0">✓ Save my bet</button>
     <div class="placed" id="placeBox" hidden><b>Save my bet</b>
-      <p class="sub" style="margin:4px 0 6px">Placed it in your app? Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
+      <p class="sub hlp" style="margin:4px 0 6px">Placed it in your app? Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
       <p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="placePaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="placeIn" accept="image/*" hidden></label></p>
       <div class="sub" id="placeStat" style="margin:6px 0 0"></div>
       <div class="filters" style="margin:6px 0 0"><select id="placeBook" aria-label="Betting app"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select>
       <span class="oddsw" style="flex:1;min-width:140px"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch" title="Tap to switch + / −">+</button><input id="placeOdds" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Odds, e.g. 250" aria-label="Odds the app gave you (number only)"></span></div>
       <button class="btn flag" id="placeSave" style="margin-top:8px">Save to My bets</button>
-      <p class="sub" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
+      <p class="sub hlp" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
     <button class="btn" id="slipClose" style="width:100%;margin:10px 0 4px">✕ Close slip</button>
   </div>
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
@@ -753,12 +758,18 @@ var NBA_T={ATL:"Hawks",BOS:"Celtics",BKN:"Nets",CHA:"Hornets",CHI:"Bulls",CLE:"C
 var FAV_SPORTS=[["nfl","NFL",{team:"DET",name:"Lions"}],["nba","NBA",{team:"DET",name:"Pistons"}],["cfb","NCAAF",{team:"MSU",name:"Michigan State"}],["cbb","NCAAB",{team:"MSU",name:"Michigan State"}]];
 function favGet(sp,def){try{var f=JSON.parse(localStorage.getItem("fav_"+sp)||"null");if(f&&f.team)return f}catch(e){}return def}
 var FAVFIRST=false;
+// Beginner or not (★ › New to parlays?). Default yes. "no" adds body.pro, which hides the help text tagged in CSS above.
+var NEWB=true;try{NEWB=localStorage.getItem("newbie")!=="no"}catch(e){}
+var FAVNEWB=NEWB;
+function newbApply(){document.body.classList.toggle("pro",!NEWB)}newbApply();
+function newbSeg(){document.querySelectorAll("#newbSeg [data-newb]").forEach(function(b){b.setAttribute("aria-pressed",(b.dataset.newb==="yes")===FAVNEWB)})}
+document.addEventListener("click",function(e){var b=e.target.closest("[data-newb]");if(!b)return;FAVNEWB=b.dataset.newb==="yes";newbSeg()});
 function favOpen(first){FAVFIRST=first===true;
   $("favH").textContent=FAVFIRST?"Set up ParlayLabs":"My teams";
   $("favSub").textContent=FAVFIRST?"Pick your team for each sport and the betting apps you use. Your team gets its own parlays and comes first everywhere.":"Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.";
   $("favCancel").textContent=FAVFIRST?"Skip":"Cancel";
   $("favRows").innerHTML=FAV_SPORTS.map(function(x){return'<div class="frow"><label for="fav_'+x[0]+'">'+x[1]+'</label><select id="fav_'+x[0]+'"><option>Loading…</option></select></div>'}).join("");
-  FAVAPPS=MYAPPS.slice();FAVBOOK=BOOK;favApps();
+  FAVAPPS=MYAPPS.slice();FAVBOOK=BOOK;favApps();FAVNEWB=NEWB;newbSeg();
   $("favs").hidden=false;
   FAV_SPORTS.forEach(function(x){var sp=x[0],cur=favGet(sp,x[2]),sel=$("fav_"+sp);
     var fill=function(map){var list=Object.keys(map).map(function(k){return[k,map[k]]});if(!map[cur.team])list.push([cur.team,cur.name]);
@@ -780,6 +791,7 @@ function favSave(){
   if(MYAPPS.indexOf(FAVBOOK)<0)FAVBOOK=MYAPPS[0];
   if(FAVBOOK!==BOOK){BOOK=FAVBOOK;try{localStorage.setItem("book",BOOK)}catch(e){}SLIP={};changedHere=true}
   renderBookSel();if(appsChanged)renderSlip();
+  if(FAVNEWB!==NEWB){NEWB=FAVNEWB;try{localStorage.setItem("newbie",NEWB?"yes":"no")}catch(e){}newbApply();renderSlip();if(!NEWB)try{localStorage.setItem("tour1","seen")}catch(e){}}
   FAV_SPORTS.forEach(function(x){var sel=$("fav_"+x[0]);if(!sel||!sel.value||sel.value==="Loading…")return;var nm=(sel.selectedOptions[0]||{}).textContent.replace(/ \(default\)$/,"");
     var old=favGet(x[0],x[2]);try{localStorage.setItem("fav_"+x[0],JSON.stringify({team:sel.value,name:nm}))}catch(e){}
     if(x[0]===SPORT&&old.team!==sel.value){changedHere=true;var o=Engine.OPTS[SPORT];o.featured=sel.value;o.featuredName=nm}});
@@ -1493,7 +1505,7 @@ function slipCard(x,key){
   PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
   return'<details class="pc"'+(PST.exp||POPEN===x.sig?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
-    (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw">'+pctWord(x.ch)+'<br>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
+    (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw"><span class="hlp">'+pctWord(x.ch)+'<br></span>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
     '<div class="mt">'+usualWins(x.d,x.sg?"~":"")+'</div>'+(x.chg?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
@@ -1884,7 +1896,7 @@ function renderCLV(){
     '<div class="card"><table class="ht">'+row("Game lines",G)+row("Player props",P)+
       '<tr><td>When we beat the close</td><td class="r">picks hit '+gr(function(x){return x.clv>0.004})+'</td></tr><tr><td>When it moved against us</td><td class="r">picks hit '+gr(function(x){return x.clv<-0.004})+'</td></tr></table></div>'+
     (top.length?'<p class="sub" style="margin-top:8px">Biggest moves our way: '+top.map(function(x){return"<b>"+esc(x.n)+"</b> "+esc(clvTxt(x))}).join(" · ")+'</p>':"")+
-    '<p class="sub">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
+    '<p class="sub hlp">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
 }
 // Edge signs scoreboard: graded player picks split by the signs' total (es, saved by picks.js from Nov 3, 2026)
 function edgeLegs(){
@@ -1902,7 +1914,7 @@ function renderEdges(){
     return'<tr><td>'+nm+'</td><td class="r">hit '+Math.round(100*w/a.length)+'% <small>('+w+' of '+a.length+')</small><br><small>we said '+Math.round(100*e/a.length)+'%</small></td></tr>'};
   el.innerHTML='<div class="card"><table class="ht">'+row("▲ Good signs (+1 or more)",function(x){return x.es>=1})+row("No signs either way",function(x){return x.es>-1&&x.es<1})+row("▼ Bad signs (−1 or worse)",function(x){return x.es<=-1})+
     row("▲ 2 or more",function(x){return x.es>=2})+row("▼ 2 or worse (Safe and Balanced skip these)",function(x){return x.es<=-2})+'</table></div>'+
-    '<p class="sub">If the signs are real, ▲ picks should keep hitting above what we said and ▼ picks below. A few weeks is noise; a season is evidence.</p>';
+    '<p class="sub hlp">If the signs are real, ▲ picks should keep hitting above what we said and ▼ picks below. A few weeks is noise; a season is evidence.</p>';
 }
 // FanDuel vs DraftKings on the same picks (calibration.json "books", written by picks.js)
 function renderBooks(){
@@ -2427,9 +2439,9 @@ function fdButton(legs){
   var nLive=legs.filter(function(l){return l.live}).length;
   if(!btns.length&&!notes.length)return'<p class="sub" style="margin:8px 0 0">'+(nLive===legs.length?'Live picks have no link: open your app, find the game under Live, and check its moneyline price before you bet.':'Links to your apps show up after the next odds refresh.')+'</p>';
   if(nLive)notes.push("live pick"+(nLive>1?"s":"")+": find the game under Live in your app and check the moneyline price");
-  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. When you come back, we will ask if you placed it so your next parlay starts with an empty slip.</p>'+
+  return'<p class="sub hlp" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. When you come back, we will ask if you placed it so your next parlay starts with an empty slip.</p>'+
     '<div class="sendapps">'+btns.join("")+'</div>'+
-    '<p class="sub" style="margin:6px 0 0">'+(alts.length?esc(Engine.BOOK_NAMES[BOOK])+' hasn\'t posted lines for '+(legs.length>1?"some of these games":"this game")+' yet, so those prices are from '+esc(alts.join(" / "))+'.':'Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'.')+' Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
+    '<p class="sub'+(alts.length?'':' hlp')+'" style="margin:6px 0 0">'+(alts.length?esc(Engine.BOOK_NAMES[BOOK])+' hasn\'t posted lines for '+(legs.length>1?"some of these games":"this game")+' yet, so those prices are from '+esc(alts.join(" / "))+'.':'Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'.')+' Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
 }
 
 // ---------- game report cards ----------
@@ -2601,14 +2613,15 @@ function renderSlip(){
   if(SLIP_RESTORED)slipSave();
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
   if($("placeOpen")){if(!legs.length)$("placeBox").hidden=true;$("placeOpen").hidden=!legs.length||!$("placeBox").hidden}
-  if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
+  if(!legs.length){$("legs").innerHTML=!NEWB?'<p class="empty">Your slip is empty. Tap any pick to add it, or <b>Load slip</b> on a parlay.</p>':'<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":NEWB?" · tap to see how it works":"");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
   $("legs").innerHTML='<div class="slsum">'+
     (function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}if(c===null)return"";
+      if(!NEWB)return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+(same?"same-game: compare in your app":verdictLine(c,d))+'</p>';
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">'+(legs.some(function(l){return l.live})?'That\'s our number from stats and history, except the live pick'+(legs.filter(function(l){return l.live}).length>1?'s, whose %s are':', whose % is')+' ESPN\'s live win chance. ':'That\'s our number from stats and history. ')+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
-    (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· '+(l.live?"its live win chance fell under the bar, remove it":"game started, remove it")+'</small>':l.live?' <small class="lvs">· '+liveTag(l)+' '+esc(livePrice(l))+', check the app</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    (legs.length>1?'<p class="warn hlp">Every pick must win. One miss loses the whole slip.</p>':"")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' <span class="hlp">· '+winsOn10(l.a)+' alone</span></small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· '+(l.live?"its live win chance fell under the bar, remove it":"game started, remove it")+'</small>':l.live?' <small class="lvs">· '+liveTag(l)+' '+esc(livePrice(l))+', check the app</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
   $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
@@ -2793,7 +2806,7 @@ $("tSkip").onclick=tourClose;$("helpBtn").onclick=tourOpen;
 // First open: set up teams and apps, then the tour. Asked once per phone.
 function setupDone(){if(!FAVFIRST)return;FAVFIRST=false;try{localStorage.setItem("setup1","done")}catch(e){}tourMaybe()}
 function setupMaybe(){var done=false;try{done=localStorage.getItem("setup1")==="done"}catch(e){}if(done)tourMaybe();else favOpen(true)}
-function tourMaybe(){var seen=false;try{seen=localStorage.getItem("tour1")==="seen"}catch(e){}if(!seen)tourOpen()}
+function tourMaybe(){if(!NEWB)return;var seen=false;try{seen=localStorage.getItem("tour1")==="seen"}catch(e){}if(!seen)tourOpen()}
 // 21+ confirmation, remembered on this device
 (function(){var ok=false;try{ok=localStorage.getItem("age21")==="yes"}catch(e){}
   if(ok){setupMaybe();return}$("gate").hidden=false;$("gateYes").focus();
