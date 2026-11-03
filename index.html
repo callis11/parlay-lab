@@ -2695,6 +2695,7 @@ document.addEventListener("click",function(e){
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
+  else if(t.dataset.bview){BVIEW=t.dataset.bview==='cards'?'cards':'table';try{localStorage.setItem('bview',BVIEW)}catch(e){}genUI('par')}
   else if(t.dataset.qopen){qOpen()}
   else if(t.dataset.qbundle){var oq=PLANOUT;if(oq&&oq.bets){var k0=0;oq.bets.forEach(function(b,i){if(qAdd(b.legs,"Bundle bet "+(i+1)+" of "+oq.K,oq.stake,true))k0++});oq.sent=k0;bqSave();qChip();toast(k0?k0+" bets added to your queue.":"Those bets are already in your queue.");genUI("par");if(k0)qOpen()}}
   else if(t.dataset.qa){qAct(t.dataset.qa,+t.dataset.i)}
@@ -3017,8 +3018,11 @@ function bqBar(o){
   var q=QUEUE.filter(function(x){return x.st===0}).length;
   return'<div class="bqbar"><button class="btn flag" data-qbundle="1" style="width:100%">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button><p class="sub" style="margin:6px 0 0">'+(o.sent?'<b>✓ Added '+o.sent+' to your queue.</b> ':'')+'An app holds only one bet on its slip, so you place them one at a time from your queue: open each in your app, place it, tap Placed.</p><div class="row2"><button class="btn" data-qopen="1">Open my bet queue'+(q?' ('+q+')':'')+'</button></div></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
+var BVIEW="table";try{BVIEW=localStorage.getItem("bview")==="cards"?"cards":"table"}catch(e){}
 function bqHTML(o){
-  return'<div class="qtab"><div class="qth"><span>#</span><span>Picks</span><span>Pays · Hits</span></div>'+o.bets.map(function(b,i){
+  var tg='<div class="seg" style="display:flex;margin:10px 0 0" role="group" aria-label="How to show the bets"><button data-bview="table" aria-pressed="'+(BVIEW==="table")+'" style="flex:1">Table</button><button data-bview="cards" aria-pressed="'+(BVIEW==="cards")+'" style="flex:1">Parlay cards</button></div>';
+  if(BVIEW==="cards")return tg+'<div class="pgrid" style="margin-top:10px">'+o.bets.map(function(b,i){b.x.open=false;return slipCardW(b.x,"plan"+i)}).join("")+'</div>';
+  return tg+'<div class="qtab"><div class="qth"><span>#</span><span>Picks</span><span>Pays · Hits</span></div>'+o.bets.map(function(b,i){
     b.x.open=true;var ch=b.ch;
     return'<details class="qrow"><summary><span class="qn">'+(i+1)+'</span><span class="qp">'+b.legs.map(function(l){return'<span>'+esc(l.n)+'</span>'}).join("")+'</span><span class="qo"><b>'+am(b.d)+'</b>'+(ch!=null?'<small style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%</small>':'')+'</span></summary><div class="pgrid" style="grid-template-columns:1fr;padding:0 0 8px">'+slipCardW(b.x,"plan"+i)+'</div></details>'}).join("")+'</div><p class="sub" style="margin:6px 0 0">Tap a row to open that bet\'s full card: every pick\'s stats, why we picked it, and the payout.</p>'}
 document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qrow")&&t.open)setTimeout(function(){t.scrollIntoView({block:"start"})},0)},true);

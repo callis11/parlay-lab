@@ -120,3 +120,4 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Bet queue: "+ Queue" on parlay cards and slip panel; yellow "Bet queue (n)" chip opens the one-by-one place list (Open in app / Placed / Remove).
 - Bet bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
 - Bet bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
+- Bet bundle results: Table / Parlay cards toggle above the list.

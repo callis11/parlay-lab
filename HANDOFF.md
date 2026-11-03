@@ -289,3 +289,5 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Bundle layout now: heading -> table -> yellow "ⓘ How this works" (all odds/explainer text) -> "+ Add all N bets to my queue" at the bottom, right above Close generator.
 - ⇄ Change works on bundle bets (swap source "plan": swapOpen/swapPick + planRecalc redoes odds, % and the outcome table, and resets "added to queue").
 - Gotcha: the global "opening a details.pc scrolls it to the middle" handler skips cards inside .qrow, otherwise 10 pre-opened cards scroll the page to the bottom of the table on load.
+
+- Bundle results have a Table | Parlay cards toggle (data-bview, saved in localStorage `bview`). Cards view = 2-up closed slip cards with ⇄ Change inside.
