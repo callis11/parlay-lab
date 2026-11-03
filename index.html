@@ -2940,7 +2940,7 @@ function qPanel(barOnly){
   QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});
   var total=left.length+(nSlip?1:0),chip=$("qChip");
   if(chip){chip.hidden=!left.length||$("panel").classList.contains("open");chip.textContent="Bet queue ("+left.length+")"}
-  if(more){more.hidden=!nSlip&&left.length>0;var none=!nSlip&&!left.length;more.classList.toggle("nosum",none);if(none)more.open=true}
+  if(more){more.hidden=!nSlip&&left.length>0;var none=!nSlip&&!left.length;more.classList.toggle("nosum",none);if(none)more.open=true;else if(more.dataset.was==="none")more.open=false;more.dataset.was=none?"none":"some"}
   if(left.length&&!nSlip){$("sumL").textContent=left.length+" bet"+(left.length>1?"s":"")+" in your queue"+($("panel").classList.contains("open")?" · tap to close":" · tap to place them");$("sumR").textContent=""}
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
   if(barOnly)return;
