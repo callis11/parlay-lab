@@ -601,7 +601,6 @@ select,input,textarea{font-size:max(16px,1em)}
   <div id="resWeek"></div>
   <div id="mySec"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:8px">My bets <button class="btn" id="scBtn" style="font-size:15px">🔄 Check scores</button></h2>
   <p class="sub" id="scStat" style="margin:0 0 6px"></p><p class="sub" style="margin:0 0 6px">✓ won · ✗ lost · … waiting on the game</p>
-  <p style="margin:0 0 8px"><button class="btn" id="mvCopy2">📦 Copy my data</button> <span class="sub" id="mvStat2">Moving to a new app or address? Copy everything here, then paste it in the new app (★ › Move my data).</span></p>
   <p class="sub">Only on this phone. Add them from a screenshot below, or from the slip with "Save to My bets." Tap <b>🔄 Check scores</b> any time for live scores and finished games (while one of your games is on, it checks again every 2 minutes). The site also checks on its own after each game window. Each pick is marked ✓ or ✗ and the bet Won or Lost for you. The buttons are there if you want to set it yourself.</p>
   <div class="placed" id="shotBox"><b>📷 Add bets from a screenshot</b>
     <p class="sub" style="margin:4px 0 8px">In FanDuel or DraftKings, open My Bets, screenshot the bet so the picks, odds and wager show, then pick it here, or copy it (tap the screenshot thumbnail, Share, Copy) and tap Paste screenshot. Several at once is fine. It's read on this phone; nothing is uploaded.</p>
@@ -2652,9 +2651,6 @@ $("fbLink").onclick=function(e){e.preventDefault();fbOpen()};
 function mvCode(){var o={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);o[k]=localStorage.getItem(k)}return"PLMOVE1:"+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,at:Date.now(),from:location.host,d:o}))))}
 $("mvCopy").onclick=function(){var c=mvCode(),n=0;try{n=JSON.parse(localStorage.getItem("mybets")||"[]").length}catch(e){}
   var done=function(ok){$("mvStat").textContent=ok?"Copied ("+n+" saved bet"+(n===1?"":"s")+"). Now open the new app.":"Couldn't copy. The code is in the box below: select it all and copy.";if(!ok)$("mvIn").value=c};
-  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(function(){done(true)},function(){done(false)});else done(false)};
-$("mvCopy2").onclick=function(){var c=mvCode(),n=0;try{n=JSON.parse(localStorage.getItem("mybets")||"[]").length}catch(e){}
-  var done=function(ok){$("mvStat2").textContent=ok?"Copied: "+n+" saved bet"+(n===1?"":"s")+" plus your settings. Paste it into Notes to keep it safe.":"Couldn't copy automatically. Opening ★ with the code in the box: select it all and copy."; if(!ok){favOpen();setTimeout(function(){var d=document.querySelector(".mvbox");if(d){d.open=true;$("mvIn").value=c;d.scrollIntoView({block:"center"})}},300)}};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(function(){done(true)},function(){done(false)});else done(false)};
 $("mvGo").onclick=function(){var t=$("mvIn").value.trim();if(!/^PLMOVE1:/.test(t)){toast("That isn't a ParlayLabs data code. Tap Copy my data in the old app first.",true);return}
   try{var j=JSON.parse(decodeURIComponent(escape(atob(t.slice(8))))),d=j.d||{},added=0,merged=0;
