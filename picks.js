@@ -247,8 +247,13 @@ function gradeLeg(l, games, stats) {
   }
   const rows = stats[l.gid];
   if (!rows) return "pending"; // box score not posted yet
-  const r = rows.find(x => norm(x.player_display_name) === norm(l.player));
-  if (!r) return "void"; // player didn't play: books void the leg
+  let r = rows.find(x => norm(x.player_display_name) === norm(l.player));
+  if (!r) { // no stat row: if snap counts show he was on the field, books grade it as 0; otherwise he didn't play and the leg is void
+    const pl = stats[l.gid + "|played"];
+    if (SPORT !== "nba" && SPORT !== "cfb" && SPORT !== "cbb" && !pl) return "pending"; // NFL snap counts not posted yet: wait rather than void by mistake
+    if (!pl || !pl[norm(l.player)]) return "void";
+    r = {};
+  }
   const v = l.td ? (+r.rushing_tds || 0) + (+r.receiving_tds || 0)
     : SPORT === "nba" ? ({ "Points": r.pts, "Rebounds": r.reb, "Assists": r.ast, "Threes": r.fg3, "Pts + reb + ast": r.pts + r.reb + r.ast })[l.label]
     : (Engine.NFL_STAT[l.label] ? Engine.NFL_STAT[l.label](r) : undefined);
@@ -287,6 +292,8 @@ function gradeLeg(l, games, stats) {
       for (const yr of seasons) {
         const rows = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${yr}.csv`);
         (rows || []).forEach(r => { (stats[r.game_id] = stats[r.game_id] || []).push(r); });
+        const snaps = await getCSV(`${NFLVERSE}/snap_counts/snap_counts_${yr}.csv`); // who was on the field (a player with snaps but no stats is a 0, not a void)
+        (snaps || []).forEach(r => { if (+r.offense_snaps > 0 || +r.defense_snaps > 0 || +r.st_snaps > 0) { const k = r.game_id + "|played"; (stats[k] = stats[k] || {})[norm(r.player)] = 1; } });
       }
     }
     for (const s of open) {
