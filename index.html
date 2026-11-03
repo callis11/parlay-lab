@@ -1232,10 +1232,10 @@ function renderGenOut(cx){
   if(cx==="par"&&GENS.par.mode==="many"){el.innerHTML=planHTML();return}
   if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
   var now=Date.now();
-  el.innerHTML=last.map(function(it,i){
+  el.innerHTML='<div class="pgrid">'+last.map(function(it,i){
     var LL=it.legs.map(function(x){return x.leg}),p={n:(i?"Earlier · ":"")+STYLE[it.set.style].name+" slip",d:(it.auto?"↪ "+it.auto+" ":"")+(it.chg?"⇄ You changed "+it.chg+" pick"+(it.chg>1?"s":"")+". The % and payout are for your version. ":"")+(it.note||""),l:LL},
       x=slipInfo(p,true);x.sig="";x.gen={cx:cx,i:i};x.open=!i;if(x.ch!==null)it.ch=x.ch;
-    return slipCardW(x,"gen"+cx+i)}).join("");
+    return slipCardW(x,"gen"+cx+i)}).join("")+'</div>';
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
