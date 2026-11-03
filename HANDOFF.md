@@ -174,7 +174,7 @@ Andrew's ask: parlays that **win**, using all our data; not worried about odds c
 ## Big parlays (Oct 31)
 - All three generators: Legs 2 3 4 5 + a "6+" picker (6–15, `.glmore`). For 6+ legs the payout target is each leg's price range raised to the number of legs (`PER` in `genRank`: Safe 1.12–1.5, Balanced 1.25–1.95, Long shot 1.45–2.7 decimal per leg); beam 200 for 7+ legs. Auto-switch tries the most legs the games can give, then a few below. Chances under 1% show as "1 in N" (`pct`, `oneIn`); `slipChance` floor is now 1e-6 (was 0.001, which showed every long shot as 1 in 1,000). Payouts of +10,000 and up get commas (`am`). Big-parlay note on the card. Built for Andrew's friend who loves 15-leg parlays. Idea for later: near-miss stats ("missed by 1 leg") on Results.
 
-## QUEUED: Double-up planner + My usual bet (Andrew, Oct 31)
+## DONE (Nov 3): Double-up planner + My usual bet (Andrew, Oct 31)
 - **My usual bet:** each user picks a usual stake on first open / ★ page ($1, $5, $10, $25, $50, $100, custom; saved per phone). Every "$X wins $Y" and the slip's default stake use it. Chances never change with stake; Results keeps grading the site's own picks at a flat $10 so the record stays comparable.
 - **Double-up planner:** budget + number of bets (e.g. $100 in 10 bets) → N separate ~+100 parlays on **different games** (no shared games, so one upset can't sink several), plus the plan's odds from each slip's %: chance to come out ahead / break even / lose most, and the average result (binomial or simulation; the books' cut means the average is slightly under the budget, so say so plainly). Show 1 bet × full budget side by side. Andrew's own style: many $10 bets aiming to double, not one $100 bet. Honest framing: spreading out makes results steadier, it doesn't raise the average; picking legs better than their price does.
 
@@ -253,7 +253,7 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 
 ## My usual bet (Nov 3)
 - ★ page › **My usual bet**: $1/5/10/25/50/100 buttons or a custom amount ($1 to $10,000), saved per phone in `localStorage.usual` (default 10; included in "Move my data"). `USUAL`, `usd()`, `usualWins(d, prefix)`, `usualUI()`, `setUsual()` in index.html. Every "wins $X" (generator cards, named slips, Build, price rows via `winsOn10`, boost line) and the slip's Stake box use it. Results, track records and calibration stay at $10 on purpose. Tour and legend examples still say $10.
-- Next: Double-up planner (budget + number of bets, separate ~+100 parlays on different games, honest odds for the whole plan; see "QUEUED: Double-up planner").
+- Double-up planner: DONE, see "Bet bundle mode" below.
 
 ## Bet bundle mode = the double-up planner (button: One parlay / Bet bundle) (Nov 3)
 - Lives inside the Parlays generator (`GENS.par.mode` "one" | "many", plus `budget`, `nbets`; saved with the generator). Code in index.html: `STYLE.plans/pland/planl` (payout ranges 1.45-1.8, 1.92-2.3, 3.6-6), `GENS.plan`, `planTry()` (greedy per bet: `genRank` over the pool minus used picks and games over a per-game cap, best slip chance with a 0.9 penalty per already-used game), `planBuild()` (tries picks-per-bet k..2 with unique picks, then k..2 allowing repeats, then 1; keeps most bets, fewest repeats, most picks), `planSim()` (Monte Carlo when picks repeat across bets), `planDist()` (exact 2^K enumeration, K up to 15, independent bets), `planHTML()`, `planGo()`. The old standalone planner card was removed the same day.
@@ -275,19 +275,23 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
 
 
-## Bundle -> bet queue
-- After "Build my bundle" the cards are view-only and a **+ Add all N bets to my queue** button (data-qbundle) adds each bet (with its own stake = budget/N) to the shared bet queue and opens it. The old separate bundle checklist was removed; bqSave/bqLoad (localStorage `bundle_<sport>`) still keep the built bundle across reloads.
-- Reason: an app link can only fill ONE slip, so bets are placed one at a time from the queue.
+## Bet bundle results + shared Bet queue (Nov 3, evening) — CURRENT STATE
+**Bundle results** (Parlays > generator > Make: Bet bundle > Build my bundle), top to bottom:
+1. Heading ("10 bets of $10 · Medium risk…") and the two warnings that stay visible: "Can't fill all N bets" box and the "Heads up: only 1-2 games" note.
+2. **Table | Parlay cards** toggle (`data-bview`, saved in `localStorage.bview`). Table = `qtab/qrow/qth/qp/qo` classes (NOT `.brow/.bp`, they already exist for another feature); tap a row to open the full slip card (`x.open=true`). Cards = 2-up closed `slipCardW` cards.
+3. Yellow **ⓘ How this works** link (`details.hw`): outcome table, "100 times" line, $100 comparison, explainers, honesty note. Andrew confirmed this layout ("that's perfect").
+4. **+ Add all N bets to my queue** (`data-qbundle`, always shown, bottom, right above ✕ Close generator) + Open my bet queue.
+- **⇄ Change** works inside bundle bets (swap source "plan": swapOpen/swapPick; `planRecalc` redoes each bet's odds and %, the outcome table, games used, and resets the "added" flag). `planMk` sets `x.plan=i`.
+- Built bundle is saved in `localStorage.bundle_<sport>` (3 days) via `bqSave/bqLoad`.
+- Gotchas: (a) the global "opening a details.pc scrolls it to the middle" handler skips cards inside `.qrow`, otherwise 10 pre-opened cards scroll the page to the bottom of the table on load; (b) `.qrow>summary` needs `display:grid!important` (a global rule overrides it); (c) after Build the page scrolls so the Build button is at the top.
 
-## Bet queue (any bets, placed one at a time)
-- **+ Queue** on every parlay card (open card row + preset cards) and **+ Add this slip to my bet queue** in the slip panel (clears the slip). Yellow **Bet queue (n)** chip (bottom right) opens the queue modal: per bet Open in <app> / Placed ✓ / Remove, finished list with Undo + Clear finished.
-- Stake shown = My usual bet (★). Saved in localStorage `queue_<sport>` (3 days). Duplicate bets are blocked; started games can't be placed.
-- Code: QUEUE/qAdd(legs,name,stake,quiet)/qChip/qOpen/qHTML/qAct next to planMk in index.html. Queue items can carry their own stake (bundle) else My usual bet.
+**Bet queue** (any bets, placed one at a time; replaces the old idea of loading a whole bundle into one slip, which an app link can't do: it would merge into one giant parlay):
+- **+ Queue** on every parlay card (open-card row and preset cards) and **+ Add this slip to my bet queue** in the slip panel (clears the slip). Yellow **Bet queue (n)** chip (bottom right) opens the modal: per bet Open in <app> (one button per app Andrew picked on ★) / Placed ✓ / Remove, finished list with Undo + Clear finished.
+- Each item has its own stake (bundle = budget/N, otherwise My usual bet). Saved in `localStorage.queue_<sport>` (3 days). Duplicate bets blocked; bets with a started game can't be placed.
+- Code: `QUEUE/qAdd(legs,name,stake,quiet)/qChip/qOpen/qHTML/qAct` next to `planMk` in index.html.
+- NOT yet verified: the Open-in-app links with a real bet on Andrew's phone (only tested in a phone-size desktop browser). Ask him how they behave.
 
-- Bundle results are a table (classes qtab/qrow/qth/qp/qo; NOT .brow/.bp, those already exist for another feature). Row opens to the full slip card (x.open=true). Needs `display:grid!important` on the summary because a global rule overrides it.
-
-- Bundle layout now: heading -> table -> yellow "ⓘ How this works" (all odds/explainer text) -> "+ Add all N bets to my queue" at the bottom, right above Close generator.
-- ⇄ Change works on bundle bets (swap source "plan": swapOpen/swapPick + planRecalc redoes odds, % and the outcome table, and resets "added to queue").
-- Gotcha: the global "opening a details.pc scrolls it to the middle" handler skips cards inside .qrow, otherwise 10 pre-opened cards scroll the page to the bottom of the table on load.
-
-- Bundle results have a Table | Parlay cards toggle (data-bview, saved in localStorage `bview`). Cards view = 2-up closed slip cards with ⇄ Change inside.
+## Open ideas / waiting on Andrew
+- Which other "All/Any" filters to rename (All markets, All divisions/conferences, All teams, All types, Any picks, All graded and live): he hasn't chosen, don't change without his pick.
+- Possible: Save placed queue bets to My bets automatically; bundle mode for Players/Team generators; grade a bundle on Results as one unit; smarter one-game bundles; a "most likely range" line.
+- Same-game correlation across bets is ignored in the bundle math (disclosed on screen).
