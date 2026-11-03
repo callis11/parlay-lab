@@ -36,7 +36,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 | **Books expected** | How many picks the sportsbooks' own prices said should hit. |
 
 ### Tags and colors
-- **ALL GREEN** every pick 70%+. **SPREAD OUT** 3+ picks, all from different games. **⚑ RED FLAG** something to check (pick under 45%, injury, rarely clears the line since 2023, bad history vs this opponent, two picks on one player, line moved 1.5+ against, game started).
+- **ALL GREEN** every pick 70%+. **SPREAD OUT** 3+ picks, all from different games. **⚑ RED FLAG** something to check (pick under 45%, injury report or missed last game, two picks on one player, line moved 1.5+ against, game started). **ⓘ Heads up** (grey box inside the card, no tag): a pick we rate 80%+ that the player rarely cleared in past seasons, or a poor record vs this opponent.
 - **PROVEN** (NFL) this parlay type made money over 40+ replayed slips (2023–25). **WEAK HISTORY** lost 20%+; kept out of the top 3.
 - **Safest · Best value · Big payout** = the top 3 cards per slate.
 - Pick circles: green 70%+, yellow 50–69%, red under 50%.
@@ -58,7 +58,7 @@ College (NCAAF, NCAAB) has no **Players** tab: game lines only (ML, spread, tota
 - **⚡ ParlayLabs Generator** (tap "Open"): Picks 2 3 4 5 or **6+** (up to 15) · Style **Safe / Balanced / Long shot** · Bets **Both / Players / Game lines** (not in college) · Game (All games, Pick several games…, or one game). **Generate a parlay** builds one and explains every pick; **Generate another** gives the next best. Each pick has **⇄ Change** (same as on the slip); the card then says you changed it and shows your version's % and payout. If the style can't build, a yellow ↪ note says what it switched to and why.
 - **Slate chips:** Best of Week, each kickoff window (e.g. Sun 1 PM, Sun 4 PM, Sun Night, Mon Night; college Sat Noon / 3:30 / Night; basketball each tip-off half hour), and your ★ team's game. Started games are never in any parlay.
 - **Top 3 / Show all · Expand all · Any picks / 2–3 / 4+ · All types / Player props / Game lines / Mixed.**
-- **Card:** tags, style · N picks · props/lines, big % to hit, "adj. from", name (e.g. Best 2-Pick, Best Shot at +300, TDs + Spreads), pick circles, price, "$10 wins $X", this season / past seasons record for this type, **ⓘ How we got this %** (flips to the step-by-step math), **⇄ Change** on each pick inside an opened card (kept on the phone; "Undo changes" goes back to ours), **Load slip**.
+- **Card:** tags (own line), style · N picks · props/lines, big %, "hits about 1 time in N" + break-even, name (e.g. Best 2-Pick, Best Shot at +300, TDs + Spreads), pick circles, price, "$10 wins $X", this season / past seasons record for this type, **ⓘ How we got this %** (flips to the step-by-step math), **⇄ Change** on each pick inside an opened card (kept on the phone; "Undo changes" goes back to ours), **Load slip**.
 - **How to read these cards:** Reading the numbers, % to hit, where the % comes from, tags, same-game adjustment, circle colors.
 
 ### Build

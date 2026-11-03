@@ -267,6 +267,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:5px;vertical-align:1px}
 .hb.pr{background:var(--green);color:var(--green-ink)}.hb.wk{background:var(--red);color:#fff}
 .hb.gr{background:#36D399;color:#06281A}.hb.so{background:#5B9BFF;color:#06142E}.hb.rf{background:transparent;color:#FF6B5E;box-shadow:inset 0 0 0 1.5px #FF6B5E}
+.hun{margin:8px 0;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:color-mix(in srgb,var(--muted) 10%,transparent);font-size:13px;color:var(--muted)}.hun b{color:var(--ink)}.hun ul{margin:4px 0 4px 18px;padding:0}.hun small{font-size:12px}
 .rfn{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:rgba(255,107,94,.12);font-size:13px;line-height:1.35}.rfn b{color:#FF6B5E}.rfn ul{margin:4px 0 0;padding-left:18px}
 .clv{font-size:12px;font-weight:600;color:var(--muted)}.clv.up{color:#36D399}.clv.dn{color:#FF6B5E}
 .wkc{position:relative}.wkc .wkh{display:flex;justify-content:space-between;align-items:center;gap:8px}.wkc .wkh h3{margin:0}
@@ -1037,12 +1038,12 @@ function genPool(cx){
   if(G.kind!=="p")gl.forEach(function(g){GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
   var mk=cx==="ply"&&G.mk&&G.mk.length?G.mk:null,ou=cx==="ply"?G.ou||"both":"over";
   if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(p.label)<0)return;p.rungs.forEach(function(r){
-    if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
+    if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8&&pu>=0.8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
       out.push({leg:UL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pu),info:Engine.legInfo(UL,gmeta(p.ev))})}}
     if(ou==="under")return;
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
     // Trust a leg less when its record at this exact line since 2023 is worse than our estimate
-    var pe=r.p;if(r.since&&r.since[1]>=8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
+    var pe=r.p;if(r.since&&r.since[1]>=8&&r.p>=0.8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
     var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
     if(v&&v[0]+v[1]>=4&&v[0]/(v[0]+v[1])<0.3&&!p.td)pe-=0.05; // keeps missing against this team
     var PL=propLeg(p,r);out.push({leg:PL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pe),info:Engine.legInfo(PL,gmeta(p.ev))})})});
@@ -1173,24 +1174,24 @@ function lineMove(l,m){if(!m||!m.open||!m.now)return 0;var t=l.t;
   if((t==="ov"||t==="un")&&m.open.total!=null&&m.now.total!=null){var d2=m.now.total-m.open.total;return t==="ov"?d2:-d2}
   return 0}
 function slipFlags(legs){
-  var n=legs.length,evs={},who={},red=[],now=Date.now();
+  var n=legs.length,evs={},who={},red=[],soft=[],now=Date.now();
   legs.forEach(function(l){evs[l.ev]=1;
     if(l.p!=null&&l.p<0.45)red.push(l.n+" is only "+pct(l.p)+" to hit");
     if(l.time&&+new Date(l.time)<=now)red.push(l.n+": that game has started");
     if(l.kind==="p"){var pp=pmap()[l.k];
       if(pp){if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
-        var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&rs[0]/rs[1]<l.p-0.15)red.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons"));
+        var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&l.p>=0.8&&rs[0]/rs[1]<l.p-0.15)soft.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons")+". In 2023–25 replays, picks we rated 80%+ with a record like this hit about 75%, so treat "+pct(l.p)+" as a bit high");
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
-        if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)red.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
+        if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)soft.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
       if(l.player){if(who[l.player])red.push("two picks on "+l.player+" move together");who[l.player]=1}}
     else{var mv=lineMove(l,gmeta(l.ev));if(mv<=-1.5)red.push(l.n+": the line has moved "+Math.abs(mv)+" points against this side since it opened")}
   });
-  var seen={};red=red.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
-  return{green:n>=2&&legs.every(function(l){return l.p!=null&&l.p>=0.7}),spread:n>=3&&Object.keys(evs).length===n,red:red};
+  var seen={};red=red.filter(function(x){if(seen[x])return false;seen[x]=1;return true});soft=soft.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
+  return{soft:soft,green:n>=2&&legs.every(function(l){return l.p!=null&&l.p>=0.7}),spread:n>=3&&Object.keys(evs).length===n,red:red};
 }
 function flagBadges(F){return(F.green?'<span class="hb gr">All green</span>':"")+(F.spread?'<span class="hb so">Spread out</span>':"")+(F.red.length?'<span class="hb rf">⚑ Red flag</span>':"")}
-function flagNote(F){return F.red.length?'<div class="rfn"><b>⚑ Red flag</b><ul>'+F.red.map(function(x){return"<li>"+esc(x.charAt(0).toUpperCase()+x.slice(1))+"</li>"}).join("")+'</ul></div>':""}
+function flagNote(F){var li=function(x){return"<li>"+esc(x.charAt(0).toUpperCase()+x.slice(1))+"</li>"};return(F.soft&&F.soft.length?'<div class="hun"><b>ⓘ Heads up</b><ul>'+F.soft.map(li).join("")+'</ul><small>Worth knowing, not a deal-breaker. Red flags are for bigger problems.</small></div>':"")+(F.red.length?'<div class="rfn"><b>⚑ Red flag</b><ul>'+F.red.map(li).join("")+'</ul></div>':"")}
 function slipInfo(p,noHist){
   var d=1,evs={},sg=false,props=0,games=0;
   p.l.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.kind==="p")props++;else games++});
@@ -1379,6 +1380,7 @@ function slipWhy(legs,name){
   if(!name&&legs.length>1&&Math.round(C.c1*100)!==Math.round(ch*100))steps.push('<li><b>Parlay check:</b> in past seasons, '+legs.length+'-pick parlays hit about '+Math.round(C.f*100)+'% as often as their picks suggested, so we adjust to <b>'+pct(ch)+'</b>.</li>');
   if(sg)steps.push('<li><b>Payout:</b> some picks come from the same game, so your book will pay less than shown here.</li>');
   if(F.red.length)steps.push('<li><b>⚑ Red flag:</b> '+F.red.map(esc).join("; ")+'.</li>');
+  if(F.soft&&F.soft.length)steps.push('<li><b>ⓘ Heads up:</b> '+F.soft.map(esc).join("; ")+'.</li>');
   if(bk&&bk.n)steps.push('<li><b>Track record:</b> in past seasons, picks we rated '+Math.floor(avg*10)*10+'–'+(Math.floor(avg*10)*10+10)+'% hit '+pct(bk.w/bk.n)+' of the time ('+bk.n.toLocaleString()+' picks).</li>');
   steps.push('<li><b>Price vs chance:</b> at '+am(d)+' you need it to hit '+pct(be)+' of the time to break even. We think it hits '+pct(ch)+(ch>=be*1.03?", a little better than the price, but small edges swing a lot over a few bets.":ch>=be*0.97?", about what the price says.":", less than the price needs, so it loses money over many tries. Bet it for fun, not as an edge.")+'</li>');
   if(b&&b.n>=10)steps.push('<li><b>This type in past seasons:</b> '+b.w+'–'+(b.n-b.w)+', '+(b.profit>=0?"+":"-")+'$'+Math.abs(b.profit).toFixed(0)+' at $10 a slip.</li>');
@@ -1511,7 +1513,7 @@ function legendHTML(){
   if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact picks, and most Proven types are long shots that win rarely but pay big.</p>');
     P.push('<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>')}
   P.push('<p><b>adj. from</b> Picks multiplied together don\'t match how parlays really finish, so the chance is moved up or down'+(nfl?' by how often this type really hit in past seasons':' using how NFL parlays really hit in our replay (this sport doesn\'t have its own replay yet)')+'.</p>');
-  P.push('<p><span class="hb gr">All green</span> Every pick is 70%+ to hit. <span class="hb so">Spread out</span> Every pick is from a different game, so one bad game can only cost you one pick. <span class="hb rf">⚑ Red flag</span> Something to check first: a pick under 45%'+(props?', an injury tag, a player who rarely clears this line':'')+', or a line moving against the pick. Open the card to see which. Red-flag slips never get the Safest pick.</p>');
+  P.push('<p><span class="hb gr">All green</span> Every pick is 70%+ to hit. <span class="hb so">Spread out</span> Every pick is from a different game, so one bad game can only cost you one pick. <span class="hb rf">⚑ Red flag</span> Something to check first: a pick under 45%'+(props?', a player on the injury report or who missed his last game, two picks on one player':'')+', or a line moving against the pick. Open the card to see which.'+(props?' Softer notes (a pick we rate 80%+ that the player hasn\'t often cleared in past seasons, or a poor record vs this opponent) show inside the card as <b>ⓘ Heads up</b>, not as a red flag.':'')+' Red-flag slips never get the Safest pick.</p>');
   P.push('<p><b>Same game</b> '+(nfl?'Picks from one game get adjusted for how pairs like them finished together over three past seasons (a QB and his receiver go over together more often; a team covering and the other team\'s RB going over, less).':'A side and the total from the same game get adjusted for how those pairs finished together in past seasons.')+'</p>');
   P.push('<p><b>Most likely · Best value · Big payout</b> The top 3 per slate: the highest chance to hit, the best price for the chance, and the biggest payout that still has a real shot.</p>');
   P.push('<p><b>Parlay % colors</b> <span style="color:var(--green)">green 45%+</span>, <span style="color:var(--flag)">yellow 20–44%</span>, <span style="color:var(--red)">red under 20% (long shot)</span>. Under each % it says what that means, like "hits about 1 time in 5".</p>');

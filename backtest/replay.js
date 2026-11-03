@@ -38,7 +38,8 @@ const imp = a => 1 / dec(a);
 
 (async () => {
   const sched = await getCSV(`${NFLVERSE}/schedules/games.csv`);
-  const seasons = [2021, 2022, 2023, 2024, 2025].filter(s => load("lines-" + s));
+  const STUDY = process.env.STUDY === "1", ST = []; // STUDY=1: test the "rarely clears this line" note, write nothing
+  const seasons = [2021, 2022, 2023, 2024, 2025].filter(s => load("lines-" + s) && (!STUDY || load("props-" + s)));
   const R = { builtAt: new Date().toISOString(), seasons: {}, legs: { byCat: {}, byP: {}, byMarket: {} }, slips: {}, teamParlays: {}, cards: { pieces: [0, 0, 0, 0], straights: [0, 0, 0, 0], tds: [0, 0, 0, 0] }, games: { ats: {}, fav: {} } };
   const teams = {}; // team -> stats for the Teams page
   const graded = [];
@@ -53,6 +54,9 @@ const imp = a => 1 / dec(a);
       getCSV(`${NFLVERSE}/stats_player/stats_player_week_${season}.csv`),
       getCSV(`${NFLVERSE}/stats_player/stats_player_week_${season - 1}.csv`),
       getCSV(`${NFLVERSE}/injuries/injuries_${season}.csv`)]);
+    let long = null;
+    if (STUDY) { const prev2 = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${season - 2}.csv`); long = {};
+      [].concat(prev2, statsPrev, statsNow).forEach(r => { if (r.season_type && r.season_type !== "REG") return; (long[norm(r.player_display_name)] = long[norm(r.player_display_name)] || []).push(r); }); }
     const byGid = {}; statsNow.forEach(r => { (byGid[r.game_id] = byGid[r.game_id] || []).push(r); });
     const games = {}; sched.forEach(g => { games[g.game_id] = g; });
     // group every saved kickoff into its NFL week
@@ -121,6 +125,10 @@ const imp = a => 1 / dec(a);
             }
             if (sd.p === undefined || r.n < 6) continue;
             if (sd.a < -400 || sd.a > 250) { if (!(p.td || sd.side === "over")) continue; }
+            if (STUDY && long) { const rows0 = (long[norm(p.player)] || []).filter(x => +x.season < season || (+x.season === season && +x.week < +wk));
+              const vals = rows0.map(x => p.td ? (+x.rushing_tds || 0) + (+x.receiving_tds || 0) : (Engine.NFL_STAT[p.label] ? Engine.NFL_STAT[p.label](x) : undefined)).filter(v => v !== undefined && !isNaN(v));
+              const hit = vals.filter(v => sd.side === "under" ? v < r.line : p.td ? v > 0 : v > r.line).length;
+              if (vals.length >= 8) ST.push([sd.p, won ? 1 : 0, hit / vals.length, sd.a, p.healthy ? 1 : 0, sd.side]); }
             const cat = Engine.category(leg);
             add(R.legs.byCat, cat, won, sd.a, sd.p); add(R.legs.byMarket, cat.split("|")[0], won, sd.a, sd.p); add(R.legs.byP, pBucket(sd.p), won, sd.a, sd.p);
             graded.push([cat, +sd.p.toFixed(3), won ? 1 : 0, first]);
@@ -176,6 +184,7 @@ const imp = a => 1 / dec(a);
   // Re-score every past slip with the correlation adjustment, so the site's slip-type correction only fixes what's left
   for (const k in R.slips) { R.slips[k].expRaw = R.slips[k].exp; R.slips[k].exp = 0; }
   for (const x of slipLog) { if (x.ch == null) continue; const a = Engine.corrAdj(x.legs, ev => x.metas[ev], corr); R.slips[x.name].exp += Math.min(0.99, x.ch * a.f); }
+  if (STUDY) { studyReport(ST); return; }
   fs.writeFileSync("backtest/corr.json", JSON.stringify(corr, null, 1));
   // round
   const r2 = o => { for (const k in o) for (const f of ["profit", "exp", "book"]) if (typeof o[k][f] === "number") o[k][f] = +o[k][f].toFixed(2); };
@@ -189,3 +198,19 @@ const imp = a => 1 / dec(a);
   fs.writeFileSync("backtest/graded-legs.json", JSON.stringify({ legs: graded }));
   console.log("Done:", JSON.stringify(R.seasons), "legs graded:", graded.length);
 })();
+
+// STUDY=1 report: picks whose long-run record at this line is 15+ points under our % ("Heads up") vs the rest
+function studyReport(ST) {
+  const grp = (f, label) => { const L = ST.filter(f), n = L.length, w = L.reduce((a, x) => a + x[1], 0), e = L.reduce((a, x) => a + x[0], 0);
+    console.log(label.padEnd(44), "n", String(n).padStart(6), " hit", (100 * w / n).toFixed(1) + "%", " we said", (100 * e / n).toFixed(1) + "%", " gap", (100 * (w - e) / n).toFixed(1)); };
+  const site = x => x[4] && x[3] >= -700 && x[3] <= 250 && x[0] >= 0.45;
+  for (const gap of [0.10, 0.15, 0.20, 0.25]) {
+    console.log("--- note when long-run rate < our % minus " + gap + " (site-type picks: healthy, -700..+250, 45%+) ---");
+    grp(x => site(x) && x[2] < x[0] - gap, "with note");
+    grp(x => site(x) && !(x[2] < x[0] - gap), "without note");
+  }
+  for (const b of [[0.45, 0.6], [0.6, 0.7], [0.7, 0.8], [0.8, 1]]) {
+    grp(x => site(x) && x[0] >= b[0] && x[0] < b[1] && x[2] < x[0] - 0.15, "note, we said " + b.join("-"));
+    grp(x => site(x) && x[0] >= b[0] && x[0] < b[1] && !(x[2] < x[0] - 0.15), "no note, we said " + b.join("-"));
+  }
+}
