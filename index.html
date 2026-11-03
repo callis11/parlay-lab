@@ -1227,20 +1227,21 @@ function genRun(cx){
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
 }
+function genCardHTML(it,i,cx,key,op){op=op||{};
+    PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return!legStarted(l)}).length?LL:[]);
+    var started=it.legs.some(function(x){return legStarted(x.leg)});
+    return'<div class="gcard'+(i&&!op.plan?" old":"")+'"><div class="gh"><span class="big" style="color:'+pctColor(it.ch)+'" title="'+pctWord(it.ch)+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+(it.ch>=0.01?'<div class="sub" style="margin:-2px 0 4px;font-size:12px">'+pctWord(it.ch)+' · '+verdictLine(it.ch,it.d)+'</div>':"")+
+      '<div class="mt"><span class="hbrow">'+flagBadges(FF)+'</span>'+(op.label?op.label+" · "+it.legs.length+" picks · $"+usd(op.stake)+" wins $"+usd(op.stake*(it.d-1)):(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · "+usualWins(it.d))+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
+      it.legs.map(function(x,j){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
+        return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(l.live?' '+liveTag(l):"")+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
+          (started||op.noSwap?"":'<button class="swb" data-swap="gen" data-cx="'+cx+'" data-i="'+i+'" data-j="'+j+'">⇄ Change</button>')+'<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
+      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+(it.chg?'<p class="gauto">⇄ You changed '+it.chg+' pick'+(it.chg>1?"s":"")+'. The % and payout above are for your version.</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}
 function renderGenOut(cx){
   cx=cx||"par";var last=genSaved(cx),el=$("genOut_"+cx);if(!el)return;
   if(cx==="par"&&GENS.par.mode==="many"){el.innerHTML=planHTML();return}
   if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
   var now=Date.now();
-  el.innerHTML=last.map(function(it,i){
-    var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return!legStarted(l)}).length?LL:[]);
-    var started=it.legs.some(function(x){return legStarted(x.leg)});
-    return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+pctColor(it.ch)+'" title="'+pctWord(it.ch)+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+(it.ch>=0.01?'<div class="sub" style="margin:-2px 0 4px;font-size:12px">'+pctWord(it.ch)+' · '+verdictLine(it.ch,it.d)+'</div>':"")+
-      '<div class="mt"><span class="hbrow">'+flagBadges(FF)+'</span>'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · "+usualWins(it.d)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
-      it.legs.map(function(x,j){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
-        return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(l.live?' '+liveTag(l):"")+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
-          (started?"":'<button class="swb" data-swap="gen" data-cx="'+cx+'" data-i="'+i+'" data-j="'+j+'">⇄ Change</button>')+'<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
-      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+(it.chg?'<p class="gauto">⇄ You changed '+it.chg+' pick'+(it.chg>1?"s":"")+'. The % and payout above are for your version.</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
+  el.innerHTML=last.map(function(it,i){return genCardHTML(it,i,cx,"gen"+cx+i)}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
@@ -1521,8 +1522,8 @@ function slipCard(x,key){
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw"><span class="hlp">'+pctWord(x.ch)+'<br></span>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
-    '<div class="mt">'+usualWins(x.d,x.sg?"~":"")+'</div>'+(x.chg?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)?"":'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
+    '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
@@ -2904,7 +2905,9 @@ function planBuild(){
   for(var n2=want-1;n2>=2&&R.bets.length<N;n2--){var R2=planTry(pool,N,n2);if(R2.bets.length>R.bets.length)R=R2}
   var bets=R.bets,use=R.use,n=R.n;
   if(!bets.length){PLANOUT={err:"Not enough picks in these games to build slips at this price. Try All games or a different style."};return}
-  var K=bets.length,stake=B/K,dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
+  var K=bets.length,stake=B/K;
+  bets.forEach(function(b,i){var x=slipInfo({n:"Slip "+(i+1)+" of "+K,d:"One of your "+K+" slips. Each slip is its own bet of $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x});
+  var dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
   var pa=0,dd=0;bets.forEach(function(b){pa+=b.ch;dd+=b.d});pa/=K;dd/=K;
   var gamesUsed=Object.keys(use).length,shared=Object.keys(use).filter(function(k){return use[k]>1}).length;
   PLANOUT={bets:bets,K:K,N:N,n:n,want:want,stake:stake,B:B,dist:dist,mean:mean,one:{p:pa,d:dd},games:gamesUsed,shared:shared,asked:N,style:P0.style,t:Date.now()}}
@@ -2925,10 +2928,7 @@ function planHTML(){
    '<tr><td>Average back (our estimate)</td><td class="r">$'+usd(o.mean)+' of $'+usd(o.B)+'</td></tr></table>'+
    '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' slip at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
    '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Slips that share a game rise and fall together a little, which this math ignores.</p>'+
-   o.bets.map(function(b,i){var key="plan"+i;PRE[key]=b.legs;
-     return'<details class="pbet"><summary><b class="big" style="color:'+pctColor(b.ch)+'">'+(b.ch<0.01?"1 in "+oneIn(b.ch):Math.round(b.ch*100)+"%")+'</b> <span class="sub">to hit · '+am(b.d)+' · $'+usd(o.stake)+' wins $'+usd(o.stake*(b.d-1))+'</span></summary>'+
-      b.legs.map(function(l){var m=DATA&&DATA.games&&DATA.games[l.ev]||{};return'<div class="pl"><span><b>'+esc(l.n)+'</b>'+(m.away?'<br><small class="sub">'+esc(m.away+" @ "+m.home)+'</small>':"")+'</span><span style="color:'+hitColor(l.p)+';font-weight:700">'+Math.round(l.p*100)+'%</span></div>'}).join("")+
-      '<button class="btn flag" data-pre="'+key+'" style="margin-top:6px">Load slip</button></details>'}).join("");
+   o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("");
   return h+'</div></div>'}
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
