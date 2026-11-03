@@ -393,6 +393,9 @@ header{position:relative}
 .swr .swp{font-weight:800;font-size:16px;min-width:40px;text-align:right}
 .swr .swq{font-size:12px;text-align:right;min-width:74px;color:var(--muted)}.swr .swq b{font-size:14px;display:inline}
 .swr.now{background:color-mix(in srgb,var(--flag) 12%,transparent);cursor:default}
+.swr[hidden],.swh[hidden]{display:none}
+.swall{display:block;margin:10px auto 0;font-size:14px;font-weight:700;color:var(--flag)}
+.piece .pswb{grid-column:1/-1;justify-self:start;margin-top:6px}
 .swr[disabled]{opacity:.45;cursor:default}.swr.now[disabled]{opacity:1}
 .tbox{width:100%;max-width:420px;max-height:calc(100dvh - 32px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:14px;padding:20px 18px 14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tslide{display:none}.tslide.on{display:block}
@@ -1188,10 +1191,10 @@ function slipFlags(legs){
 }
 function flagBadges(F){return(F.green?'<span class="hb gr">All green</span>':"")+(F.spread?'<span class="hb so">Spread out</span>':"")+(F.red.length?'<span class="hb rf">⚑ Red flag</span>':"")}
 function flagNote(F){return F.red.length?'<div class="rfn"><b>⚑ Red flag</b><ul>'+F.red.map(function(x){return"<li>"+esc(x.charAt(0).toUpperCase()+x.slice(1))+"</li>"}).join("")+'</ul></div>':""}
-function slipInfo(p){
+function slipInfo(p,noHist){
   var d=1,evs={},sg=false,props=0,games=0;
   p.l.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.kind==="p")props++;else games++});
-  var C=slipChance(p.l,p.n),ch=C.ch,h=C.h;
+  var C=slipChance(p.l,noHist?"":p.n),ch=C.ch,h=C.h;
   return{s:p,d:d,ch:ch,raw:C.raw,h:h,C:C,F:slipFlags(p.l),weak:!!(h&&h.weak),proven:!!(h&&h.proven),ev:ch===null?null:ch*d-1,n:p.l.length,sg:sg,kind:!games?"p":!props?"g":"m"};
 }
 function dedupe(list){var seen={};return list.filter(function(p){var k=p.l.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join();if(seen[k])return false;seen[k]=1;return true})}
@@ -1243,8 +1246,22 @@ function rankSlips(raw){
   // The weekly 10- and 15-pick parlays always show (Andrew, Nov 1), tagged Big parlay
   var bigW=rest.filter(function(x){return/-Leg of the Week$/.test(x.s.n)});bigW.forEach(function(x){x.tag="wk"});
   if(PST.legs==="s")bigW=[];
-  return PST.mode==="top"?top.concat(bigW):top.concat(bigW).concat(rest.filter(function(x){return bigW.indexOf(x)<0}));
+  var outL=PST.mode==="top"?top.concat(bigW):top.concat(bigW).concat(rest.filter(function(x){return bigW.indexOf(x)<0}));
+  return outL.map(pApplyEdit);
 }
+// ⇄ Change on Parlays-tab cards: your swaps are kept per card (by its name + original picks) and rebuilt from today's prices
+var PEDIT={};try{PEDIT=JSON.parse(localStorage.getItem("pedit_"+SPORT)||"{}")||{}}catch(e){}
+function pSig(p){return p.n+"#"+p.l.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join()}
+function legRef(l){return{k:l.k,ev:l.ev,t:l.t,kind:l.kind,line:l.line,side:l.side,pid:l.kind==="p"?(l.k||"").replace(/^P\|/,"").replace(/\|u$/,""):null}}
+function legFromRef(x){var L=null;
+  if(x.kind==="g"){var g=GAMES.filter(function(y){return y.id===x.ev})[0];if(g&&g.legs[x.t])L=gameLeg(g,x.t)}
+  else if(x.kind==="p"){var p=PROPS.filter(function(y){return y.id===x.pid})[0],r=p&&p.rungs.filter(function(y){return y.line===x.line})[0];if(r)L=x.side==="under"?ENG.underLeg&&ENG.underLeg(p,r):propLeg(p,r)}
+  return L}
+function pApplyEdit(x){var sig=pSig(x.s),E=PEDIT[sig];x.sig=sig;if(!E)return x;
+  var l2=x.s.l.slice(),n=0;Object.keys(E).forEach(function(j){var L=legFromRef(E[j]);if(L&&!legStarted(L)&&l2[+j]){l2[+j]=L;n++}});if(!n)return x;
+  var y=slipInfo(Object.assign({},x.s,{l:l2}),true);y.tag=x.tag;y.sig=sig;y.chg=n;return y}
+function pEditSave(){try{localStorage.setItem("pedit_"+SPORT,JSON.stringify(PEDIT))}catch(e){}}
+var PCUR={},POPEN=null;
 var TAGS={safe:"Most likely",value:"Best value",big:"Big payout",wk:"Big parlay"};
 // Track record for a slip type (by name), from graded results at $10 a slip
 function recLine(name){
@@ -1369,14 +1386,14 @@ function slipWhy(legs,name){
 }
 function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
 function slipCard(x,key){
-  PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
+  PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+  return'<details class="pc"'+(PST.exp||POPEN===x.sig?" open":"")+' data-sig="'+esc(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'<small>to hit'+(x.raw!==null&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+pct(x.raw):"")+'</small></div><div class="pw">'+pctWord(x.ch)+'<br>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
-    '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+recLine(p.n)+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+'<div class="pieces">'+p.l.map(piece).join("")+'</div>'+shop+
+    '<div class="mt">$10 wins '+(x.sg?"~":"")+"$"+(10*(x.d-1)).toFixed(0)+'</div>'+(x.chg?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+esc(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)?"":'<button class="swb pswb" data-swap="card" data-sig="'+esc(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
@@ -2307,16 +2324,22 @@ function swapAlts(L){
 function swapOpen(t){
   var legs,at;
   if(t.dataset.swap==="slip"){legs=Object.keys(SLIP).map(function(k){return SLIP[k]});at=Object.keys(SLIP).indexOf(t.dataset.k)}
+  else if(t.dataset.swap==="card"){legs=PCUR[t.dataset.sig];if(!legs)return;at=+t.dataset.j}
   else{var it=genSaved(t.dataset.cx)[+t.dataset.i];if(!it)return;legs=it.legs.map(function(x){return x.leg});at=+t.dataset.j}
   var L=legs[at];if(!L)return;
   if(legStarted(L)){toast(STARTED_MSG,true);return}
   var groups=swapAlts(L),others=legs.filter(function(x,i){return i!==at}),cand=[];
   var n=groups.reduce(function(a,g){return a+g.legs.length},0);
   if(n<=1){toast("No other lines for this pick right now.",true);return}
-  SWAP={from:t.dataset.swap,cx:t.dataset.cx,i:+t.dataset.i,at:at,k:t.dataset.k,cand:cand};
+  SWAP={from:t.dataset.swap,sig:t.dataset.sig,cx:t.dataset.cx,i:+t.dataset.i,at:at,k:t.dataset.k,cand:cand};
   function priced(NL){var LL=legs.slice();LL[at]=NL;var d=1;LL.forEach(function(l){d*=dec(l.a)});var c=null;try{c=slipChance(LL,"").ch}catch(e){}return{d:d,c:c}}
   var cur=priced(L),multi=legs.length>1;
-  var row=function(NL){var now=sameLeg(NL,L),clash=!now&&others.some(function(o){return legBase(o)===legBase(NL)}),q=priced(NL),ix=cand.length;cand.push(NL);
+  // Show the 5 options closest to your pick (same stat first), the rest behind "Show all"
+  var flat=[];groups.forEach(function(g){g.legs.forEach(function(l){flat.push(l)})});
+  var ci=Math.max(0,flat.findIndex(function(l){return sameLeg(l,L)})),near=flat.map(function(l,i){return i}).filter(function(i){return i!==ci}).sort(function(a,b){return Math.abs(a-ci)-Math.abs(b-ci)||a-b}).slice(0,5),show={};show[ci]=1;near.forEach(function(i){show[i]=1});
+  var fi=0,hid=flat.length-near.length-1;
+  var row=function(NL){var vis=show[fi++];return row0(NL).replace('<button class="swr','<button '+(vis?"":'hidden data-swx="1" ')+'class="swr')};
+  var row0=function(NL){var now=sameLeg(NL,L),clash=!now&&others.some(function(o){return legBase(o)===legBase(NL)}),q=priced(NL),ix=cand.length;cand.push(NL);
     return'<button class="swr'+(now?" now":"")+'" '+(now||clash?"disabled ":"")+'data-swi="'+ix+'"><span><b>'+esc(NL.n)+'</b><small>'+(now?"Your pick now · ":clash?"Already in this parlay · ":"")+fmt(NL.a)+' · '+winsOn10(NL.a)+'</small></span>'+
       '<span class="swp" style="color:'+hitColor(NL.p)+'">'+(NL.p!=null?Math.round(NL.p*100)+"%":"–")+'</span>'+
       (multi?'<span class="swq">Parlay<br><b style="color:'+pctColor(q.c)+'">'+(q.c!=null?pct(q.c):"–")+'</b> '+am(q.d)+'</span>':'<span></span>')+'</button>'};
@@ -2324,15 +2347,18 @@ function swapOpen(t){
     '<p class="fsub" style="margin:0 0 4px">Now: <b>'+esc(L.n)+'</b> '+fmt(L.a)+(multi?' · parlay <b style="color:'+pctColor(cur.c)+'">'+(cur.c!=null?pct(cur.c):"–")+'</b> at '+am(cur.d):"")+'</p>'+
     '<p class="fsub" style="margin:0 0 6px">'+(L.kind==="g"?"Pick a different bet on the same game: who wins (ML), the spread, or over/under the total.":"Pick a different line for "+esc(L.player)+": an easier number (more likely, pays less), a harder one (less likely, pays more), the under, or another stat.")+
     ' Big % = this pick alone'+(multi?'; right side = the whole parlay with it swapped in':"")+'.</p>'+
-    groups.map(function(g){return'<h4 class="swh">'+esc(g.h)+'</h4>'+g.legs.map(row).join("")}).join("")+
+    groups.map(function(g){var start=fi,body=g.legs.map(row).join(""),any=false;for(var q=start;q<fi;q++)if(show[q])any=true;return'<h4 class="swh"'+(any?"":' hidden data-swx="1"')+'>'+esc(g.h)+'</h4>'+body}).join("")+
+    (hid>0?'<button class="lnk swall" id="swapAll">Show all '+(flat.length-1)+' options ▾</button>':"")+
     '<div class="tnav" style="margin-top:12px"><span></span><button class="btn" id="swapX">Cancel</button></div>';
   $("swapBox").hidden=false;$("swapIn").scrollTop=0;
   var nowEl=$("swapIn").querySelector(".swr.now");if(nowEl&&nowEl.scrollIntoView)setTimeout(function(){nowEl.scrollIntoView({block:"center"})},0)}
+function pReopen(sig){setTimeout(function(){POPEN=null;var d=[].filter.call(document.querySelectorAll("details.pc"),function(e){return e.dataset.sig===sig})[0];if(d){d.open=true;d.scrollIntoView({block:"center"})}},0)}
 function swapClose(){$("swapBox").hidden=true;SWAP=null}
 function swapPick(ix){
   if(!SWAP)return;var NL=SWAP.cand[ix];if(!NL)return;
   if(legStarted(NL)){toast(STARTED_MSG,true);return}
-  if(SWAP.from==="slip"){var S2={};Object.keys(SLIP).forEach(function(k){if(k===SWAP.k)S2[NL.k]=NL;else S2[k]=SLIP[k]});SLIP=S2;swapClose();renderSlip()}
+  if(SWAP.from==="card"){var sg=SWAP.sig,E=PEDIT[sg]||{};E[SWAP.at]=legRef(NL);PEDIT[sg]=E;pEditSave();POPEN=sg;swapClose();renderParlays();pReopen(sg)}
+  else if(SWAP.from==="slip"){var S2={};Object.keys(SLIP).forEach(function(k){if(k===SWAP.k)S2[NL.k]=NL;else S2[k]=SLIP[k]});SLIP=S2;swapClose();renderSlip()}
   else{var cx=SWAP.cx,last=genSaved(cx),it=last[SWAP.i];if(!it){swapClose();return}
     it.legs[SWAP.at]={leg:NL,why:legWhy({leg:NL})};Object.assign(it,genNums(it.legs.map(function(x){return x.leg})));it.chg=(it.chg||0)+1;
     genSave(cx,last);swapClose();renderGenOut(cx)}
@@ -2414,6 +2440,8 @@ document.addEventListener("click",function(e){
   if(t.dataset.swap){swapOpen(t);return}
   if(t.dataset.swi!==undefined){swapPick(+t.dataset.swi);return}
   if(t.id==="swapX"){swapClose();return}
+  if(t.id==="swapAll"){document.querySelectorAll('#swapIn [data-swx]').forEach(function(e){e.hidden=false});t.remove();return}
+  if(t.dataset.punedit!==undefined){delete PEDIT[t.dataset.punedit];pEditSave();POPEN=t.dataset.punedit;renderParlays();pReopen(t.dataset.punedit);toast("Back to our original picks.");return}
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
