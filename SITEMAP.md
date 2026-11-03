@@ -111,6 +111,6 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 
 ## Several bets mode (Parlays tab generator, Nov 3)
 - The Parlays generator has **Make: One slip / Several bets**. Several bets adds **Budget $ in N bets** (N 2 to 15) and reuses Picks (2 to 5 used), Style, Bets (kind) and Game. Button: Build my plan.
-- Style sets each bet's payout: Safe about +60, Balanced about +100 (double-up), Long shot about +400. Each bet's stake = budget / bets. If there aren't enough picks at the chosen picks per bet it tries fewer (and says so) and may build fewer bets than asked (says so).
+- In Several bets the Style row is relabeled "Each bet pays": Small win +60, Double +100, Big win +400. Each bet's stake = budget / bets. If there aren't enough picks at the chosen picks per bet it tries fewer (and says so) and may build fewer bets than asked (says so).
 - Picks are spread over as many different games as the slate allows; no pick repeats.
 - Shows the plan's odds (exact, each bet its own coin flip): ahead (back more than 105% of budget), about break even (95 to 105%), lose some (60 to 95%), lose most (60% or less), average back (our estimate, with a warning when it reads 97%+ because past replays say estimates like that run too high), and one bet of the full budget for comparison. Each bet opens to its picks with **Load slip**.
