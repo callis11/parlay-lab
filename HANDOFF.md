@@ -283,3 +283,5 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **+ Queue** on every parlay card (open card row + preset cards) and **+ Add this slip to my bet queue** in the slip panel (clears the slip). Yellow **Bet queue (n)** chip (bottom right) opens the queue modal: per bet Open in <app> / Placed ✓ / Remove, finished list with Undo + Clear finished.
 - Stake shown = My usual bet (★). Saved in localStorage `queue_<sport>` (3 days). Duplicate bets are blocked; started games can't be placed.
 - Code: QUEUE/qAdd(legs,name,stake,quiet)/qChip/qOpen/qHTML/qAct next to planMk in index.html. Queue items can carry their own stake (bundle) else My usual bet.
+
+- Bundle results are a table (classes qtab/qrow/qth/qp/qo; NOT .brow/.bp, those already exist for another feature). Row opens to the full slip card (x.open=true). Needs `display:grid!important` on the summary because a global rule overrides it.
