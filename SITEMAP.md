@@ -27,7 +27,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 | **% to hit** | ParlayLabs' own estimate that every pick wins (not the sportsbook's). Under 1% shows as "1 in N". |
 | **adj. from 57%** | Picks multiplied together gave 57%; corrected using how that kind of parlay really hit in past seasons. |
 | **The app's price says about X%** (slip) | 1 ÷ payout: the sportsbook's own chance, with its cut built in. |
-| **$10 wins $X** | Profit on a $10 bet at that price. All site results use $10 bets. |
+| **$X wins $Y** | Profit on your usual bet at that price. The amount is **My usual bet** on the ★ page ($1 to $10,000, default $10, saved on the phone). Results and track records always use $10 bets so they stay comparable. |
 | **Prop / player prop** | A bet on one player's stats (e.g. "Rome Odunze 10+ receiving yds"). NFL and NBA only. |
 | **Alt line** | A different number than the main line for the same stat (e.g. 50+ yards instead of 64.5). |
 | **ATS** | Against the spread: how often a team covered. "4–2 ATS · overs 1–5" = covered 4 of 6, games went over 1 of 6. |
