@@ -116,5 +116,5 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Shows the plan's odds (exact, each bet its own coin flip): ahead (back more than 105% of budget), about break even (95 to 105%), lose some (60 to 95%), lose most (60% or less), average back (our estimate, with a warning when it reads 97%+ because past replays say estimates like that run too high), and one bet of the full budget for comparison. Each slip is the same card as the other Parlays-tab slips (tap to open: pick cards, why, Load slip); the ⇄ Change button is off inside a plan.
 - **One slip results (all generators, Nov 3):** each result is the same slip card as the Parlays tab (tap to open: pick cards with badges, why, Load slip); all results start closed (tap to open), two per row, up to 3 kept. ⇄ Change works inside it. Moneyline, spread and over/under picks no longer repeat the team name under the title.
 
-- Bet bundle: "+ Add all N bets to my queue" button feeds the shared Bet queue.
+- Bet bundle: "+ Add all N bets to my queue" button (top of the results, always visible) feeds the shared Bet queue.
 - Bet queue: "+ Queue" on parlay cards and slip panel; yellow "Bet queue (n)" chip opens the one-by-one place list (Open in app / Placed / Remove).

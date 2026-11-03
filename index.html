@@ -2983,7 +2983,7 @@ function planHTML(){
   var box=o.short?'<div class="warn" style="margin:10px 0"><b>Can\'t fill all '+o.N+' bets.</b> '+(o.K?'Only '+o.K+' fit with different picks. ':'')+'Add more games, or change the risk (medium and high risk have more picks to choose from).<br><span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+(G.games!=="all"?'<button class="btn" data-planall="1">Use all games remaining</button>':"")+'<button class="btn flag" data-planfill="1">Fill all '+o.N+' anyway</button></span><span class="sub" style="display:block;margin-top:6px">Fill all anyway spreads your money over weaker choices: fewer picks per bet, picks repeated across bets, or single picks. It doesn\'t find better bets.</span></div>':"";
   if(o.err)return box+'<p class="warn">'+esc(o.err)+'</p>';
   var D=o.dist,pc=function(x){return x>0&&x<0.01?"under 1%":Math.round(x*100)+"%"},mp=o.mean/o.B,h='<div class="plan nb"><div class="pb">'+box;
-  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Low risk",bal:"Medium risk",long:"High risk"}[o.style]||"Medium risk")+': '+PLANWORD[o.style]+' each'+(o.filled?' <span class="sub">(filled to '+o.K+' by spreading, see below)</span>':"")+'<br><span class="sub">'+(o.n===1?'single picks, no parlay · ':o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+(o.rep?o.rep+' pick'+(o.rep>1?'s are':' is')+' in more than one bet, so those bets win or lose together · ':'')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
+  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Low risk",bal:"Medium risk",long:"High risk"}[o.style]||"Medium risk")+': '+PLANWORD[o.style]+' each'+(o.filled?' <span class="sub">(filled to '+o.K+' by spreading, see below)</span>':"")+'<br><span class="sub">'+(o.n===1?'single picks, no parlay · ':o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+(o.rep?o.rep+' pick'+(o.rep>1?'s are':' is')+' in more than one bet, so those bets win or lose together · ':'')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+bqBar(o)+
    (o.games<=2?'<p class="warn" style="margin:6px 0"><b>Heads up:</b> these bets use only '+o.games+' game'+(o.games>1?'s':'')+'. If that game goes badly (a blowout, bad weather, an injury) many bets lose together, so your real risk is higher than the odds below show. Use more games to really spread it.</p>':"")+
    '<table><tr><td>Come out ahead (back more than $'+usd(o.B*1.05)+')</td><td class="r" style="color:var(--green)">'+pc(D.ahead)+'</td></tr>'+
    '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
@@ -3001,11 +3001,10 @@ function planHTML(){
    bqHTML(o);
   return h+'</div></div>'}
 // bundle bets go to the same bet queue as everything else
-function bqHTML(o){
-  var n=o.bets.filter(function(b,i){return!(o.st&&o.st[i]===2)}).length;
-  var h='<div class="bqbar"><b>Place them one at a time</b><p class="sub" style="margin:4px 0 0">'+(o.sent?'<b>✓ Sent '+o.sent+' bet'+(o.sent>1?'s':'')+' to your bet queue.</b> Open it to place them one by one.':'An app can only hold one bet on its slip at a time, so these go into your <b>bet queue</b>. There you open each one in your app, place it, and tap Placed.')+'</p><div class="row2">'+
-    (o.sent?'':'<button class="btn flag" data-qbundle="1">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button>')+'<button class="btn'+(o.sent?' flag':'')+'" data-qopen="1">Open my bet queue</button></div></div>';
-  return h+'<div class="pgrid">'+o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("")+'</div>'}
+function bqBar(o){
+  var q=QUEUE.filter(function(x){return x.st===0}).length;
+  return'<div class="bqbar"><button class="btn flag" data-qbundle="1" style="width:100%">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button><p class="sub" style="margin:6px 0 0">'+(o.sent?'<b>✓ Added '+o.sent+' to your queue.</b> ':'')+'An app holds only one bet on its slip, so you place them one at a time from your queue: open each in your app, place it, tap Placed.</p><div class="row2"><button class="btn" data-qopen="1">Open my bet queue'+(q?' ('+q+')':'')+'</button></div></div>'}
+function bqHTML(o){return'<div class="pgrid">'+o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("")+'</div>'}
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
   var G=GENS.par,B=parseFloat($("plB_par").value),N=parseInt($("plN_par").value,10);
