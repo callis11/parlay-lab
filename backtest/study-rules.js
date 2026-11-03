@@ -20,6 +20,8 @@ function flags(r){const f=[];const ov=r.side==="over",un=r.side==="under",windy=
  if(r.rp-r.bk>=.12)f.push("-hist-too-high");
  if(ov&&/Rece/.test(r.mkt)&&r.tgt3>=.2)f.push("-star-over");
  if(r.missed)f.push("-missed");
+ if(r.lmv!=null&&r.lmv>0)f.push("+line-toward");if(r.lmv!=null&&r.lmv<0)f.push("-line-against");
+ if(r.pmv!=null&&r.pmv<=-3)f.push("-price-against");
  return f;}
 for(const r of S){r.f=flags(r);r.sc=r.f.filter(x=>x[0]==="+").length-r.f.filter(x=>x[0]==="-").length;}
 const row=(label,L)=>{if(L.length<100)return;const per=[2023,2024,2025].map(s=>{const X=L.filter(r=>r.s===s);return X.length<60?"  ·  ":((100*mean(X.map(r=>r.won-r.bk)))>=0?"+":"")+(100*mean(X.map(r=>r.won-r.bk))).toFixed(1);});

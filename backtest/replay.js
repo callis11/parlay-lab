@@ -64,8 +64,18 @@ const imp = a => 1 / dec(a);
     if (STUDY) { const prev2 = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${season - 2}.csv`); long = {};
       [].concat(prev2, statsPrev, statsNow).forEach(r => { if (r.season_type && r.season_type !== "REG") return; (long[norm(r.player_display_name)] = long[norm(r.player_display_name)] || []).push(r); }); }
     // STUDY=2 extras: snap counts (PFR via nflverse), team pace / pass rate, and every player's weekly rows in order
-    let SN = null, TS = null, PH = null, REST = null;
+    let SN = null, TS = null, PH = null, REST = null, OPENX = null;
     if (STUDY2) {
+      // Opening prop prices (backtest/raw/open-<season>, fetch.js OPEN mode): per event, player|label -> main line + prices (FanDuel, else DraftKings)
+      const op = load("open-" + season); OPENX = {};
+      const KEYS = { player_pass_yds: "Passing yards", player_rush_yds: "Rushing yards", player_reception_yds: "Receiving yards", player_anytime_td: "Anytime TD", player_receptions: "Receptions", player_pass_tds: "Passing TDs", player_rush_reception_yds: "Rush + rec yards" };
+      if (op) for (const id in op) { const ev = op[id]; if (ev.error) continue; const X = OPENX[id] = {};
+        for (const bk of ["fanduel", "draftkings", "betmgm", "betrivers"]) { const b = (ev.bookmakers || []).find(x => x.key === bk); if (!b) continue;
+          for (const m of b.markets) { const lab = KEYS[m.key]; if (!lab) continue;
+            for (const o of m.outcomes) { const k = norm(o.description || "") + "|" + lab; if (X[k]) continue; // first book wins
+              if (m.key === "player_anytime_td") { if (o.name === "Yes") X[k] = { bk, line: 0.5, a: o.price }; continue; }
+              if (o.name !== "Over") continue; const un = m.outcomes.find(u => u.name === "Under" && u.description === o.description && u.point === o.point);
+              X[k] = { bk, line: o.point, a: o.price, u: un ? un.price : undefined }; } } } }
       const [sn1, sn0, ts1, ts0] = await Promise.all([
         getCSV(`${NFLVERSE}/snap_counts/snap_counts_${season}.csv`), getCSV(`${NFLVERSE}/snap_counts/snap_counts_${season - 1}.csv`),
         getCSV(`${NFLVERSE}/stats_team/stats_team_week_${season}.csv`), getCSV(`${NFLVERSE}/stats_team/stats_team_week_${season - 1}.csv`)]);
@@ -177,6 +187,13 @@ const imp = a => 1 / dec(a);
               const tsp = isHome ? g.legs["sp-h"].pt : g.legs["sp-a"].pt;
               const pace = (tm, k) => mean(before(TS && TS[tm], +wk, "s").slice(-3).map(x => x[k]).filter(x => x != null));
               const over = sd.side === "over";
+              // market move since the open, in the pick's favor: line move (as % of the line) and price move (points of implied chance)
+              const ox = OPENX && OPENX[p.ev] && OPENX[p.ev][norm(p.player) + "|" + p.label], main = (!p.td && r.under !== undefined) || p.td;
+              let lmv = null, pmv = null, oln = null;
+              if (ox) { oln = ox.line; const dir = over || p.td ? 1 : -1;
+                const mr = p.rungs.find(x => x.under !== undefined), mc = mr ? mr.line : null; // the closing main line for this player + stat
+                if (!p.td && mc !== null) lmv = +((mc - ox.line) / Math.max(1, ox.line) * dir).toFixed(4); // + = the main number moved toward this side
+                if (main && (p.td || r.line === ox.line)) { const ca = over || p.td ? r.a : r.under, oa = over || p.td ? ox.a : ox.u; if (ca !== undefined && oa !== undefined) pmv = +((imp(ca) - imp(oa)) * 100).toFixed(2); } }
               const rate = arr => arr.length ? arr.filter(v => p.td ? v > 0 : over ? v > r.line : v < r.line).length / arr.length : null;
               ROWS.push({ k: "p", s: season, wk: +wk, player: p.player, team: p.team, ev: p.ev, mkt: p.label, td: p.td ? 1 : 0, side: p.td ? "td" : sd.side, line: r.line, a: sd.a,
                 nv: (!p.td && r.under !== undefined) ? +(over ? nvp(r.a, r.under) : nvp(r.under, r.a)).toFixed(4) : null,
@@ -188,7 +205,8 @@ const imp = a => 1 / dec(a);
                 oppF: p.oppF, inj: p.injury ? 1 : 0, injT: p.injury || "", missed: p.missedLast ? 1 : 0, healthy: p.healthy ? 1 : 0,
                 home: isHome ? 1 : 0, tsp, tot: g.legs["ov"].pt, rest: REST[p.team + "|" + wk], orest: REST[oppT + "|" + wk],
                 wind: W.wind == null ? null : W.wind, dome: W.roof === "dome" ? 1 : 0, temp: W.temp == null ? null : W.temp,
-                pace: pace(p.team, "plays"), opace: pace(oppT, "plays"), pass: pace(p.team, "pass"), opass: pace(oppT, "pass") });
+                pace: pace(p.team, "plays"), opace: pace(oppT, "plays"), pass: pace(p.team, "pass"), opass: pace(oppT, "pass"),
+                main: main ? 1 : 0, oln, lmv, pmv, obk: ox ? ox.bk : null });
             }
             const cat = Engine.category(leg);
             add(R.legs.byCat, cat, won, sd.a, sd.p); add(R.legs.byMarket, cat.split("|")[0], won, sd.a, sd.p); add(R.legs.byP, pBucket(sd.p), won, sd.a, sd.p);

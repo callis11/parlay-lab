@@ -130,6 +130,13 @@
     if ((ctx.week && ctx.week <= 4) || (p.gp !== undefined && p.gp !== null && p.gp <= 2)) S.push({ pts: -1, t: "Early season: fewer games to go on, picks run a little worse" });
     if (r && r.p !== undefined && ctx.imp !== undefined && (over ? r.p : 1 - r.p) - ctx.imp >= 0.12) S.push({ pts: -1, t: "His record says much more than the book does; when they disagree this much, the book is usually right" });
     if (p.missedLast) S.push({ pts: -1.5, t: "Missed his team's last game" });
+    // Line movement since the opening number (build-data keeps the first main line seen each week)
+    var O = p.open; if (O && ctx.mainLine !== undefined && ctx.mainLine !== null && !p.td) {
+      var dir = over ? 1 : -1, mv = (ctx.mainLine - O.line) * dir;
+      if (mv > 0) S.push({ pts: 1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans this way" });
+      else if (mv < 0) S.push({ pts: -1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans the other way" });
+      else if (r && r.line === O.line && ctx.closeA !== undefined && (over ? O.a : O.u) !== undefined) { var d = (1 / dec(ctx.closeA) - 1 / dec(over ? O.a : O.u)) * 100;
+        if (d <= -3) S.push({ pts: -1.5, t: "Price drifted " + Math.abs(d).toFixed(0) + " pts against this side since it opened (" + amFromDec(dec(over ? O.a : O.u)) + " \u2192 " + amFromDec(dec(ctx.closeA)) + ")" }); } }
     return S;
   }
   function edgeTotal(S) { var x = 0; S.forEach(function (e) { x += e.pts; }); return Math.max(-EDGE_CAP, Math.min(EDGE_CAP, x)); }
@@ -206,8 +213,9 @@
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
       var healthy = !p.injury && !p.missedLast, flag = healthy ? undefined : 1;
       var gm = (data && data.games && data.games[p.event]) || {}, Wx = gm.weather || {}, isHome = p.team && gm.home ? gm.home === p.team : undefined;
+      var mainR = (p.ladder || []).filter(function (x) { return x.under && x.under[book] !== undefined; })[0];
       var ectx = opts.edges ? { wind: Wx.wind === undefined || Wx.wind === null ? undefined : +Wx.wind, dome: Wx.roof === "dome", home: isHome, tsp: isHome === undefined ? null : g.legs[isHome ? "sp-h" : "sp-a"].pt,
-        rest: gm.rest && p.team ? gm.rest[p.team] : null, week: gm.week } : null;
+        rest: gm.rest && p.team ? gm.rest[p.team] : null, week: gm.week, mainLine: mainR ? mainR.line : null } : null;
       var rungs = p.ladder.filter(function (r) { return r.prices[book] !== undefined; }).map(function (r) {
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
@@ -215,10 +223,10 @@
         var ua = r.under ? r.under[book] : undefined, pu, pu0;
         var sg = null, sgU = null, pc, pcU;
         if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib);
-          if (ectx) { sgU = edgeSigns(p, "under", r, Object.assign({ imp: impU }, ectx)); pcU = pu; pu = Math.max(0.02, Math.min(0.97, pu + edgeTotal(sgU) / 100)); } }
+          if (ectx) { sgU = edgeSigns(p, "under", r, Object.assign({ imp: impU, closeA: ua }, ectx)); pcU = pu; pu = Math.max(0.02, Math.min(0.97, pu + edgeTotal(sgU) / 100)); } }
         if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
           pa = calibrate(pa, category({ kind: "p", label: p.label, a: a, flag: flag }), opts.calib);
-          if (ectx) { sg = edgeSigns(p, "over", r, Object.assign({ imp: imp }, ectx)); pc = pa; pa = Math.max(0.02, Math.min(0.97, pa + edgeTotal(sg) / 100)); }
+          if (ectx) { sg = edgeSigns(p, "over", r, Object.assign({ imp: imp, closeA: a }, ectx)); pc = pa; pa = Math.max(0.02, Math.min(0.97, pa + edgeTotal(sg) / 100)); }
           ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });

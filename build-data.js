@@ -252,6 +252,12 @@ async function buildData(odds, ctx) {
       const injury = inj[norm(L.player) + "|" + G.week] || "";
       const last = hist[hist.length - 1];
       const missedLast = !!(team && teamLast[team] && (!last || +last.season !== SEASON || last.game_id !== teamLast[team].gid));
+      // Opening number: the first main line (and FanDuel price) we saw for this player + stat this week, kept in history.json
+      let open = null; { const mainL = L.td ? 0.5 : Object.keys(L.rows).map(Number).find(x => L.un[x] !== undefined);
+        if (mainL !== undefined && L.rows[mainL]) { const H = hist0[ev.id] = hist0[ev.id] || { t: ev.commence_time }; H.props = H.props || {}; const k = L.player + "|" + L.label;
+          const bk = L.rows[mainL].fanduel !== undefined ? "fanduel" : Object.keys(L.rows[mainL])[0];
+          if (!H.props[k] && bk) H.props[k] = { line: mainL, a: L.rows[mainL][bk], u: L.un[mainL] ? L.un[mainL][bk] : undefined, bk, at: odds.fetchedAt };
+          open = H.props[k] || null; } }
       const ladder = Object.keys(L.rows).map(Number).sort((a, b) => a - b).map(line => {
         const out = { line, prices: L.rows[line] };
         if (L.un[line]) out.under = L.un[line];
@@ -267,7 +273,7 @@ async function buildData(odds, ctx) {
       const curN = (byPlayer[norm(L.player)] || []).filter(r => +r.season === SEASON).length;
       const tg3 = hist.slice(-3).map(r => +r.target_share).filter(x => !isNaN(x)), tgt3 = tg3.length ? +(tg3.reduce((a, b) => a + b, 0) / tg3.length).toFixed(3) : null;
       props.push({
-        event: ev.id, player: L.player, team, opp, oppF, windF, injury, missedLast, label: L.label, td: L.td, ladder, gp: curN, tgt3, pass3: teamPass[team] || null,
+        event: ev.id, player: L.player, team, opp, oppF, windF, injury, missedLast, label: L.label, td: L.td, ladder, gp: curN, tgt3, pass3: teamPass[team] || null, open,
         recent: raw.slice(-5), avg: raw.length ? +(raw.reduce((a, b) => a + b, 0) / raw.length).toFixed(1) : null
       });
     }

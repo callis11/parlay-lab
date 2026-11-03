@@ -103,6 +103,17 @@ table("Week of season", SITE, r => r.wk, [["1-4", r => r.wk <= 4], ["5-9", r => 
 table("Market and side", SITE, null, [...new Set(SITE.map(r => r.mkt + " " + r.side))].sort().map(k => [k, r => r.mkt + " " + r.side === k]));
 table("Price band", SITE, null, [["-700..-300", r => r.a <= -300], ["-299..-150", r => r.a > -300 && r.a <= -150], ["-149..+129", r => r.a > -150 && r.a < 130], ["+130..+250", r => r.a >= 130]]);
 
+// ---------- 5b. Line movement since the open (open-<season> snapshots) ----------
+const MV = SITE.filter(r => r.lmv != null), PMV = SITE.filter(r => r.pmv != null);
+console.log(`Open-price coverage: ${MV.length} site-type picks have an opening line (${PMV.length} main lines with the same number at open and close).\n`);
+table("Line moved toward this pick since the open (% of the line; + = market agrees)", MV.filter(r => !r.td), r => r.lmv, [["moved against 5%+", r => r.lmv <= -0.05], ["against <5%", r => r.lmv < 0 && r.lmv > -0.05], ["no move", r => r.lmv === 0], ["toward <5%", r => r.lmv > 0 && r.lmv < 0.05], ["toward 5%+", r => r.lmv >= 0.05]]);
+table("Overs: line moved since open", MV.filter(r => !r.td && r.side === "over"), r => r.lmv, [["against", r => r.lmv < 0], ["no move", r => r.lmv === 0], ["toward", r => r.lmv > 0]]);
+table("Unders: line moved since open", MV.filter(r => r.side === "under"), r => r.lmv, [["against", r => r.lmv < 0], ["no move", r => r.lmv === 0], ["toward", r => r.lmv > 0]]);
+table("Price moved toward this pick since the open (same line; points of chance)", PMV, r => r.pmv, [["against 3+", r => r.pmv <= -3], ["against <3", r => r.pmv < 0 && r.pmv > -3], ["same", r => r.pmv === 0], ["toward <3", r => r.pmv > 0 && r.pmv < 3], ["toward 3+", r => r.pmv >= 3]]);
+table("Anytime TD: price moved since open", PMV.filter(r => r.td), r => r.pmv, [["against", r => r.pmv < 0], ["same", r => r.pmv === 0], ["toward", r => r.pmv > 0]]);
+table("Alt-line picks: the player's main line moved (toward = this side)", MV.filter(r => !r.main), r => r.lmv, [["against", r => r.lmv < 0], ["no move", r => r.lmv === 0], ["toward", r => r.lmv > 0]]);
+table("Safe range (book 65-90%): line moved since open", MV.filter(r => r.bk >= 0.65 && r.bk < 0.9), r => r.lmv, [["against", r => r.lmv < 0], ["no move", r => r.lmv === 0], ["toward", r => r.lmv > 0]]);
+
 // ---------- 6. Game lines ----------
 const SP = G.filter(r => /^sp/.test(r.t)), TOT = G.filter(r => r.t === "ov" || r.t === "un"), ML = G.filter(r => /^ml/.test(r.t));
 table("Spreads: home or away side", SP, null, [["away", r => r.t === "sp-a"], ["home", r => r.t === "sp-h"]]);
@@ -129,7 +140,8 @@ const FEATS = {
   snap3: r => r.sn3, snapTrend: r => r.snS != null && r.sn3 != null ? r.sn3 - r.snS : null,
   tgtTrend: r => /Rece/.test(r.mkt) && r.tgtS != null ? r.tgt3 - r.tgtS : null,
   oppF: r => r.oppF, opace: r => r.opace, pace: r => r.pace, pass: r => r.pass,
-  tsp: r => r.tsp, tot: r => r.tot, wind: r => r.dome ? 0 : (r.wind || 0), inj: r => r.inj, home: r => r.home, gp: r => r.gp
+  tsp: r => r.tsp, tot: r => r.tot, wind: r => r.dome ? 0 : (r.wind || 0), inj: r => r.inj, home: r => r.home, gp: r => r.gp,
+  lmv: r => r.lmv, pmv: r => r.pmv
 };
 function learn(train, feats, K = 5, SHRINK = 400) {
   const M = {};
