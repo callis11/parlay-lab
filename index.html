@@ -2943,6 +2943,7 @@ function planHTML(){
    '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
    '<tr><td>Lose most of it (back $'+usd(o.B*0.6)+' or less)</td><td class="r" style="color:var(--red)">'+pc(D.most)+'</td></tr>'+
    '<tr><td>Average back (our estimate)</td><td class="r">$'+usd(o.mean)+' of $'+usd(o.B)+'</td></tr></table>'+
+   '<p class="gnote" style="margin:6px 0"><b>If you made this exact plan 100 times:</b> about '+Math.round(D.ahead*100)+' would end ahead, '+Math.round(D.even*100)+' near even, '+Math.round(D.some*100)+' lose some, and '+Math.round(D.most*100)+' lose most of it. Averaged over all 100, you would get back about $'+usd(o.mean)+' of every $'+usd(o.B)+'.</p>'+
    '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' bet at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
    (function(){var avgP=o.one.p,avgD=o.one.d,need=Math.ceil(o.K/avgD-1e-9),back=D.ahead+D.even;
      return'<details class="whyb2" style="margin:8px 0"><summary class="lnk" style="cursor:pointer">ⓘ How does this work?</summary><div class="gnote" style="margin:6px 0">'+
