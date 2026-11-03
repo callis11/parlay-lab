@@ -2926,6 +2926,12 @@ function qOpen(){$("panel").classList.add("open");$("sum").setAttribute("aria-ex
 // the queue lives in the slip panel at the bottom: swipe left/right through the bets
 function qWT(sel,stake,d){return'<div class="qwt" data-sel="'+sel+'" data-d="'+d+'"><label>Wager $<input inputmode="decimal" data-wg="1" value="'+(Math.round(stake*100)/100)+'" aria-label="Wager in dollars"></label><label>To win $<input inputmode="decimal" data-tw="1" value="'+(Math.round(stake*(d-1)*100)/100)+'" aria-label="Amount to win in dollars"></label></div>'}
 function qNote(stake){return'<div class="sub qnote" style="margin:0">Open your app, then type <b>$'+usd(stake)+'</b> there. Apps don\'t take the amount from a link.</div>'}
+var QPO=false;
+function qPrice(legs,d,ch,stake,sg){var opts=$("boost").innerHTML.replace(/ selected(="[^"]*")?/g,"").replace('value="'+BOOST+'"','value="'+BOOST+'" selected'),sh="",bo="";
+  try{if(!sg)sh=shopHTML(legs,stake)}catch(e){}try{bo=boostHTML(ch,d,stake)}catch(e){}
+  return'<details class="qpr"'+(QPO?" open":"")+' style="margin:0;border:0;padding:0"><summary class="whyb hwl" style="padding:4px 0">ⓘ Best prices &amp; boost'+(BOOST?" ("+BOOST+"%)":"")+'</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px"><label class="sub" style="margin:0;display:flex;align-items:center;gap:8px">Your profit boost <select data-cboost="1" class="sel" style="font:inherit;font-size:16px">'+opts+'</select></label>'+sh+bo+(sg?'<p class="sub" style="margin:0">Same-game picks: your app sets its own price, so compare there.</p>':'')+'</div></details>'}
+document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qpr"))QPO=t.open},true);
+document.addEventListener("change",function(e){var t=e.target;if(t.dataset&&t.dataset.cboost){$("boost").value=t.value;$("boost").dispatchEvent(new Event("change"))}});
 function qAmt(sel){return'<div class="qamt" role="group" aria-label="Bet amount">'+[1,5,10,15,20,50,100].map(function(v){return'<button data-qamt="'+v+'" data-i="'+sel+'" aria-pressed="'+(Math.abs(AMT[sel]-v)<1e-9)+'">$'+v+'</button>'}).join("")+'</div>'}
 var AMT={};
 function qLinks(legs,stake,attr){var apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),b=[];
@@ -2951,7 +2957,7 @@ function qPanel(barOnly){
       Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'}).join("")+
       '<div class="qbig"><b>'+(sg?"~":"")+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins '+(sg?"~":"")+'$'+usd(stake*(d-1))+'</span></div>'+
       (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b>'+(sg?' · same-game: your app sets its own price':'')+'</div>':'')+
-      qWT("s",stake,d)+qAmt("s")+qNote(stake)+(legs.length>1?'<button class="qsing" data-qsingles="s">+ Also bet each pick alone ('+legs.length+' singles)</button>':'')+
+      qWT("s",stake,d)+qAmt("s")+qNote(stake)+qPrice(legs,d,ch,stake,sg)+(legs.length>1?'<button class="qsing" data-qsingles="s">+ Also bet each pick alone ('+legs.length+' singles)</button>':'')+
       (started?'<p class="warn" style="margin:0">A game in this slip has started. Remove that pick.</p>':qLinks(legs,stake,'data-sendbook="{bk}"'))+
       '<div class="bqb"><button class="btn flag" data-qa="ps"'+(started?" disabled":"")+'>✓ Bet added</button></div></div>')}
   left.forEach(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),d=1,stake=q.stake||USUAL,ch=null;
@@ -2960,7 +2966,7 @@ function qPanel(barOnly){
       q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'}).join("")+
       '<div class="qbig"><b>'+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins $'+usd(stake*(d-1))+'</span></div>'+
       (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b></div>':'')+
-      qWT("q"+i,stake,d)+qAmt("q"+i)+qNote(stake)+(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Also bet each pick alone ('+q.legs.length+' singles)</button>':'')+
+      qWT("q"+i,stake,d)+qAmt("q"+i)+qNote(stake)+qPrice(q.legs,d,ch,stake,(function(){var e={},g=false;q.legs.forEach(function(l){if(e[l.ev])g=true;e[l.ev]=1});return g})())+(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Also bet each pick alone ('+q.legs.length+' singles)</button>':'')+
       (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Delete it.</p>':qLinks(q.legs,stake,'data-qbook="{bk}" data-i="'+i+'"'))+
       '<div class="bqb"><button class="btn flag" data-qa="p" data-i="'+i+'"'+(started?" disabled":"")+'>✓ Bet added</button></div></div>')});
   if(cards.length)h+='<div class="qtrack">'+cards.join("")+'</div>';

@@ -307,3 +307,4 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Load slip** on any parlay no longer replaces the slip: it adds the bet as a card (`qAdd`) and opens the bottom panel. The "+ Queue" buttons are gone. Tapping picks still builds the first card "Your slip · building".
 - "Did you place this bet? > Yes: save it" now saves straight to My bets (`betSave`), no receipt box.
 - Empty state text lives in `qPanel()`.
+- Boost + shop-the-prices are back on every bet card as a collapsed yellow **ⓘ Best prices & boost** (`qPrice()`): a Boost % dropdown (shared with the hidden `#boost`, saved in localStorage `boost`), `shopHTML` and `boostHTML`. Same-game cards skip shop prices (your app sets its own price). Open/closed state is remembered in `QPO` across re-renders.
