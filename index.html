@@ -263,6 +263,7 @@ html:not(.nba) header:after{content:"";position:absolute;z-index:-1;left:50%;wid
 .hbar{height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px;width:90px;margin-left:auto}
 .hbar i{display:block;height:100%}
 .rec.past{border-top:0;padding-top:0;margin-top:2px;opacity:.85}
+.hbrow{display:block;margin-bottom:4px}.hbrow:empty{display:none}
 .hb{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 5px;margin-right:5px;vertical-align:1px}
 .hb.pr{background:var(--green);color:var(--green-ink)}.hb.wk{background:var(--red);color:#fff}
 .hb.gr{background:#36D399;color:#06281A}.hb.so{background:#5B9BFF;color:#06142E}.hb.rf{background:transparent;color:#FF6B5E;box-shadow:inset 0 0 0 1.5px #FF6B5E}
@@ -1135,7 +1136,7 @@ function renderGenOut(cx){
     var key="gen"+cx+i;PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return+new Date(l.time)>now}).length?LL:[]);
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+pctColor(it.ch)+'" title="'+pctWord(it.ch)+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+(it.ch>=0.01?'<div class="sub" style="margin:-2px 0 4px;font-size:12px">'+pctWord(it.ch)+' · '+verdictLine(it.ch,it.d)+'</div>':"")+
-      '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
+      '<div class="mt"><span class="hbrow">'+flagBadges(FF)+'</span>'+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
       it.legs.map(function(x,j){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
           (started?"":'<button class="swb" data-swap="gen" data-cx="'+cx+'" data-i="'+i+'" data-j="'+j+'">⇄ Change</button>')+'<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
@@ -1370,7 +1371,7 @@ function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><d
 function slipCard(x,key){
   PRE[key]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+  return'<details class="pc"'+(PST.exp?" open":"")+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'<small>to hit'+(x.raw!==null&&Math.round(x.raw*100)!==Math.round(x.ch*100)?" · adj. from "+pct(x.raw):"")+'</small></div><div class="pw">'+pctWord(x.ch)+'<br>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
