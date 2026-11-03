@@ -46,6 +46,7 @@ Roadmap (college build-out, European soccer, budget by month, session sizing): h
 Per leg: player's last-10 hit rate (normal fit + empirical), adjusted for opponent defense and wind, blended with the book's no-vig price (weight n/(n+15)), then calibrated by market and price bucket from graded legs (live + 154K backtest legs at half weight). Parlay % = product of legs × a slip-type correction from three seasons of replays (shrunk). Backtest takeaways: safe legs are honest (70–90% estimates hit within 1–2 pts); "value" picks lost badly (flagged Weak history and kept out of top picks); unders beat overs; multi-leg slips hit 4–8 pts below their legs.
 
 ## Testing
+**Before every push:** check index.html's inline scripts parse (`node -e` loop with `new Function(script)` over every `<script>` block). Nov 2: an apostrophe ("we'll") inside a single-quoted string broke the whole page for ~15 min (tabs and sports dead).
 Serve with `python3 -m http.server 8765` in the repo, test with Playwright (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`), set `localStorage age21=yes, tour1=seen, setup1=done` before loading. Node network needs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt`. ESPN and Open-Meteo are blocked from the container (they work on GitHub Actions); nflverse (GitHub releases) works.
 
 ## Built Oct 30, 2026 (late): no open ideas left from the old list
