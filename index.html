@@ -699,6 +699,7 @@ body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body
       <p class="sub hlp" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
     <button class="btn" id="slipClose" style="width:100%;margin:10px 0 4px">✕ Close slip</button>
   </div>
+  <button class="qchip" id="qChip" hidden></button>
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
 
@@ -2514,7 +2515,7 @@ function renderPresetRow(el,list,prefix){
     var ch=Engine.chance(p.l),shop=(bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"")+(BOOST&&!sg?(function(){var db=boostDec(d),v=ch!=null?priceVerdict(ch,db):null;return'<span class="d">With your '+BOOST+'% boost: '+usualWins(db)+(v&&v.k==="good"?' · <b class="pos">in your favor</b>':v&&v.k==="fair"?' · about fair':'')+'</span><br>'})():"");
     return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">'+usualWins(d,sg?"about ":"")+'</span></span><span style="display:flex;gap:6px"><button class="btn" data-qadd="'+prefix+i+'" data-qn="'+escA(slipName(p.n))+'">+ Queue</button><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></span></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
-function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false")}
+function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");if(typeof qPanel==="function")qPanel()}
 // The slip is kept on this phone (per sport) so it survives a reload or iOS closing the app. On load each pick is
 // rebuilt from today's prices; picks whose game has started (or that are no longer offered) are left out.
 var SLIP_RESTORED=false;
@@ -2915,7 +2916,7 @@ function qAdd(legs,name,stake,quiet){
   legs=legs.map(function(l){return Object.assign({},l)});var sg=qSig(legs);
   if(QUEUE.some(function(q){return q.st===0&&qSig(q.legs)===sg})){if(!quiet)toast("That bet is already in your queue.",true);return false}
   QUEUE.push({n:name||"Bet",legs:legs,st:0,at:Date.now(),stake:stake||0});qSave();qChip();if(quiet)return true;
-  toast("Added to your bet queue ("+QUEUE.filter(function(q){return q.st===0}).length+"). Tap the bar at the bottom to place them.");return true}
+  toast("Added to your bet queue ("+QUEUE.filter(function(q){return q.st===0}).length+"). Tap Bet queue to place them.");return true}
 function qChip(){renderSlip()}
 var QLAST=-1;
 function qOpen(){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();setTimeout(function(){var e=$("qPanel");if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest"});$("panel").scrollTop=0},0)}
@@ -2924,6 +2925,7 @@ function qPanel(){
   var el=$("qPanel");if(!el)return;
   var left=[],placed=QUEUE.filter(function(q){return q.st===1}).length,apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK}));
   QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});
+  var chip=$("qChip");if(chip){chip.hidden=!left.length||$("panel").classList.contains("open");chip.textContent="Bet queue ("+left.length+")"}
   // bottom bar text
   var nSlip=Object.keys(SLIP).length;
   if(left.length){if(!nSlip){$("legs").innerHTML='<p class="sub" style="margin:0 0 6px">Your slip is empty. Tap any pick to build another bet, or place your queued bets above.</p>';$("sumL").textContent=left.length+" bet"+(left.length>1?"s":"")+" in your queue"+($("panel").classList.contains("open")?" · tap to close":" · tap to place them");$("sumR").textContent=""}
@@ -3044,7 +3046,7 @@ function planGo(){
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
   try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
   genUI("par");setTimeout(function(){var go=$("genGo_par");if(go&&go.scrollIntoView)go.scrollIntoView({block:"start"})},0);if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
-usualUI();$("stake").value=String(USUAL);renderSlip();
+usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);$("sum").addEventListener("click",function(){setTimeout(qPanel,0)});renderSlip();
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
