@@ -55,7 +55,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 College (NCAAF, NCAAB) has no **Players** tab: game lines only (ML, spread, total; NCAAB also first half). NFL and NBA have all five tabs.
 
 ### Parlays
-- **⚡ ParlayLabs Generator** (tap "Open"): Picks 2 3 4 5 or **6+** (up to 15) · Style **Safe / Balanced / Long shot** · Bets **Both / Players / Game lines** (not in college) · Game (All games, Pick several games…, or one game). **Generate a parlay** builds one and explains every pick; **Generate another** gives the next best. If the style can't build, a yellow ↪ note says what it switched to and why.
+- **⚡ ParlayLabs Generator** (tap "Open"): Picks 2 3 4 5 or **6+** (up to 15) · Style **Safe / Balanced / Long shot** · Bets **Both / Players / Game lines** (not in college) · Game (All games, Pick several games…, or one game). **Generate a parlay** builds one and explains every pick; **Generate another** gives the next best. Each pick has **⇄ Change** (same as on the slip); the card then says you changed it and shows your version's % and payout. If the style can't build, a yellow ↪ note says what it switched to and why.
 - **Slate chips:** Best of Week, each kickoff window (e.g. Sun 1 PM, Sun 4 PM, Sun Night, Mon Night; college Sat Noon / 3:30 / Night; basketball each tip-off half hour), and your ★ team's game. Started games are never in any parlay.
 - **Top 3 / Show all · Expand all · Any picks / 2–3 / 4+ · All types / Player props / Game lines / Mixed.**
 - **Card:** tags, style · N picks · props/lines, big % to hit, "adj. from", name (e.g. Best 2-Pick, Best Shot at +300, TDs + Spreads), pick circles, price, "$10 wins $X", this season / past seasons record for this type, **ⓘ How we got this %** (flips to the step-by-step math), **Load slip**.
@@ -82,7 +82,7 @@ Filters: kickoff window chips, division/conference, team (★ team's game first)
 ## Slip (bar at the bottom, every tab)
 - Closed: "Your slip is empty · tap to see how it works", or "2 picks · $10 wins $14.66 · tap to view" with the parlay price (e.g. +147).
 - Empty and open: "New to parlays?" explainer.
-- With picks: each pick with price and "$10 wins $X alone", Remove, per-app link; **How to place it** (the site never takes bets or money); **Open in FanDuel / DraftKings…** (opens the app with the same picks); our % vs the app's %; payout on your stake; warnings (every pick must win; same-game picks priced differently by the app); Stake, **Clear slip**, **I placed this bet** (📋 Paste receipt / 📷 Pick receipt), **Save to My bets**, **✕ Close slip**.
+- With picks: each pick with price and "$10 wins $X alone", **⇄ Change** (swap to another line for the same player: easier/harder number, the under, another stat; or another bet on the same game: ML, spread, over/under; shows each option's % and the parlay's new % and price), Remove, per-app link; **How to place it** (the site never takes bets or money); **Open in FanDuel / DraftKings…** (opens the app with the same picks); our % vs the app's %; payout on your stake; warnings (every pick must win; same-game picks priced differently by the app); Stake, **Clear slip**, **I placed this bet** (📋 Paste receipt / 📷 Pick receipt), **Save to My bets**, **✕ Close slip**.
 
 ## Differences between sports (intended)
 - College: no Players tab, no Bets (Both/Players/Game lines) control, no TDs filter; AP ranks shown (#10 Alabama); conference filter instead of division.

@@ -383,6 +383,16 @@ header{position:relative}
 .helpq.info{display:grid;place-items:center}.helpq{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--flag);font:800 18px/1 "Barlow",sans-serif;cursor:pointer;z-index:2}
 .tour{position:fixed;inset:0;z-index:60;background:rgba(3,10,6,.82);display:flex;align-items:center;justify-content:center;padding:16px}
 .tour[hidden]{display:none}
+.swb{font:inherit;font-size:12px;font-weight:700;color:var(--flag)!important;background:none;border:1px solid color-mix(in srgb,var(--flag) 50%,var(--line));border-radius:999px;padding:4px 10px!important;cursor:pointer;white-space:nowrap}
+.gleg .swb{float:right;margin:0 0 4px 8px}
+.leg button.swb{font-size:12px;font-weight:700;margin-top:5px;padding:3px 10px}
+.swh{margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.swr{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:0;border-top:1px solid var(--line);padding:9px 2px;cursor:pointer}
+.swr b{font-size:14px;display:block}.swr small{color:var(--muted);font-size:12px}
+.swr .swp{font-weight:800;font-size:16px;min-width:40px;text-align:right}
+.swr .swq{font-size:12px;text-align:right;min-width:74px;color:var(--muted)}.swr .swq b{font-size:14px;display:inline}
+.swr.now{background:color-mix(in srgb,var(--flag) 12%,transparent);cursor:default}
+.swr[disabled]{opacity:.45;cursor:default}.swr.now[disabled]{opacity:1}
 .tbox{width:100%;max-width:420px;max-height:calc(100dvh - 32px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:14px;padding:20px 18px 14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tslide{display:none}.tslide.on{display:block}
 .ticon{font-size:34px;line-height:1}
@@ -444,7 +454,7 @@ select,input,textarea{font-size:max(16px,1em)}
 #refreshBtn{font-size:20px}
 #refreshBtn.spin{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .toast.long{border-radius:14px;width:min(92vw,420px);font-size:14px;line-height:1.35;text-align:center}
 .btn.done{background:var(--green);color:var(--green-ink)}
 .panel.open{display:block}
@@ -484,6 +494,7 @@ select,input,textarea{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
+<div class="tour" id="swapBox" hidden role="dialog" aria-modal="true" aria-label="Change a pick"><div class="tbox" id="swapIn"></div></div>
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
   <div class="ticon">★</div><h2 class="fh" id="favH">My teams</h2>
   <p class="fsub" id="favSub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.</p>
@@ -1081,6 +1092,17 @@ function genPick(pool,n,avoid,cx){
 // How often slips with this many legs really hit vs what they claimed (past seasons); falls back to 0.9
 function genFactor(n){var w=0,e=0;if(BTR&&BTR.slips)for(var k in BTR.slips){var x=BTR.slips[k];if(Math.round(x.legs/x.n)===n){w+=x.w;e+=x.exp}}return e>20?Math.max(0.6,Math.min(1.1,(w+30*0.9)/(e+30))):0.9}
 function legWhy(x){return storyLine(legStory(x.leg))}
+// Price, chance and the explainer note for a generated parlay (used when it's built and again after ⇄ Change)
+function genNums(LL){
+  var n=LL.length,d=1,sg=false,evs={};LL.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
+  var C=slipChance(LL,""),raw=C.raw,ch=C.ch;
+  var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=LL.reduce(function(a,l){return a+l.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
+  return{d:d,ch:ch,raw:raw,sg:sg,key:LL.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line||"")}).sort().join(),
+    note:(b&&b.n?"In past seasons, picks we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" picks). ":"")+
+      (C.cf.pairs.length?"Same-game picks here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
+      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for "+(C.cf.pairs.length?"same-game pairs and ":"")+"how "+n+"-pick slips really hit. ":"")+
+      (n>=6?"Big parlays are long shots: every pick has to hit, so even likely picks multiply down fast. Missing by one or two picks is common. ":"")+
+      (sg?"Some picks are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every pick is from a different game.")}}
 function genRun(cx){
   cx=cx||"par";var G=GENS[cx],P=genPool(cx),n=G.legs,last=genSaved(cx);
   // one game with only game lines can make at most a side + the total
@@ -1101,16 +1123,7 @@ function genRun(cx){
     auto=st0.name+" couldn't make "+n+" picks here: "+(np<n?"only "+np+" pick"+(np===1?" is":"s are")+" "+Math.round(st0.lo*100)+"%+ to hit at "+st0.name+" prices"+(hasP?"":" (spreads and over/unders are near 50%)"):"the "+np+" picks that fit "+st0.name+" don't combine into "+n+" (one bet per player, one side and one total per game, and the payout has to stay in "+st0.name+"'s range)")+". So this one is "+
       (useSt!==G.style?STYLE[useSt].name:"")+(useSt!==G.style&&useN!==n?", ":"")+(useN!==n?useN+" legs":"")+".";
     n=useN}
-  var d=1,sg=false,evs={};got.legs.forEach(function(x){d*=dec(x.leg.a);if(evs[x.ev])sg=true;evs[x.ev]=1});
-  var C=slipChance(got.legs.map(function(x){return x.leg}),""),raw=C.raw,f=C.f,ch=C.ch;
-  var bk=BTR&&BTR.legs&&BTR.legs.byP,avgP=got.legs.reduce(function(a,x){return a+x.leg.p},0)/n,b=bk&&bk[Math.min(9,Math.floor(avgP*10))];
-  var item={t:Date.now(),key:got.key,set:Object.assign({},G,{style:useSt,legs:n}),auto:auto,d:d,ch:ch,raw:raw,sg:sg,
-    legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}}),
-    note:(b&&b.n?"In past seasons, picks we rated "+Math.floor(avgP*10)*10+"–"+(Math.floor(avgP*10)*10+10)+"% hit "+Math.round(100*b.w/b.n)+"% ("+b.n.toLocaleString()+" picks). ":"")+
-      (C.cf.pairs.length?"Same-game picks here "+(C.cf.f>=1?"tend to hit together":"tend to pull against each other")+" in past seasons. ":"")+
-      (Math.round(raw*100)!==Math.round(ch*100)?Math.round(raw*100)+"% is adjusted to "+Math.round(ch*100)+"% for "+(C.cf.pairs.length?"same-game pairs and ":"")+"how "+n+"-pick slips really hit. ":"")+
-      (n>=6?"Big parlays are long shots: every pick has to hit, so even likely picks multiply down fast. Missing by one or two picks is common. ":"")+
-      (sg?"Some picks are from the same game, so they tend to win or lose together and your book will pay less than shown.":"Every pick is from a different game.")};
+  var item=Object.assign({t:Date.now(),set:Object.assign({},G,{style:useSt,legs:n}),auto:auto,legs:got.legs.map(function(x){return{leg:x.leg,why:legWhy(x)}})},genNums(got.legs.map(function(x){return x.leg})));
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
 }
@@ -1123,10 +1136,10 @@ function renderGenOut(cx){
     var started=it.legs.some(function(x){return+new Date(x.leg.time)<=now});
     return'<div class="gcard'+(i?" old":"")+'"><div class="gh"><span class="big" style="color:'+pctColor(it.ch)+'" title="'+pctWord(it.ch)+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+(it.ch>=0.01?'<div class="sub" style="margin:-2px 0 4px;font-size:12px">'+pctWord(it.ch)+' · '+verdictLine(it.ch,it.d)+'</div>':"")+
       '<div class="mt">'+flagBadges(FF)+(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · $10 wins $"+(10*(it.d-1)).toFixed(0)+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
-      it.legs.map(function(x){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
+      it.legs.map(function(x,j){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
         return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
-          '<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
-      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
+          (started?"":'<button class="swb" data-swap="gen" data-cx="'+cx+'" data-i="'+i+'" data-j="'+j+'">⇄ Change</button>')+'<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
+      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+(it.chg?'<p class="gauto">⇄ You changed '+it.chg+' pick'+(it.chg>1?"s":"")+'. The % and payout above are for your version.</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
@@ -2276,6 +2289,53 @@ function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("
 // The slip is kept on this phone (per sport) so it survives a reload or iOS closing the app. On load each pick is
 // rebuilt from today's prices; picks whose game has started (or that are no longer offered) are left out.
 var SLIP_RESTORED=false;
+// ---------- ⇄ Change a pick: swap it for another line on the same player (other lines, other stats, over/under) or the same game (who wins, spread, total) ----------
+var SWAP=null;
+function sameLeg(a,b){return a&&b&&a.k===b.k&&(a.kind==="g"?a.t===b.t:a.line===b.line)}
+function legBase(l){return String(l.k||"").replace(/\|u$/,"")}
+function swapAlts(L){
+  var out=[];
+  if(L.kind==="g"){var g=GAMES.filter(function(x){return x.id===L.ev})[0];if(!g)return out;
+    out.push({h:"This game: "+g.away+" @ "+g.home,legs:GTYPES(g).filter(function(t){return g.legs[t]}).map(function(t){return gameLeg(g,t)})})}
+  else{var mine=PROPS.filter(function(p){return p.ev===L.ev&&p.player===L.player});
+    mine.sort(function(a,b){return(b.label===L.label)-(a.label===L.label)});
+    mine.forEach(function(p){var ov=[],un=[];p.rungs.forEach(function(r){if(r.p!==undefined)ov.push(propLeg(p,r));var u=r.under!==undefined&&ENG.underLeg(p,r);if(u)un.push(u)});
+      var ls=ov.sort(function(a,b){return a.line-b.line}).concat(un.sort(function(a,b){return a.line-b.line}));
+      if(ls.length)out.push({h:p.player+" · "+(p.td?"Anytime TD":p.label),legs:ls})})}
+  return out}
+function swapOpen(t){
+  var legs,at;
+  if(t.dataset.swap==="slip"){legs=Object.keys(SLIP).map(function(k){return SLIP[k]});at=Object.keys(SLIP).indexOf(t.dataset.k)}
+  else{var it=genSaved(t.dataset.cx)[+t.dataset.i];if(!it)return;legs=it.legs.map(function(x){return x.leg});at=+t.dataset.j}
+  var L=legs[at];if(!L)return;
+  if(legStarted(L)){toast(STARTED_MSG,true);return}
+  var groups=swapAlts(L),others=legs.filter(function(x,i){return i!==at}),cand=[];
+  var n=groups.reduce(function(a,g){return a+g.legs.length},0);
+  if(n<=1){toast("No other lines for this pick right now.",true);return}
+  SWAP={from:t.dataset.swap,cx:t.dataset.cx,i:+t.dataset.i,at:at,k:t.dataset.k,cand:cand};
+  function priced(NL){var LL=legs.slice();LL[at]=NL;var d=1;LL.forEach(function(l){d*=dec(l.a)});var c=null;try{c=slipChance(LL,"").ch}catch(e){}return{d:d,c:c}}
+  var cur=priced(L),multi=legs.length>1;
+  var row=function(NL){var now=sameLeg(NL,L),clash=!now&&others.some(function(o){return legBase(o)===legBase(NL)}),q=priced(NL),ix=cand.length;cand.push(NL);
+    return'<button class="swr'+(now?" now":"")+'" '+(now||clash?"disabled ":"")+'data-swi="'+ix+'"><span><b>'+esc(NL.n)+'</b><small>'+(now?"Your pick now · ":clash?"Already in this parlay · ":"")+fmt(NL.a)+' · '+winsOn10(NL.a)+'</small></span>'+
+      '<span class="swp" style="color:'+hitColor(NL.p)+'">'+(NL.p!=null?Math.round(NL.p*100)+"%":"–")+'</span>'+
+      (multi?'<span class="swq">Parlay<br><b style="color:'+pctColor(q.c)+'">'+(q.c!=null?pct(q.c):"–")+'</b> '+am(q.d)+'</span>':'<span></span>')+'</button>'};
+  $("swapIn").innerHTML='<div class="ticon">⇄</div><h2 class="fh" style="margin:6px 0 4px">Change this pick</h2>'+
+    '<p class="fsub" style="margin:0 0 4px">Now: <b>'+esc(L.n)+'</b> '+fmt(L.a)+(multi?' · parlay <b style="color:'+pctColor(cur.c)+'">'+(cur.c!=null?pct(cur.c):"–")+'</b> at '+am(cur.d):"")+'</p>'+
+    '<p class="fsub" style="margin:0 0 6px">'+(L.kind==="g"?"Pick a different bet on the same game: who wins (ML), the spread, or over/under the total.":"Pick a different line for "+esc(L.player)+": an easier number (more likely, pays less), a harder one (less likely, pays more), the under, or another stat.")+
+    ' Big % = this pick alone'+(multi?'; right side = the whole parlay with it swapped in':"")+'.</p>'+
+    groups.map(function(g){return'<h4 class="swh">'+esc(g.h)+'</h4>'+g.legs.map(row).join("")}).join("")+
+    '<div class="tnav" style="margin-top:12px"><span></span><button class="btn" id="swapX">Cancel</button></div>';
+  $("swapBox").hidden=false;$("swapIn").scrollTop=0;
+  var nowEl=$("swapIn").querySelector(".swr.now");if(nowEl&&nowEl.scrollIntoView)setTimeout(function(){nowEl.scrollIntoView({block:"center"})},0)}
+function swapClose(){$("swapBox").hidden=true;SWAP=null}
+function swapPick(ix){
+  if(!SWAP)return;var NL=SWAP.cand[ix];if(!NL)return;
+  if(legStarted(NL)){toast(STARTED_MSG,true);return}
+  if(SWAP.from==="slip"){var S2={};Object.keys(SLIP).forEach(function(k){if(k===SWAP.k)S2[NL.k]=NL;else S2[k]=SLIP[k]});SLIP=S2;swapClose();renderSlip()}
+  else{var cx=SWAP.cx,last=genSaved(cx),it=last[SWAP.i];if(!it){swapClose();return}
+    it.legs[SWAP.at]={leg:NL,why:legWhy({leg:NL})};Object.assign(it,genNums(it.legs.map(function(x){return x.leg})));it.chg=(it.chg||0)+1;
+    genSave(cx,last);swapClose();renderGenOut(cx)}
+  toast("Changed to "+NL.n+".")}
 function slipSave(){try{localStorage.setItem("slip_"+SPORT,JSON.stringify(Object.keys(SLIP).map(function(k){var l=SLIP[k];return{k:k,ev:l.ev,t:l.t,kind:l.kind,line:l.line,side:l.side,pid:l.kind==="p"?(l.k||"").replace(/^P\|/,"").replace(/\|u$/,""):null}})))}catch(e){}}
 function slipRestore(){if(SLIP_RESTORED)return;SLIP_RESTORED=true;var a=[];try{a=JSON.parse(localStorage.getItem("slip_"+SPORT)||"[]")||[]}catch(e){}
   var lost=0;a.forEach(function(x){var L=null;
@@ -2296,7 +2356,7 @@ function renderSlip(){
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':"")+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
   $("sumL").textContent=legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
@@ -2350,6 +2410,9 @@ function renderAll(){
 }
 document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
+  if(t.dataset.swap){swapOpen(t);return}
+  if(t.dataset.swi!==undefined){swapPick(+t.dataset.swi);return}
+  if(t.id==="swapX"){swapClose();return}
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
@@ -2538,6 +2601,7 @@ $("mvGo").onclick=function(){var t=$("mvIn").value.trim();if(!/^PLMOVE1:/.test(t
     toast("Brought over "+merged+" bet"+(merged===1?"":"s")+" and "+added+" setting"+(added===1?"":"s")+". Reloading…");setTimeout(function(){location.reload()},1200)}
   catch(e){toast("That code didn't work. Copy the whole thing and try again.",true)}};
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
+$("swapBox").addEventListener("click",function(e){if(e.target.id==="swapBox")swapClose()});
 $("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-favapp]");if(!b)return;var a=b.dataset.favapp,i=FAVAPPS.indexOf(a);if(i>=0)FAVAPPS.splice(i,1);else FAVAPPS.push(a);favApps()});$("favCancel").onclick=function(){$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
 renderBookSel();
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
