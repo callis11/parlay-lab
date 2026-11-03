@@ -1047,7 +1047,7 @@ function genSave(cx,last){try{localStorage.setItem(GENCX[cx].key+SPORT,JSON.stri
 function genBox(cx){
   var C=GENCX[cx],x=function(id){return id+"_"+cx};
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
-    (cx==="par"?'<div class="gen-row"><label>Make</label><div class="seg" id="gMode_par"><button data-cx="par" data-gmode="one">One bet</button><button data-cx="par" data-gmode="many">Several bets</button></div></div><div class="gen-row" id="gPlanRow_par" hidden><label>Budget</label><span class="gplan">$<input id="plB_par" type="number" inputmode="decimal" min="2" aria-label="Total budget in dollars"> in <input id="plN_par" type="number" inputmode="numeric" min="2" max="15" aria-label="Number of bets"> bets</span></div>':"")+
+    (cx==="par"?'<div class="gen-row"><label>Make</label><div class="seg" id="gMode_par"><button data-cx="par" data-gmode="one">One slip</button><button data-cx="par" data-gmode="many">Several slips</button></div></div><div class="gen-row" id="gPlanRow_par" hidden><label>Budget</label><span class="gplan">$<input id="plB_par" type="number" inputmode="decimal" min="2" aria-label="Total budget in dollars"> in <input id="plN_par" type="number" inputmode="numeric" min="2" max="15" aria-label="Number of slips"> slips</span></div>':"")+
     '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5,10,15].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="Other number of picks"><option value="">More</option>'+[6,7,8,9,11,12,13,14].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
     '<div class="gen-row"><label>Style</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Safe</button><button data-cx="'+cx+'" data-gs="bal">Balanced</button><button data-cx="'+cx+'" data-gs="long">Long shot</button></div></div>'+
     (cx==="ply"||NOPROPS?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
@@ -1081,8 +1081,8 @@ function genUI(cx){
   var many=cx==="par"&&G.mode==="many";
   if(cx==="par"){document.querySelectorAll("#gMode_par button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.gmode===(many?"many":"one")))});
     var pr=$("gPlanRow_par");if(pr){pr.hidden=!many;if(many){if(document.activeElement!==$("plB_par"))$("plB_par").value=G.budget||100;if(document.activeElement!==$("plN_par"))$("plN_par").value=G.nbets||10}}
-    var sg=$("gStyle_par");if(sg){sg.previousSibling.textContent=many?"Each bet pays":"Style";var nm=many?["Small win +60","Double +100","Big win +400"]:["Safe","Balanced","Long shot"];sg.querySelectorAll("button").forEach(function(bt,i){bt.textContent=nm[i]})}
-    var pn=$("gPlanNote_par");if(pn){pn.hidden=!many;if(many)pn.textContent="Each bet pays "+PLANWORD[G.style]+" if it wins. Up to 5 picks per bet"+(G.legs>5?" (using 5)":"")+"."}}
+    var sg=$("gStyle_par");if(sg){sg.previousSibling.textContent=many?"Each slip pays":"Style";var nm=many?["Small win +60","Double +100","Big win +400"]:["Safe","Balanced","Long shot"];sg.querySelectorAll("button").forEach(function(bt,i){bt.textContent=nm[i]})}
+    var pn=$("gPlanNote_par");if(pn){pn.hidden=!many;if(many)pn.textContent="Each slip pays "+PLANWORD[G.style]+" if it wins. Up to 5 picks per slip"+(G.legs>5?" (using 5)":"")+"."}}
   if($(x("genGo")))$(x("genGo")).textContent=many?(PLANOUT?"Build another plan":"Build my plan"):genSaved(cx).length?"Generate another":"Generate a parlay";
   if(cx==="tm"){var rg0=ENG.teamSlips(TEAM,TGAME).g,now2=Date.now(),mt=$("gMulti_tm");G.multi=(G.multi||[]).filter(function(id){return(!rg0||id!==rg0.id)&&GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now2})});
     if(mt){var showG=G.addOpen||G.multi.length;mt.hidden=!showG;$("gAdd_tm").textContent=G.multi.length?"+ "+G.multi.length+" other game"+(G.multi.length>1?"s":"")+" added":(G.addOpen?"Hide other games":"+ Add other games");
@@ -1111,7 +1111,7 @@ var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Safe"},bal:
 STYLE.plans={lo:0.6,amin:-700,amax:-110,dmin:1.45,dmax:1.8,name:"Safe"};
 STYLE.pland={lo:0.5,amin:-700,amax:200,dmin:1.92,dmax:2.3,name:"Balanced"};
 STYLE.planl={lo:0.3,amin:-400,amax:450,dmin:3.6,dmax:6,name:"Long shot"};
-var PLANWORD={safe:"about +60",bal:"about +100 (double-up)",long:"about +400"};
+var PLANWORD={safe:"about +60",bal:"about +100",long:"about +400"};
 GENS.plan={legs:2,style:"pland",kind:"mix",games:"all",side:"both"};
 var PLANOUT=null;
 function genPool(cx){
@@ -2903,7 +2903,7 @@ function planBuild(){
   // not enough bets at this many picks? try fewer picks per bet and keep whichever fills the most bets
   for(var n2=want-1;n2>=2&&R.bets.length<N;n2--){var R2=planTry(pool,N,n2);if(R2.bets.length>R.bets.length)R=R2}
   var bets=R.bets,use=R.use,n=R.n;
-  if(!bets.length){PLANOUT={err:"Not enough picks in these games to build bets at this price. Try All games or a different style."};return}
+  if(!bets.length){PLANOUT={err:"Not enough picks in these games to build slips at this price. Try All games or a different style."};return}
   var K=bets.length,stake=B/K,dist=planDist(bets,stake),mean=0;bets.forEach(function(b){mean+=b.ch*b.d*stake});
   var pa=0,dd=0;bets.forEach(function(b){pa+=b.ch;dd+=b.d});pa/=K;dd/=K;
   var gamesUsed=Object.keys(use).length,shared=Object.keys(use).filter(function(k){return use[k]>1}).length;
@@ -2915,16 +2915,16 @@ function planDist(bets,stake){var K=bets.length,out={ahead:0,even:0,some:0,most:
   return out}
 function planHTML(){
   var o=PLANOUT,G=GENS.par;
-  if(!o)return'<p class="sub" style="margin:10px 0 0">Set a budget and how many bets, then tap <b>Build my plan</b>. You get that many separate parlays, each aiming at '+PLANWORD[G.style]+', on different games where we can.</p>';
+  if(!o)return'<p class="sub" style="margin:10px 0 0">Set a budget and how many slips, then tap <b>Build my plan</b>. You get that many separate slips, each paying '+PLANWORD[G.style]+' if it wins, on different games where we can.</p>';
   if(o.err)return'<p class="warn">'+esc(o.err)+'</p>';
   var D=o.dist,pc=function(x){return x>0&&x<0.01?"under 1%":Math.round(x*100)+"%"},mp=o.mean/o.B,h='<div class="plan nb"><div class="pb">';
-  h+='<p style="margin:10px 0 2px"><b>'+o.K+' bets of $'+usd(o.stake)+'</b> · '+({safe:"Small wins",bal:"Double-up",long:"Big wins"}[o.style]||"Double-up")+': '+PLANWORD[o.style]+' each'+(o.K<o.asked?' <span class="sub">(only '+o.K+' of '+o.asked+' fit: not enough picks at this price)</span>':"")+'<br><span class="sub">'+(o.n<o.want?o.n+' picks per bet (not enough picks for '+o.want+') · ':o.n+' picks per bet · ')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one bet':', none shared')+'</span></p>'+
+  h+='<p style="margin:10px 0 2px"><b>'+o.K+' slips of $'+usd(o.stake)+'</b> · '+({safe:"Small wins",bal:"Double-up",long:"Big wins"}[o.style]||"Double-up")+': '+PLANWORD[o.style]+' each'+(o.K<o.asked?' <span class="sub">(only '+o.K+' of '+o.asked+' fit: not enough picks at this price)</span>':"")+'<br><span class="sub">'+(o.n<o.want?o.n+' picks per slip (not enough picks for '+o.want+') · ':o.n+' picks per slip · ')+o.games+' games used'+(o.shared?', '+o.shared+' shared by more than one slip':', none shared')+'</span></p>'+
    '<table><tr><td>Come out ahead (back more than $'+usd(o.B*1.05)+')</td><td class="r" style="color:var(--green)">'+pc(D.ahead)+'</td></tr>'+
    '<tr><td>About break even</td><td class="r">'+pc(D.even)+'</td></tr><tr><td>Lose some (back $'+usd(o.B*0.6)+' to $'+usd(o.B*0.95)+')</td><td class="r">'+pc(D.some)+'</td></tr>'+
    '<tr><td>Lose most of it (back $'+usd(o.B*0.6)+' or less)</td><td class="r" style="color:var(--red)">'+pc(D.most)+'</td></tr>'+
    '<tr><td>Average back (our estimate)</td><td class="r">$'+usd(o.mean)+' of $'+usd(o.B)+'</td></tr></table>'+
-   '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' bet at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
-   '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Bets that share a game rise and fall together a little, which this math ignores.</p>'+
+   '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' slip at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
+   '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Slips that share a game rise and fall together a little, which this math ignores.</p>'+
    o.bets.map(function(b,i){var key="plan"+i;PRE[key]=b.legs;
      return'<details class="pbet"><summary><b class="big" style="color:'+pctColor(b.ch)+'">'+(b.ch<0.01?"1 in "+oneIn(b.ch):Math.round(b.ch*100)+"%")+'</b> <span class="sub">to hit · '+am(b.d)+' · $'+usd(o.stake)+' wins $'+usd(o.stake*(b.d-1))+'</span></summary>'+
       b.legs.map(function(l){var m=DATA&&DATA.games&&DATA.games[l.ev]||{};return'<div class="pl"><span><b>'+esc(l.n)+'</b>'+(m.away?'<br><small class="sub">'+esc(m.away+" @ "+m.home)+'</small>':"")+'</span><span style="color:'+hitColor(l.p)+';font-weight:700">'+Math.round(l.p*100)+'%</span></div>'}).join("")+
@@ -2933,7 +2933,7 @@ function planHTML(){
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
   var G=GENS.par,B=parseFloat($("plB_par").value),N=parseInt($("plN_par").value,10);
-  if(!(B>=2&&B<=100000)){toast("Enter a budget of at least $2.",true);return}if(!(N>=2&&N<=15)){toast("Pick 2 to 15 bets.",true);return}
+  if(!(B>=2&&B<=100000)){toast("Enter a budget of at least $2.",true);return}if(!(N>=2&&N<=15)){toast("Pick 2 to 15 slips.",true);return}
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
   try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
   genUI("par")}
