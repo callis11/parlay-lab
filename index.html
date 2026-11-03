@@ -661,8 +661,9 @@ select,input,textarea{font-size:max(16px,1em)}
   <div class="panel" id="panel">
     <div id="legs"></div>
     <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><button class="btn" id="clear">Clear slip</button></div>
-    <div class="placed" id="placeBox"><b>I placed this bet</b>
-      <p class="sub" style="margin:4px 0 6px">Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
+    <button class="btn flag" id="placeOpen" style="width:100%;margin:10px 0 0">✓ Save my bet</button>
+    <div class="placed" id="placeBox" hidden><b>Save my bet</b>
+      <p class="sub" style="margin:4px 0 6px">Placed it in your app? Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
       <p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="placePaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="placeIn" accept="image/*" hidden></label></p>
       <div class="sub" id="placeStat" style="margin:6px 0 0"></div>
       <div class="filters" style="margin:6px 0 0"><select id="placeBook" aria-label="Betting app"><option value="fanduel">FanDuel</option><option value="draftkings">DraftKings</option><option value="betmgm">BetMGM</option><option value="betrivers">BetRivers</option></select>
@@ -2389,9 +2390,11 @@ function sentPick(v){
   else if(v==="add"){SENT=null;sentSave()}
   else if(v==="keep"){SENT.asked=1;sentSave();renderSlip()}
   else if(v==="save"){SENT.asked=1;sentSave();$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
-    try{$("placeBook").value=SENT.book}catch(e){}var pb=$("placeBox");if(pb){pb.scrollIntoView({block:"start"});pb.classList.add("hl");setTimeout(function(){pb.classList.remove("hl")},2500)}
+    placeShow();var pb=$("placeBox");if(pb){pb.classList.add("hl");setTimeout(function(){pb.classList.remove("hl")},2500)}
     toast("Paste your receipt or type the odds, then tap Save to My bets. Your slip clears after.")}
   if(el&&(v==="new"||v==="add"))el.click()}
+function placeShow(){$("placeBox").hidden=false;$("placeOpen").hidden=true;try{if(SENT&&SENT.book)$("placeBook").value=SENT.book}catch(e){}$("placeBox").scrollIntoView({block:"start",behavior:"smooth"})}
+function placeHide(){$("placeBox").hidden=true;$("placeOpen").hidden=false}
 function sentBack(){if(document.visibilityState!=="visible"||!sentNow()||SENT.asked||Date.now()-SENT.at<8000||!$("sentBox").hidden)return;sentShow("back")}
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-sendbook]");if(a){SENT={sig:slipSig(),book:a.dataset.sendbook,at:Date.now()};sentSave();setTimeout(renderSlip,300);return}
   var b=e.target.closest&&e.target.closest("[data-sent]");if(b){e.stopPropagation();sentPick(b.dataset.sent)}},true);
@@ -2410,6 +2413,7 @@ function renderSlip(){
   document.querySelectorAll(".rung").forEach(function(b){var s=SLIP["P|"+b.dataset.p];b.setAttribute("aria-pressed",!!(s&&String(s.line)===b.dataset.l))});
   if(SLIP_RESTORED)slipSave();
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
+  if($("placeOpen")){if(!legs.length)$("placeBox").hidden=true;$("placeOpen").hidden=!legs.length||!$("placeBox").hidden}
   if(!legs.length){$("legs").innerHTML='<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":" · tap to see how it works");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
   $("legs").innerHTML='<div class="slsum">'+
@@ -2504,8 +2508,9 @@ document.addEventListener("click",function(e){
     var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" picks."+(had&&!same?" It replaced the "+had+" pick"+(had>1?"s":"")+" that were on your slip.":" It's at the bottom of the screen."));
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];if(!Object.keys(SLIP).length)closeSlip();renderSlip()}
-  else if(t.id==="clear"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
+  else if(t.id==="clear"){SLIP={};SENT=null;sentSave();placeHide();SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
   else if(t.id==="slipClose"){closeSlip();renderSlip()}
+  else if(t.id==="placeOpen"){placeShow()}
   else if(t.id==="shotPaste"){shotPasteBtn()}
   else if(t.id==="placePaste"){shotPasteBtn("slip")}
   else if(t.id==="shotGo"){shotRead($("shotTxt").value);$("shotTxt").value=""}
@@ -2520,7 +2525,7 @@ document.addEventListener("click",function(e){
     var M=SHOT.slipMeta;if(M){if(M.betId)bet.betId=M.betId;if(M.pay)bet.pay=M.pay;if(M.placed)bet.saved=M.placed}
     var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
     all.push(bet);
-    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";SLIP={};SENT=null;sentSave();toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+") and your slip is cleared for the next one. See it on Results.");oddsSet($("placeOdds"),null);$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
+    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";placeHide();SLIP={};SENT=null;sentSave();toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+") and your slip is cleared for the next one. See it on Results.");oddsSet($("placeOdds"),null);$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
     else toast("This browser won't save it (private mode?).",true)}
   else if(t.dataset.mydel){
     // two taps so a bet isn't removed by accident
