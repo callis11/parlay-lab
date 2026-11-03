@@ -2928,7 +2928,7 @@ function planHTML(){
    '<tr><td>Average back (our estimate)</td><td class="r">$'+usd(o.mean)+' of $'+usd(o.B)+'</td></tr></table>'+
    '<p class="sub" style="margin:4px 0">Compare one $'+usd(o.B)+' slip at that same price: about a <b>'+(o.one.p<0.01?"1 in "+oneIn(o.one.p):Math.round(o.one.p*100)+"%")+'</b> chance to win $'+usd(o.B*(o.one.d-1))+', otherwise you lose all $'+usd(o.B)+'.</p>'+
    '<p class="gnote" style="margin:6px 0">Plain English: spreading the money out makes results steadier, but it does <b>not</b> raise the average. Our numbers say you get back about '+Math.round(mp*100)+'% of what you put in on average'+(mp>=0.97?'. Treat that with care: when we replayed past seasons, bets we rated at or above their price came back <b>less</b> than the price implied, and long shots lost the most (about 15 to 30 cents per dollar). Plan on a sportsbook cut of a few cents per dollar on safe bets and more on long shots':'; the rest is the sportsbook\'s cut')+'. Only picks that beat their price help, and we never promise that. Slips that share a game rise and fall together a little, which this math ignores.</p>'+
-   o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("");
+   '<div class="pgrid">'+o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("")+'</div>';
   return h+'</div></div>'}
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){
