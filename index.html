@@ -2248,7 +2248,7 @@ function fdButton(legs){
   // The chosen app may not have posted lines for some games yet (early-season college basketball): say whose prices those are
   var altG={};legs.forEach(function(l){var g=GAMES.filter(function(x){return x.id===l.ev})[0];if(g&&g.alt)altG[g.alt]=1});var alts=Object.keys(altG);
   if(!btns.length&&!notes.length)return'<p class="sub" style="margin:8px 0 0">Links to your apps show up after the next odds refresh.</p>';
-  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. When you come back, we'll ask if you placed it so your next parlay starts with an empty slip.</p>'+
+  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. When you come back, we will ask if you placed it so your next parlay starts with an empty slip.</p>'+
     '<div class="sendapps">'+btns.join("")+'</div>'+
     '<p class="sub" style="margin:6px 0 0">'+(alts.length?esc(Engine.BOOK_NAMES[BOOK])+' hasn\'t posted lines for '+(legs.length>1?"some of these games":"this game")+' yet, so those prices are from '+esc(alts.join(" / "))+'.':'Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'.')+' Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
 }
