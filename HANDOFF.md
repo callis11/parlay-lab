@@ -255,7 +255,7 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - ★ page › **My usual bet**: $1/5/10/25/50/100 buttons or a custom amount ($1 to $10,000), saved per phone in `localStorage.usual` (default 10; included in "Move my data"). `USUAL`, `usd()`, `usualWins(d, prefix)`, `usualUI()`, `setUsual()` in index.html. Every "wins $X" (generator cards, named slips, Build, price rows via `winsOn10`, boost line) and the slip's Stake box use it. Results, track records and calibration stay at $10 on purpose. Tour and legend examples still say $10.
 - Next: Double-up planner (budget + number of bets, separate ~+100 parlays on different games, honest odds for the whole plan; see "QUEUED: Double-up planner").
 
-## Several slips mode = the double-up planner (Nov 3)
+## Several bets mode = the double-up planner (Nov 3)
 - Lives inside the Parlays generator (`GENS.par.mode` "one" | "many", plus `budget`, `nbets`; saved with the generator). Code in index.html: `STYLE.plans/pland/planl` (payout ranges 1.45-1.8, 1.92-2.3, 3.6-6), `GENS.plan`, `planTry()` (greedy per bet: `genRank` over the pool minus used picks and games over a per-game cap, best slip chance with a 0.9 penalty per already-used game), `planBuild()` (tries fewer picks per bet if it can't fill N bets), `planDist()` (exact 2^K enumeration, K up to 15, independent bets), `planHTML()`, `planGo()`. The old standalone planner card was removed the same day.
 - Not done yet: Players generator several-bets, a saved/shared plan, grading a plan on Results as one unit, same-game correlation across bets (ignored; said on screen). The long-shot "average back" can read above 100% from our own estimates; the card warns that replays say that's too generous.
 
