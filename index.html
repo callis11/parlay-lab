@@ -395,6 +395,7 @@ header{position:relative}
 .swr .swq{font-size:12px;text-align:right;min-width:74px;color:var(--muted)}.swr .swq b{font-size:14px;display:inline}
 .swr.now{background:color-mix(in srgb,var(--flag) 12%,transparent);cursor:default}
 .swr[hidden],.swh[hidden]{display:none}
+#placeBox.hl{outline:3px solid var(--flag);outline-offset:3px;border-radius:8px;transition:outline .3s}
 .swall{display:block;margin:10px auto 0;font-size:14px;font-weight:700;color:var(--flag)}
 .piece .pswb{grid-column:1/-1;justify-self:start;margin-top:6px}
 .swr[disabled]{opacity:.45;cursor:default}.swr.now[disabled]{opacity:1}
@@ -499,6 +500,7 @@ select,input,textarea{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
+<div class="tour" id="sentBox" hidden role="dialog" aria-modal="true" aria-label="Your slip"><div class="tbox" id="sentIn"></div></div>
 <div class="tour" id="swapBox" hidden role="dialog" aria-modal="true" aria-label="Change a pick"><div class="tbox" id="swapIn"></div></div>
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
   <div class="ticon">★</div><h2 class="fh" id="favH">My teams</h2>
@@ -2241,12 +2243,12 @@ function toast(msg,bad){var d=document.createElement("div");d.className="toast"+
 function fdButton(legs){
   var apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),btns=[],notes=[];
   apps.forEach(function(bk){var nm=Engine.BOOK_NAMES[bk]||bk,L=Engine.betslipLink(legs,bk);if(!L)return;
-    if(L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(L.n<legs.length?" ("+L.n+" of "+legs.length+")":"")+'</a>');
+    if(L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" data-sendbook="'+bk+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(L.n<legs.length?" ("+L.n+" of "+legs.length+")":"")+'</a>');
     else notes.push(nm+": tap its link next to each pick")});
   // The chosen app may not have posted lines for some games yet (early-season college basketball): say whose prices those are
   var altG={};legs.forEach(function(l){var g=GAMES.filter(function(x){return x.id===l.ev})[0];if(g&&g.alt)altG[g.alt]=1});var alts=Object.keys(altG);
   if(!btns.length&&!notes.length)return'<p class="sub" style="margin:8px 0 0">Links to your apps show up after the next odds refresh.</p>';
-  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. Your slip here stays saved.</p>'+
+  return'<p class="sub" style="margin:10px 0 6px"><b>How to place it:</b> ParlayLabs never takes bets or money. These buttons open your betting app with these same picks already on its slip, and you set your amount and place the bet there. When you come back, we'll ask if you placed it so your next parlay starts with an empty slip.</p>'+
     '<div class="sendapps">'+btns.join("")+'</div>'+
     '<p class="sub" style="margin:6px 0 0">'+(alts.length?esc(Engine.BOOK_NAMES[BOOK])+' hasn\'t posted lines for '+(legs.length>1?"some of these games":"this game")+' yet, so those prices are from '+esc(alts.join(" / "))+'.':'Prices here are '+esc(Engine.BOOK_NAMES[BOOK])+'\'s'+(apps.length>1?"; other apps may be a little different":"")+'.')+' Check every pick made it onto the slip, then set your stake there.'+(notes.length?" "+esc(notes.join(". "))+".":"")+' Change apps or odds with ★.</p>';
 }
@@ -2365,6 +2367,37 @@ function swapPick(ix){
     it.legs[SWAP.at]={leg:NL,why:legWhy({leg:NL})};Object.assign(it,genNums(it.legs.map(function(x){return x.leg})));it.chg=(it.chg||0)+1;
     genSave(cx,last);swapClose();renderGenOut(cx)}
   toast("Changed to "+NL.n+".")}
+// ---------- Sent to an app: don't let an old, already-bet slip ride along into the next parlay ----------
+// Tapping "Open in …" remembers which picks went to which app. Coming back, we ask if it was placed;
+// adding a new pick on top of a sent slip asks "start a new slip?" first.
+var SENT=null;try{SENT=JSON.parse(localStorage.getItem("sent_"+SPORT)||"null")}catch(e){}
+function sentSave(){try{if(SENT)localStorage.setItem("sent_"+SPORT,JSON.stringify(SENT));else localStorage.removeItem("sent_"+SPORT)}catch(e){}}
+function slipSig(){return Object.keys(SLIP).sort().map(function(k){var l=SLIP[k];return k+"|"+(l.t||"")+"|"+(l.line==null?"":l.line)}).join()}
+function sentNow(){return!!(SENT&&Object.keys(SLIP).length&&SENT.sig===slipSig()&&Date.now()-SENT.at<24*36e5)}
+var SENTWAIT=null;
+function sentShow(kind){
+  var n=Object.keys(SLIP).length,app=Engine.BOOK_NAMES[SENT.book]||"your app",d=1;Object.keys(SLIP).forEach(function(k){d*=dec(SLIP[k].a)});
+  $("sentIn").innerHTML='<div class="ticon">🧾</div>'+(kind==="add"?
+    '<h2 class="fh" style="margin:6px 0 6px">Start a new slip?</h2><p class="fsub">Your slip still has the <b>'+n+' pick'+(n>1?"s":"")+' ('+am(d)+')</b> you sent to '+esc(app)+'. If you already bet those, start fresh so they don\'t end up in your next bet too.</p>'+
+      '<p style="display:flex;flex-direction:column;gap:8px;margin:12px 0 0"><button class="btn flag" data-sent="new">Start a new slip with this pick</button><button class="btn" data-sent="add">Add it to the old picks</button></p>':
+    '<h2 class="fh" style="margin:6px 0 6px">Did you place this bet?</h2><p class="fsub">You opened '+esc(app)+' with <b>'+n+' pick'+(n>1?"s":"")+' ('+am(d)+')</b>. If you placed it, clear your slip so the next parlay starts empty.</p>'+
+      '<p style="display:flex;flex-direction:column;gap:8px;margin:12px 0 0"><button class="btn flag" data-sent="save">Yes: save it to My bets</button><button class="btn" data-sent="clear">Yes: just clear my slip</button><button class="btn" data-sent="keep">Not yet: keep my picks</button></p>');
+  $("sentBox").hidden=false}
+function sentGuard(el){if(!sentNow())return false;SENTWAIT=el;sentShow("add");return true}
+function sentPick(v){
+  $("sentBox").hidden=true;var el=SENTWAIT;SENTWAIT=null;
+  if(v==="new"||v==="clear"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null;renderSlip();if(v==="clear"){closeSlip();toast("Slip cleared. Ready for the next one.")}}
+  else if(v==="add"){SENT=null;sentSave()}
+  else if(v==="keep"){SENT.asked=1;sentSave();renderSlip()}
+  else if(v==="save"){SENT.asked=1;sentSave();$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
+    try{$("placeBook").value=SENT.book}catch(e){}var pb=$("placeBox");if(pb){pb.scrollIntoView({block:"start"});pb.classList.add("hl");setTimeout(function(){pb.classList.remove("hl")},2500)}
+    toast("Paste your receipt or type the odds, then tap Save to My bets. Your slip clears after.")}
+  if(el&&(v==="new"||v==="add"))el.click()}
+function sentBack(){if(document.visibilityState!=="visible"||!sentNow()||SENT.asked||Date.now()-SENT.at<8000||!$("sentBox").hidden)return;sentShow("back")}
+document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-sendbook]");if(a){SENT={sig:slipSig(),book:a.dataset.sendbook,at:Date.now()};sentSave();setTimeout(renderSlip,300);return}
+  var b=e.target.closest&&e.target.closest("[data-sent]");if(b){e.stopPropagation();sentPick(b.dataset.sent)}},true);
+document.addEventListener("visibilitychange",function(){setTimeout(sentBack,600)});
+["pageshow","focus"].forEach(function(ev){window.addEventListener(ev,function(){setTimeout(sentBack,600)})});
 function slipSave(){try{localStorage.setItem("slip_"+SPORT,JSON.stringify(Object.keys(SLIP).map(function(k){var l=SLIP[k];return{k:k,ev:l.ev,t:l.t,kind:l.kind,line:l.line,side:l.side,pid:l.kind==="p"?(l.k||"").replace(/^P\|/,"").replace(/\|u$/,""):null}})))}catch(e){}}
 function slipRestore(){if(SLIP_RESTORED)return;SLIP_RESTORED=true;var a=[];try{a=JSON.parse(localStorage.getItem("slip_"+SPORT)||"[]")||[]}catch(e){}
   var lost=0;a.forEach(function(x){var L=null;
@@ -2387,7 +2420,7 @@ function renderSlip(){
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
     (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
-  $("sumL").textContent=legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
+  $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
 // ---------- odds sync status: last pull and next scheduled pull ----------
@@ -2444,8 +2477,8 @@ document.addEventListener("click",function(e){
   if(t.id==="swapX"){swapClose();return}
   if(t.id==="swapAll"){document.querySelectorAll('#swapIn [data-swx]').forEach(function(e){e.hidden=false});t.remove();return}
   if(t.dataset.punedit!==undefined){delete PEDIT[t.dataset.punedit];pEditSave();POPEN=t.dataset.punedit;renderParlays();pReopen(t.dataset.punedit);toast("Back to our original picks.");return}
-  if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L;renderSlip()}
-  else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else SLIP[L2.k]=L2;renderSlip()}
+  if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L.k]=L;renderSlip()}
+  else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.gengo){genRun(t.dataset.gengo)}
   else if(t.dataset.gadd){var G4=GENS.tm;G4.addOpen=!G4.addOpen;if(!G4.addOpen)G4.multi=[];genSave("tm",genSaved("tm"));genUI("tm")}
@@ -2466,13 +2499,13 @@ document.addEventListener("click",function(e){
     var tgt=gcx==="tm"?$("teamCar"):gd,r=tgt.getBoundingClientRect();if(gcx==="tm"||r.top<70)window.scrollTo({top:r.top+window.scrollY-120,behavior:"smooth"})}}
   else if(t.dataset.pre){
     try{var pl=PRE[t.dataset.pre],ok=pl.filter(function(l){return!legStarted(l)});if(!ok.length){toast("Every game in this parlay has started. Tap ↻ for parlays on games still to come.",true);return}
-      SLIP={};ok.forEach(function(l){SLIP[l.k]=l});if(ok.length<pl.length)toast((pl.length-ok.length)+" pick"+(pl.length-ok.length>1?"s were":" was")+" left out because "+(pl.length-ok.length>1?"those games have":"that game has")+" started.",true);renderSlip()}
+      var had=Object.keys(SLIP).length,same=had&&ok.length===had&&ok.every(function(l){return SLIP[l.k]&&sameLeg(SLIP[l.k],l)});SLIP={};SENT=null;sentSave();ok.forEach(function(l){SLIP[l.k]=l});if(ok.length<pl.length)toast((pl.length-ok.length)+" pick"+(pl.length-ok.length>1?"s were":" was")+" left out because "+(pl.length-ok.length>1?"those games have":"that game has")+" started.",true);renderSlip()}
     catch(err){toast("Couldn't load that slip. Pull down to refresh the page and try again.",true);if(window.console)console.error(err);return}
     $("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();
-    var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" picks. It's at the bottom of the screen.");
+    var n=Object.keys(SLIP).length;toast("Slip loaded: "+n+" picks."+(had&&!same?" It replaced the "+had+" pick"+(had>1?"s":"")+" that were on your slip.":" It's at the bottom of the screen."));
     var old=t.textContent;t.textContent="Loaded ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];if(!Object.keys(SLIP).length)closeSlip();renderSlip()}
-  else if(t.id==="clear"){SLIP={};SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
+  else if(t.id==="clear"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
   else if(t.id==="slipClose"){closeSlip();renderSlip()}
   else if(t.id==="shotPaste"){shotPasteBtn()}
   else if(t.id==="placePaste"){shotPasteBtn("slip")}
@@ -2488,7 +2521,7 @@ document.addEventListener("click",function(e){
     var M=SHOT.slipMeta;if(M){if(M.betId)bet.betId=M.betId;if(M.pay)bet.pay=M.pay;if(M.placed)bet.saved=M.placed}
     var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
     all.push(bet);
-    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+"). See it on Results.");oddsSet($("placeOdds"),null);$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
+    if(mySave(all)){SHOT.slipMeta=null;$("placeStat").textContent="";SLIP={};SENT=null;sentSave();toast("Saved to My bets ("+Engine.BOOK_NAMES[bet.book]+") and your slip is cleared for the next one. See it on Results.");oddsSet($("placeOdds"),null);$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();renderMyBets()}
     else toast("This browser won't save it (private mode?).",true)}
   else if(t.dataset.mydel){
     // two taps so a bet isn't removed by accident
@@ -2599,8 +2632,8 @@ $("winChips").addEventListener("click",function(e){var b=e.target.closest("[data
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
 $("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
   if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
-  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
-  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else SLIP[L.k]=L}
+  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
+  else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
   renderSlip();renderBuild()});
 $("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-topx]");if(!b)return;e.stopPropagation();var k=b.dataset.topx;TOPX[k]=!TOPX[k];var y=b.getBoundingClientRect().top;renderBuild();
   if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);
