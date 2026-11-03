@@ -979,7 +979,7 @@ function piece(l){
   if(l.live)return'<div class="piece live" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+' '+liveTag(l)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",livePrice(l)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"Live chance "+Math.round(l.p*100)+"%"+(l.live.nv!=null?" (ESPN "+Math.round(l.live.wp*100)+"%, price "+Math.round(l.live.nv*100)+"%)":" (ESPN)"),"price moves every play, check the app"])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to win</small>":"")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+(RL?' · <span class="rtg">'+esc(roleTag(RL))+'</span>':"")+'</div>':"")+
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm&&l.kind!=="g"?'<div class="gtm">'+esc(teamName(tm))+(RL?' · <span class="rtg">'+esc(roleTag(RL))+'</span>':"")+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Odds "+fmt(l.a)],[g?gTime(g.t):"",l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",hh])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
@@ -1227,21 +1227,15 @@ function genRun(cx){
   last.unshift(item);last=last.slice(0,3);genSave(cx,last);
   $("genGo_"+cx).textContent="Generate another";renderGenOut(cx);
 }
-function genCardHTML(it,i,cx,key,op){op=op||{};
-    PRE[key]=it.legs.map(function(x){return x.leg});var LL=PRE[key],CC=slipChance(LL,"");if(CC.ch!==null)it.ch=CC.ch;var FF=slipFlags(LL.filter(function(l){return!legStarted(l)}).length?LL:[]);
-    var started=it.legs.some(function(x){return legStarted(x.leg)});
-    return'<div class="gcard'+(i&&!op.plan?" old":"")+'"><div class="gh"><span class="big" style="color:'+pctColor(it.ch)+'" title="'+pctWord(it.ch)+'">'+(it.ch<0.01?'1 in '+oneIn(it.ch)+'<small>chance</small>':Math.round(it.ch*100)+'%<small>to hit</small>')+'</span><span class="od">'+am(it.d)+'</span></div>'+(it.ch>=0.01?'<div class="sub" style="margin:-2px 0 4px;font-size:12px">'+pctWord(it.ch)+' · '+verdictLine(it.ch,it.d)+'</div>':"")+
-      '<div class="mt"><span class="hbrow">'+flagBadges(FF)+'</span>'+(op.label?op.label+" · "+it.legs.length+" picks · $"+usd(op.stake)+" wins $"+usd(op.stake*(it.d-1)):(i?"Earlier · ":"")+STYLE[it.set.style].name+" · "+it.legs.length+" picks · "+usualWins(it.d))+(started?' · <b style="color:var(--red)">a game has started</b>':"")+'</div>'+
-      it.legs.map(function(x,j){var l=x.leg,tm=legTeam(l),m=DATA&&DATA.games[l.ev]||{};
-        return'<div class="gleg">'+icon(icoKey(l),hitColor(l.p),true)+'<div><b>'+esc(l.n)+'</b> <span class="gp" style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>'+(l.live?' '+liveTag(l):"")+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
-          (started||op.noSwap?"":'<button class="swb" data-swap="gen" data-cx="'+cx+'" data-i="'+i+'" data-j="'+j+'">⇄ Change</button>')+'<ul class="gwl">'+(m.away?'<li class="gk">'+esc(m.away+" @ "+m.home)+'</li>':"")+'<li class="gk">Odds '+fmt(l.a)+'</li>'+String(x.why||"").split(" · ").filter(Boolean).map(function(b){return"<li>"+esc(b.charAt(0).toUpperCase()+b.slice(1))+"</li>"}).join("")+'</ul></div></div>'}).join("")+
-      (it.auto?'<p class="gauto">↪ '+esc(it.auto)+'</p>':"")+(it.chg?'<p class="gauto">⇄ You changed '+it.chg+' pick'+(it.chg>1?"s":"")+'. The % and payout above are for your version.</p>':"")+'<p class="gnote">'+esc(it.note)+'</p>'+(started?"":flagNote(FF))+(started?"":'<button class="btn flag" data-pre="'+key+'">Load slip</button>')+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></div>'}
 function renderGenOut(cx){
   cx=cx||"par";var last=genSaved(cx),el=$("genOut_"+cx);if(!el)return;
   if(cx==="par"&&GENS.par.mode==="many"){el.innerHTML=planHTML();return}
   if(!last.length){el.innerHTML='<p class="sub" style="margin:10px 0 0">Your last 3 parlays stay here.</p>';return}
   var now=Date.now();
-  el.innerHTML=last.map(function(it,i){return genCardHTML(it,i,cx,"gen"+cx+i)}).map(function(h,i){return whyWrap(h,last[i].legs.map(function(x){return x.leg}),"")}).join("");
+  el.innerHTML=last.map(function(it,i){
+    var LL=it.legs.map(function(x){return x.leg}),p={n:(i?"Earlier · ":"")+STYLE[it.set.style].name+" slip",d:(it.auto?"↪ "+it.auto+" ":"")+(it.chg?"⇄ You changed "+it.chg+" pick"+(it.chg>1?"s":"")+". The % and payout are for your version. ":"")+(it.note||""),l:LL},
+      x=slipInfo(p,true);x.sig="";x.gen={cx:cx,i:i};x.open=!i;if(x.ch!==null)it.ch=x.ch;
+    return slipCardW(x,"gen"+cx+i)}).join("");
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
@@ -1518,12 +1512,12 @@ function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><d
 function slipCard(x,key){
   PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp||POPEN===x.sig?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+  return'<details class="pc"'+(PST.exp||POPEN===x.sig||x.open?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw"><span class="hlp">'+pctWord(x.ch)+'<br></span>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
-    '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
+    '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap||x.gen?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
 }
