@@ -126,7 +126,7 @@ function record(store) {
         legs: s.l.map(l => { const m = data.games[l.ev] || {};
           const f = firstOf[l.n];
           return { n: l.n, a: l.a, p: l.p, p0: l.p0, kind: l.kind, t: l.t, pt: l.pt, line: l.line, player: l.player, team: l.team, label: l.label, td: l.td, time: l.time, ev: l.ev, gid: m.gid, away: m.away, home: m.home,
-            a1: f ? f.a1 : l.a, pt1: f ? f.pt1 : l.pt, t1: f ? f.t1 : now, dk: both(l.ev, l, BOOK2) }; }),
+            a1: f ? f.a1 : l.a, pt1: f ? f.pt1 : l.pt, t1: f ? f.t1 : now, dk: both(l.ev, l, BOOK2), es: l.sg ? Engine.edgeTotal(l.sg) : 0 }; }),
         status: "open"
       };
       old ? updated++ : added++;
@@ -191,11 +191,11 @@ function buildCards(cards, book) {
     for (const p of props) for (const r of p.rungs) {
       if (r.p === undefined || r.n < 6) continue;
       const base = { kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line };
-      const over = Object.assign({}, base, { side: "over", a: r.a, p: r.p, p0: r.p0, nm: ENG_NAME(p, r, "over") });
+      const over = Object.assign({}, base, { side: "over", a: r.a, p: r.p, p0: r.p0, nm: ENG_NAME(p, r, "over"), es: r.sg ? Engine.edgeTotal(r.sg) : 0 });
       if (r.a >= -400 && r.a <= 250) all.push(over);
       if (p.td) tds.push(over); else overs.push(over);
       if (r.under !== undefined && !p.td) {
-        const under = Object.assign({}, base, { side: "under", a: r.under, p: 1 - r.p, p0: r.p0 !== undefined ? 1 - r.p0 : undefined, nm: ENG_NAME(p, r, "under") });
+        const under = Object.assign({}, base, { side: "under", a: r.under, p: r.pu !== undefined ? r.pu : 1 - r.p, p0: r.pu0 !== undefined ? r.pu0 : (r.p0 !== undefined ? 1 - r.p0 : undefined), nm: ENG_NAME(p, r, "under"), es: r.sgU ? Engine.edgeTotal(r.sgU) : 0 });
         if (r.under >= -400 && r.under <= 250) all.push(under);
         mains.push({ over, under });
       }
@@ -210,7 +210,7 @@ function buildCards(cards, book) {
     const tdPicks = onePer(tds.sort((a, b) => b.p - a.p), 5);
     const prev = cards.cards[g.id], firstOf = {};
     if (prev) ["pieces", "straights", "tds"].forEach(k => { if (prev[k]) prev[k].legs.forEach(x => { if (x.a1 !== undefined) firstOf[x.nm] = x.a1; }); });
-    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, a1: firstOf[l.nm] !== undefined ? firstOf[l.nm] : l.a, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, dk: both(g.id, l, BOOK2), p: +(l.p || 0).toFixed(3) })),
+    const sec = legs => ({ legs: legs.map(l => ({ nm: l.nm, a1: firstOf[l.nm] !== undefined ? firstOf[l.nm] : l.a, kind: l.kind, player: l.player, team: l.team, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, dk: both(g.id, l, BOOK2), p: +(l.p || 0).toFixed(3), es: l.es || 0 })),
       bookExp: +legs.reduce((s, l) => s + imp(l.a), 0).toFixed(2), ourExp: +legs.reduce((s, l) => s + (l.p || 0), 0).toFixed(2) });
     cards.cards[g.id] = { ev: g.id, gid: meta.gid, away: g.away, home: g.home, aa: meta.away, ha: meta.home, t: g.t, season: meta.season, week: meta.week, saved: now, status: "open",
       pieces: sec(pieces), straights: sec(straights), tds: SPORT === "nfl" ? sec(tdPicks) : null };

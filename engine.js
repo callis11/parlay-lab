@@ -91,7 +91,7 @@
   function dateName(iso) { return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York" }); }
   // Per-sport settings: how far ahead to show games, how to group them, and whether to show a "Best of the week" row
   // featured: the hometown team that gets its own section on the Parlays page
-  var OPTS = { nfl: { featured: "DET", featuredName: "Lions" }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" },
+  var OPTS = { nfl: { featured: "DET", featuredName: "Lions", edges: true }, nba: { windowH: 30, slate: "date", noWeek: true, featured: "DET", featuredName: "Pistons" },
     cfb: { windowH: 192, slate: "cfb", full: true, featured: "MSU", featuredName: "Michigan State" },
     cbb: { windowH: 72, slate: "date", noWeek: true, full: true, featured: "MSU", featuredName: "Michigan State" } };
 
@@ -106,6 +106,33 @@
     if (w === "Sat") return h < 15 ? "Sat Noon" : h < 19 ? "Sat 3:30" : "Sat Night";
     return w + (h >= 17 ? " Night" : " Day");
   }
+  // Edge signs (NFL props). From the signal study (HANDOFF "Signal study", Nov 3, 2026): traits that beat or trailed the
+  // book's price in every replayed season 2023-25. Each is a few points added to the % after calibration; the book's price
+  // stays the backbone. Returns [{pts, t}] in plain English. ctx: {wind, dome, home, tsp (own team's spread), rest, week}
+  var EDGE_CAP = 6;
+  function edgeSigns(p, side, r, ctx) {
+    var S = [], over = side !== "under", un = !over, lab = p.label || "", pr = /Pass|Rece/.test(lab), rec = /Receiv/.test(lab);
+    var windy = !ctx.dome && ctx.wind >= 15, breezy = !ctx.dome && ctx.wind >= 10 && ctx.wind < 15, w = ctx.wind;
+    if (over && windy) S.push({ pts: -5, t: "Wind " + w + " mph: overs fall well short in wind" });
+    if (over && breezy && pr) S.push({ pts: -1, t: "Wind " + w + " mph: a little drag on passing" });
+    if (un && windy) S.push({ pts: 4, t: "Wind " + w + " mph: unders cash more in wind" });
+    if (ctx.tsp !== undefined && ctx.tsp !== null && ctx.tsp >= 4.5) S.push(over ? { pts: -2, t: "His team is a " + ctx.tsp + "-pt underdog: overs on dogs trail the book" } : { pts: 2, t: "His team is a " + ctx.tsp + "-pt underdog: unders on dogs beat the book" });
+    if (un && /Rushing yards|Receptions|Rush \+ rec/.test(lab) && !p.td) S.push({ pts: 1.5, t: "Unders on " + lab.toLowerCase() + " beat the book every replayed season" });
+    if (p.oppF !== undefined && p.oppF !== null) {
+      if (un && p.oppF < 0.98) S.push({ pts: 1.5, t: (p.opp || "Opponent") + " allow less than average here" });
+      if (over && p.oppF > 1.01) S.push({ pts: 1, t: (p.opp || "Opponent") + " allow more than average here" });
+    }
+    if (over && ctx.rest >= 8 && ctx.rest <= 10) S.push({ pts: 1.5, t: ctx.rest + " days of rest: rested players clear overs more" });
+    if (over && ctx.home === true) S.push({ pts: 1, t: "At home: overs do a little better at home" });
+    if (over && ctx.home === false && !ctx.dome && ctx.wind !== undefined) S.push({ pts: -1.5, t: "Away, outdoors: overs on the road trail the book" });
+    if (over && pr && p.pass3 >= 0.61) S.push({ pts: -2, t: "His team passes on " + Math.round(100 * p.pass3) + "% of plays lately; that usually cools off" });
+    if (over && rec && p.tgt3 >= 0.2) S.push({ pts: -1.5, t: "Star target (" + Math.round(100 * p.tgt3) + "% of targets): the public bets his overs, so the price is tight" });
+    if ((ctx.week && ctx.week <= 4) || (p.gp !== undefined && p.gp !== null && p.gp <= 2)) S.push({ pts: -1, t: "Early season: fewer games to go on, picks run a little worse" });
+    if (r && r.p !== undefined && ctx.imp !== undefined && (over ? r.p : 1 - r.p) - ctx.imp >= 0.12) S.push({ pts: -1, t: "His record says much more than the book does; when they disagree this much, the book is usually right" });
+    if (p.missedLast) S.push({ pts: -1.5, t: "Missed his team's last game" });
+    return S;
+  }
+  function edgeTotal(S) { var x = 0; S.forEach(function (e) { x += e.pts; }); return Math.max(-EDGE_CAP, Math.min(EDGE_CAP, x)); }
   function make(odds, data, book, now, opts) {
     opts = opts || {};
     var G = [], P = [];
@@ -178,20 +205,27 @@
       var g = live[p.event]; if (!g) return;
       // Healthy = no injury designation and played in his team's last game. Only healthy players go in auto parlays.
       var healthy = !p.injury && !p.missedLast, flag = healthy ? undefined : 1;
+      var gm = (data && data.games && data.games[p.event]) || {}, Wx = gm.weather || {}, isHome = p.team && gm.home ? gm.home === p.team : undefined;
+      var ectx = opts.edges ? { wind: Wx.wind === undefined || Wx.wind === null ? undefined : +Wx.wind, dome: Wx.roof === "dome", home: isHome, tsp: isHome === undefined ? null : g.legs[isHome ? "sp-h" : "sp-a"].pt,
+        rest: gm.rest && p.team ? gm.rest[p.team] : null, week: gm.week } : null;
       var rungs = p.ladder.filter(function (r) { return r.prices[book] !== undefined; }).map(function (r) {
         // Blend the player's history with the book's own price (less history = lean more on the book)
         var a = r.prices[book], pa, ev = null, fair = null;
         var p0;
         var ua = r.under ? r.under[book] : undefined, pu, pu0;
-        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib); }
+        var sg = null, sgU = null, pc, pcU;
+        if (r.p !== undefined && ua !== undefined) { var impU = 1 / dec(ua) / 1.045, wu = r.n / (r.n + 15); pu0 = wu * (1 - r.p) + (1 - wu) * impU; pu = calibrate(pu0, category({ kind: "p", label: p.label, a: ua, side: "under", flag: flag }), opts.calib);
+          if (ectx) { sgU = edgeSigns(p, "under", r, Object.assign({ imp: impU }, ectx)); pcU = pu; pu = Math.max(0.02, Math.min(0.97, pu + edgeTotal(sgU) / 100)); } }
         if (r.p !== undefined) { var imp = 1 / dec(a) / 1.045, w = r.n / (r.n + 15); pa = w * r.p + (1 - w) * imp; p0 = pa;
-          pa = calibrate(pa, category({ kind: "p", label: p.label, a: a, flag: flag }), opts.calib); ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
+          pa = calibrate(pa, category({ kind: "p", label: p.label, a: a, flag: flag }), opts.calib);
+          if (ectx) { sg = edgeSigns(p, "over", r, Object.assign({ imp: imp }, ectx)); pc = pa; pa = Math.max(0.02, Math.min(0.97, pa + edgeTotal(sg) / 100)); }
+          ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0 };
+        return { line: r.line, a: a, p: pa, p0: p0, pc: pc, sg: sg, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0, pcU: pcU, sgU: sgU };
       });
       if (!rungs.length) return;
-      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy, role: p.role,
+      P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy, role: p.role, gp: p.gp, tgt3: p.tgt3, pass3: p.pass3,
         label: p.label, td: p.td, avg: p.avg, recent: p.recent, rungs: rungs,
         best: Math.max.apply(null, rungs.map(function (r) { return r.ev === null || r.n < 6 || r.a > 400 ? -9 : r.ev; })),
         top: Math.max.apply(null, rungs.map(function (r) { return r.p || 0; })) });
@@ -199,8 +233,8 @@
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
     // The under side of a main line (only main lines have an under price)
     function underLeg(p, r) { if (r.under === undefined || r.pu === undefined) return null;
-      return { k: "P|" + p.id + "|u", kind: "p", side: "under", since: r.since ? [r.since[1] - r.since[0], r.since[1]] : r.since, line: r.line, n: p.player + " under " + r.line + " " + unit(p.label, r.line), a: r.under, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: false, p: r.pu, p0: r.pu0, best: { a: r.under, book: BOOK_NAMES[book] || book }, links: null }; }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, best: r.best, links: r.links }; }
+      return { k: "P|" + p.id + "|u", kind: "p", side: "under", since: r.since ? [r.since[1] - r.since[0], r.since[1]] : r.since, line: r.line, n: p.player + " under " + r.line + " " + unit(p.label, r.line), a: r.under, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: false, p: r.pu, p0: r.pu0, pc: r.pcU, sg: r.sgU, best: { a: r.under, book: BOOK_NAMES[book] || book }, links: null }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, pc: r.pc, sg: r.sg, best: r.best, links: r.links }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
@@ -430,6 +464,6 @@
     return { f: f, pairs: out };
   }
 
-  var Engine = { make: make, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, edgeSigns: edgeSigns, edgeTotal: edgeTotal, EDGE_CAP: EDGE_CAP, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);

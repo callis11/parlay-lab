@@ -495,6 +495,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
 .tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
 .tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
+.esg{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11px;line-height:1;margin-top:1px;letter-spacing:.3px}.esg.up{color:#3DDC84}.esg.dn{color:#FF7A6B}
 .tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
 .start1{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}.start1 ol{margin:6px 0 4px;padding-left:20px}.start1 li{margin:3px 0}
 .fbk{text-align:center;margin:18px 0 6px;font-size:15px}.fbk a{color:var(--flag);font-weight:700;text-decoration:none}.fbk small{color:var(--muted);font-size:12px}
@@ -620,11 +621,15 @@ select,input,textarea{font-size:max(16px,1em)}
   <h2>Beating the closing line</h2>
   <p class="sub">For every pick we save the price when we first posted it and the last price before its game started. If the line moved toward our pick, the betting market agreed with us. Doing that over and over is the earliest sign of a real edge, long before wins and losses settle down.</p>
   <div id="resCLV"></div>
+  <h2>Edge signs</h2>
+  <p class="sub">Some situations beat the book's price in every replayed season (unders in wind, unders for underdogs, rested players at home…) and some trail it (overs in wind, overs for big underdogs, stars the public loves). Each pick's signs add or take off a few points; ▲ and ▼ show the total. This is how the signs are doing on real picks since Nov 3.</p>
+  <div id="resEdges"></div>
   <h2>FanDuel vs DraftKings</h2>
   <p class="sub">The same pick (same side, same line) at both apps, checked at the same moment before kickoff. A better price doesn't change the chance to hit; it just pays more when it does.</p>
   <div id="resBooks"></div>
   <h2>Game report cards</h2>
   <p class="sub" id="cardsSub">For every game we lock our top-rated picks at kickoff, then grade them from the box score. "Books expected" is how many the sportsbooks' own prices said should hit; beating that is what counts.</p>
+  <div id="cardFilt" class="row" style="margin:0 0 8px"></div>
   <div id="resCards"></div>
   <h2>By section</h2>
   <div id="resGroups"></div>
@@ -1044,7 +1049,9 @@ function genPool(cx){
   if(G.kind!=="p")gl.forEach(function(g){GTYPES(g).forEach(function(t){var L=gameLeg(g,t);if(only&&(!cardId||g.id===cardId)&&legTeam(L)!==only)return;if(L.p>=st.lo&&L.a>=Math.min(st.amin,-600)&&L.a<=st.amax)out.push({leg:L,who:"G|"+g.id+"|"+(t.charAt(0)==="1"?"1h":t==="ov"||t==="un"?"tot":"side"),ev:g.id,pe:L.p,info:Engine.legInfo(L,gmeta(g.id))})})});
   var mk=cx==="ply"&&G.mk&&G.mk.length?G.mk:null,ou=cx==="ply"?G.ou||"both":"over";
   if(G.kind!=="g")PROPS.forEach(function(p){if(!ids[p.ev]||!p.healthy)return;if(only&&(!cardId||p.ev===cardId)&&p.team!==only)return;if(mk&&mk.indexOf(p.label)<0)return;p.rungs.forEach(function(r){
-    if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8&&pu>=0.8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
+    // Edge signs (NFL): Safe and Balanced refuse picks whose signs add up to -2 or worse (they trail the book in every replayed season)
+    var bad=function(L){return G.style!=="long"&&L.sg&&Engine.edgeTotal(L.sg)<=-2};
+    if(ou!=="over"&&r.n>=6){var UL=ENG.underLeg(p,r);if(UL&&!bad(UL)&&UL.p>=st.lo&&UL.a>=st.amin&&UL.a<=st.amax){var pu=UL.p;if(UL.since&&UL.since[1]>=8&&pu>=0.8){var su=UL.since[0]/UL.since[1];if(su<pu)pu=pu-0.5*(pu-su)}
       out.push({leg:UL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pu),info:Engine.legInfo(UL,gmeta(p.ev))})}}
     if(ou==="under")return;
     if(r.p===undefined||r.n<6||r.p<st.lo||r.a<st.amin||r.a>st.amax)return;
@@ -1052,7 +1059,7 @@ function genPool(cx){
     var pe=r.p;if(r.since&&r.since[1]>=8&&r.p>=0.8){var sr=r.since[0]/r.since[1];if(sr<r.p)pe=r.p-0.5*(r.p-sr)}
     var T=BT&&BT.teams&&BT.teams[p.team],v=T&&p.opp&&T.pvs&&T.pvs[p.player]&&T.pvs[p.player][p.opp];
     if(v&&v[0]+v[1]>=4&&v[0]/(v[0]+v[1])<0.3&&!p.td)pe-=0.05; // keeps missing against this team
-    var PL=propLeg(p,r);out.push({leg:PL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pe),info:Engine.legInfo(PL,gmeta(p.ev))})})});
+    var PL=propLeg(p,r);if(bad(PL))return;out.push({leg:PL,who:"P|"+p.ev+"|"+p.player,ev:p.ev,p:p,r:r,pe:Math.max(0.01,pe),info:Engine.legInfo(PL,gmeta(p.ev))})})});
   return{pool:out,games:gl};
 }
 // Search for the parlays with the best real chance that land in the style's payout range.
@@ -1351,7 +1358,11 @@ function legStory(l){
       if(pp.injury)S.matchup.push("Injury report: "+pp.injury);else if(pp.missedLast)S.matchup.push("Missed his team's last game")}
     var w=r&&r.n?Math.round(100*r.n/(r.n+15)):0;
     S.how.push(w?"His record gets "+w+"% of the weight and the book's price the rest (more games, more weight on him)":"Book's price only");
-    if(l.p0!=null&&Math.abs(l.p0-l.p)>=0.01)S.how.push("Graded results for picks like this tuned it from "+pct(l.p0)+" to "+pct(l.p));
+    var pcal=l.pc!=null?l.pc:l.p;
+    if(l.p0!=null&&Math.abs(l.p0-pcal)>=0.01)S.how.push("Graded results for picks like this tuned it from "+pct(l.p0)+" to "+pct(pcal));
+    if(l.sg&&l.sg.length){var tot=Engine.edgeTotal(l.sg);l.sg.forEach(function(e){S.how.push((e.pts>0?"+":"\u2212")+Math.abs(e.pts)+(Math.abs(e.pts)===1?" pt \u00b7 ":" pts \u00b7 ")+e.t)});
+      S.how.push("Edge signs: "+(tot>0?"+":tot<0?"\u2212":"")+Math.abs(tot)+" pts in all"+(Math.abs(tot)>=Engine.EDGE_CAP?" (the most we allow)":"")+", "+pct(pcal)+" \u2192 "+pct(l.p)+". Each sign beat or trailed the book's price in every replayed season, 2023\u201325.")}
+    else if(l.kind==="p"&&SPORT==="nfl")S.how.push("Edge signs: none apply to this pick");
   }else{
     var t0=l.t.replace(/^1/,""),h1=l.t.charAt(0)==="1",side=/^(ml|sp)/.test(t0),tm=side?(/-a$/.test(t0)?m.away:m.home):null,isH=tm&&tm===m.home,op=side?(isH?m.away:m.home):null;
     var teams=side?[tm]:[m.away,m.home];
@@ -1686,6 +1697,8 @@ function buildRows(){
   rows.sort(BLD.sort==="a"?function(a,b){return b.leg.a-a.leg.a}:function(a,b){return(b.leg.p||0)-(a.leg.p||0)});
   return rows;
 }
+// Edge-sign badge: ▲+3 / ▼2 = how many points the signs added to or took off this pick's %
+function esgBadge(L){var t=L&&L.sg&&L.sg.length?Engine.edgeTotal(L.sg):0;if(!t)return"";return'<span class="esg '+(t>0?"up":"dn")+'" title="Edge signs">'+(t>0?"\u25b2+":"\u25bc\u2212")+Math.abs(t)+'</span>'}
 function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===L.line))}
 // ---------- Top list (Build tab): everything worth picking on one scrolling screen ----------
 // Most likely player picks (best line per player that still pays), best single bets (main lines, either side),
@@ -1710,7 +1723,7 @@ function topListHTML(){
     var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
       '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
-      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%</span></div></div>'}
+      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl">'+list.slice(0,k).map(row).join("")+'</div>'+
@@ -1790,6 +1803,24 @@ function renderCLV(){
       '<tr><td>When we beat the close</td><td class="r">picks hit '+gr(function(x){return x.clv>0.004})+'</td></tr><tr><td>When it moved against us</td><td class="r">picks hit '+gr(function(x){return x.clv<-0.004})+'</td></tr></table></div>'+
     (top.length?'<p class="sub" style="margin-top:8px">Biggest moves our way: '+top.map(function(x){return"<b>"+esc(x.n)+"</b> "+esc(clvTxt(x))}).join(" · ")+'</p>':"")+
     '<p class="sub">"Points of chance" is the change in the price\'s implied chance, e.g. −110 (52%) closing at −130 (57%) is +4.9. A moved spread or total counts about 3 points of chance per point of line (2 for totals).</p>';
+}
+// Edge signs scoreboard: graded player picks split by the signs' total (es, saved by picks.js from Nov 3, 2026)
+function edgeLegs(){
+  var out=[],seen={},now=Date.now();
+  function add(x){var k=x.n+"|"+x.time;if(seen[k])return;seen[k]=1;out.push(x)}
+  if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(id){var s=PICKS.slips[id];s.legs.forEach(function(l){if(l.kind!=="p"||l.es===undefined||!(l.result==="won"||l.result==="lost"))return;add({n:l.n,es:l.es,p:l.p,won:l.result==="won",time:l.time})})});
+  if(CARDS&&CARDS.cards)Object.keys(CARDS.cards).forEach(function(id){var c=CARDS.cards[id];if(+new Date(c.t)>now)return;
+    ["pieces","straights","tds"].forEach(function(k){if(c[k])c[k].legs.forEach(function(l){if(l.es===undefined||!(l.result==="won"||l.result==="lost"))return;add({n:l.nm,es:l.es,p:l.p,won:l.result==="won",time:c.t})})})});
+  return out;
+}
+function renderEdges(){
+  var el=$("resEdges");if(!el)return;var L=edgeLegs();
+  if(!L.length){el.innerHTML='<p class="empty">Fills in after this week\'s games are graded. In the replay (2023–25, safe range): picks with ▲2 or more hit 78% against a book price of 74%; picks with ▼2 or worse hit 72%.</p>';return}
+  var row=function(nm,f){var a=L.filter(f),w=a.filter(function(x){return x.won}).length,e=a.reduce(function(s,x){return s+(x.p||0)},0);if(!a.length)return'<tr><td>'+nm+'</td><td class="r">—</td></tr>';
+    return'<tr><td>'+nm+'</td><td class="r">hit '+Math.round(100*w/a.length)+'% <small>('+w+' of '+a.length+')</small><br><small>we said '+Math.round(100*e/a.length)+'%</small></td></tr>'};
+  el.innerHTML='<div class="card"><table class="ht">'+row("▲ Good signs (+1 or more)",function(x){return x.es>=1})+row("No signs either way",function(x){return x.es>-1&&x.es<1})+row("▼ Bad signs (−1 or worse)",function(x){return x.es<=-1})+
+    row("▲ 2 or more",function(x){return x.es>=2})+row("▼ 2 or worse (Safe and Balanced skip these)",function(x){return x.es<=-2})+'</table></div>'+
+    '<p class="sub">If the signs are real, ▲ picks should keep hitting above what we said and ▼ picks below. A few weeks is noise; a season is evidence.</p>';
 }
 // FanDuel vs DraftKings on the same picks (calibration.json "books", written by picks.js)
 function renderBooks(){
@@ -2217,9 +2248,9 @@ async function shotPasteBtn(mode){
   catch(e){toast("Couldn't read the clipboard here. Open \"Or paste\" below and paste into the box, or use Pick screenshots.",true)}}
 document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
   var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
-document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
+document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="cardTeam"){CARDTEAM=e.target.value;CARDSHOW=8;renderCards();return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
 function renderResults(){
-  renderMyBets();renderBacktest();renderWeek();renderCLV();renderBooks();
+  renderMyBets();renderBacktest();renderWeek();renderCLV();renderEdges();renderBooks();
   if($("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},500);
   var all=PICKS&&PICKS.slips?Object.keys(PICKS.slips).map(function(k){return PICKS.slips[k]}):[];
   var done=all.filter(function(s){return s.status==="won"||s.status==="lost"||s.status==="push"});
@@ -2275,14 +2306,21 @@ function fdButton(legs){
 var CARDSHOW=8;
 function cardList(){return CARDS&&CARDS.cards?Object.keys(CARDS.cards).map(function(k){return CARDS.cards[k]}).filter(function(c){return +new Date(c.t)<=Date.now()}).sort(function(a,b){return new Date(b.t)-new Date(a.t)}):[]}
 function secLabel(k){return{pieces:"Safe picks",straights:"Straights",tds:"Anytime TD"}[k]}
+var CARDTEAM="";
 function renderCards(){
   var L=cardList();
+  // Team picker: every team with a report card, A–Z; keeps the choice while the page is open
+  var tm={};L.forEach(function(c){if(c.aa)tm[c.aa]=c.away;if(c.ha)tm[c.ha]=c.home});
+  var keys=Object.keys(tm).sort(function(a,b){return String(tm[a]).replace(/^#\d+\s+/,"").localeCompare(String(tm[b]).replace(/^#\d+\s+/,""))});
+  if(CARDTEAM&&!tm[CARDTEAM])CARDTEAM="";
+  $("cardFilt").innerHTML=keys.length?'<label class="sub" style="margin:0">Team <select id="cardTeam" class="sel"><option value="">All teams ('+L.length+' games)</option>'+keys.map(function(k){return'<option value="'+esc(k)+'"'+(k===CARDTEAM?" selected":"")+'>'+esc(tm[k])+'</option>'}).join("")+'</select></label>':"";
+  if(CARDTEAM)L=L.filter(function(c){return c.aa===CARDTEAM||c.ha===CARDTEAM});
   if(!L.length){$("resCards").innerHTML='<p class="empty">The first report cards lock when '+(SPORT==="nba"?"tonight's":"this week's")+' games tip off and get graded after the box scores post.</p>';return}
   var mark={won:"✓",lost:"✗",push:"–",void:"–",pending:"…"};
   $("resCards").innerHTML=L.slice(0,CARDSHOW).map(function(c,i){
     var secs=["pieces","straights","tds"].filter(function(k){return c[k]&&c[k].legs.length});
     var tally=secs.map(function(k){var x=c[k],h=x.hit||0,n=x.graded||0;return'<div><span class="num">'+(c.status==="open"?"–":h+'<small style="font-size:15px;color:var(--muted)">/'+(n||x.legs.length)+'</small>')+'</span><span>'+secLabel(k)+'<br>books expected '+x.bookExp.toFixed(1)+'</span></div>'}).join("");
-    var lists=secs.map(function(k){return'<details><summary>'+secLabel(k)+' ('+c[k].legs.length+')</summary><ul class="rl">'+c[k].legs.map(function(l){var r=l.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(l.nm)+(l.actual!==undefined&&!l.td?' <small style="color:var(--muted)">('+l.actual+')</small>':"")+(r==="void"?' <small style="color:var(--muted)">(didn\'t play)</small>':"")+(l.a1!==undefined&&l.a1!==l.a?' <small class="clv '+(impA(l.a)>impA(l.a1)?"up":"dn")+'">'+(impA(l.a)>impA(l.a1)?"▲":"▼")+" posted at "+fmt(l.a1)+'</small>':"")+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul></details>'}).join("");
+    var lists=secs.map(function(k){return'<details><summary>'+secLabel(k)+' ('+c[k].legs.length+')</summary><ul class="rl">'+c[k].legs.map(function(l){var r=l.result||"pending";return'<li><span><span class="mk">'+mark[r]+'</span>'+esc(l.nm)+(l.es?' <small class="clv '+(l.es>0?"up":"dn")+'">'+(l.es>0?"▲+":"▼−")+Math.abs(l.es)+'</small>':"")+(l.actual!==undefined&&!l.td?' <small style="color:var(--muted)">('+l.actual+')</small>':"")+(r==="void"?' <small style="color:var(--muted)">(didn\'t play)</small>':"")+(l.a1!==undefined&&l.a1!==l.a?' <small class="clv '+(impA(l.a)>impA(l.a1)?"up":"dn")+'">'+(impA(l.a)>impA(l.a1)?"▲":"▼")+" posted at "+fmt(l.a1)+'</small>':"")+'</span><span>'+fmt(l.a)+'</span></li>'}).join("")+'</ul></details>'}).join("");
     return'<div class="card rc"><h3><span>'+esc(c.away)+' <span>at</span> '+esc(c.home)+' <span>· '+when(c.t)+'</span></span><span class="badge '+(c.status==="graded"?"won":"")+'">'+(c.status==="graded"?"Final":"Live")+'</span></h3><div class="tally">'+tally+'</div>'+lists+
       (c.status==="graded"?'<p style="margin:10px 0 0"><button class="btn" data-share="'+esc(c.ev)+'">Share image</button></p>':"")+'</div>'}).join("")+
     (L.length>CARDSHOW?'<button class="more" id="moreCards">Show more games</button>':"");

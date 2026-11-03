@@ -196,6 +196,13 @@ async function buildData(odds, ctx) {
     return { at: odds.fetchedAt, spread: sp ? sp.point : null, total: tt ? tt.point : null, mlH: mh ? mh.price : null, mlA: ma ? ma.price : null };
   }
 
+  // ---------- edge signs (see HANDOFF "Signal study"): team pass rate over its last 3 games, days since each team's last game ----------
+  const teamPass = {}; { const tg = {};
+    statsNow.filter(r => r.season_type === "REG").forEach(r => { const t = (tg[r.team] = tg[r.team] || {})[r.game_id] = tg[r.team][r.game_id] || { w: +r.week, att: 0, car: 0 }; t.att += +r.attempts || 0; t.car += +r.carries || 0; });
+    for (const t in tg) { const L = Object.values(tg[t]).sort((a, b) => a.w - b.w).slice(-3), att = L.reduce((a, b) => a + b.att, 0), car = L.reduce((a, b) => a + b.car, 0); if (att + car) teamPass[t] = +(att / (att + car)).toFixed(3); } }
+  function restDays(team, iso) { const t = +new Date(iso), prev = sched.filter(g => +g.season === SEASON && g.game_type === "REG" && (g.home_team === team || g.away_team === team) && +new Date(g.gameday + "T17:00:00Z") < t - 12 * 36e5)
+    .map(g => +new Date(g.gameday + "T17:00:00Z")).sort((a, b) => b - a)[0]; return prev ? Math.round((t - prev) / 864e5) : null; }
+
   // ---------- games ----------
   const games = {}; const props = [];
   for (const ev of odds.lines || []) {
@@ -209,7 +216,8 @@ async function buildData(odds, ctx) {
       rec: { [away]: teamRecord(away), [home]: teamRecord(home) },
       div: row ? row.div_game === "1" : false,
       weather: await weather(home, ev.commence_time, row ? row.roof : null, row ? row.location === "Neutral" : false, row),
-      stadium: row ? row.stadium : null
+      stadium: row ? row.stadium : null,
+      rest: { [away]: restDays(away, ev.commence_time), [home]: restDays(home, ev.commence_time) }
     };
     const now = snap(ev);
     if (now) { if (!hist0[ev.id]) hist0[ev.id] = { open: now, t: ev.commence_time }; games[ev.id].open = hist0[ev.id].open; games[ev.id].now = now; }
@@ -256,8 +264,10 @@ async function buildData(odds, ctx) {
         }
         return out;
       });
+      const curN = (byPlayer[norm(L.player)] || []).filter(r => +r.season === SEASON).length;
+      const tg3 = hist.slice(-3).map(r => +r.target_share).filter(x => !isNaN(x)), tgt3 = tg3.length ? +(tg3.reduce((a, b) => a + b, 0) / tg3.length).toFixed(3) : null;
       props.push({
-        event: ev.id, player: L.player, team, opp, oppF, windF, injury, missedLast, label: L.label, td: L.td, ladder,
+        event: ev.id, player: L.player, team, opp, oppF, windF, injury, missedLast, label: L.label, td: L.td, ladder, gp: curN, tgt3, pass3: teamPass[team] || null,
         recent: raw.slice(-5), avg: raw.length ? +(raw.reduce((a, b) => a + b, 0) / raw.length).toFixed(1) : null
       });
     }
