@@ -43,11 +43,11 @@
   // ---------- send picks to a sportsbook's bet slip ----------
   // Each leg carries links from The Odds API ({book: url}). FanDuel and DraftKings links can be combined
   // into one parlay link; BetMGM and BetRivers get one link per leg.
-  function fixUrl(u) { return u.replace(/\{state\}/g, "mi").replace("{pickType}", "single").replace("{wagerAmount}", ""); }
-  function betslipLink(legs, book) {
+  function fixUrl(u, stake) { return u.replace(/\{state\}/g, "mi").replace("{pickType}", "single").replace("{wagerAmount}", stake > 0 ? String(stake) : ""); }
+  function betslipLink(legs, book, stake) {
     var urls = legs.map(function (l) { return l.links && l.links[book]; }).filter(Boolean);
     if (!urls.length) return null;
-    if (urls.length === 1) return { url: fixUrl(urls[0]), n: 1, combined: true };
+    if (urls.length === 1) return { url: fixUrl(urls[0], stake), n: 1, combined: true };
     if (book === "fanduel") {
       var ps = urls.map(function (u) { var q = u.split("?")[1] || "", m = /marketId=([^&]+)/.exec(q), s = /selectionId=([^&]+)/.exec(q); return m && s ? { m: m[1], s: s[1] } : null; }).filter(Boolean);
       return { url: urls[0].split("?")[0] + "?" + ps.map(function (x, i) { return "marketId[" + i + "]=" + x.m + "&selectionId[" + i + "]=" + x.s; }).join("&"), n: ps.length, combined: true };

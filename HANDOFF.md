@@ -295,3 +295,8 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Which other "All/Any" filters to rename (All markets, All divisions/conferences, All teams, All types, Any picks, All graded and live): he hasn't chosen, don't change without his pick.
 - Possible: Save placed queue bets to My bets automatically; bundle mode for Players/Team generators; grade a bundle on Results as one unit; smarter one-game bundles; a "most likely range" line.
 - Same-game correlation across bets is ignored in the bundle math (disclosed on screen).
+
+## Slip = bet cards (Nov 3, late) — one style only
+- The bottom slip is now ONE swipe carousel (`qPanel()`): first card **Your slip · building** (picks with ⇄ Change and ✕ per pick, corner ✕ clears the slip), then **Queued bet n of N** cards. Every card: picks, odds, our %, "$X wins", **Bet amount** chips $1/5/10/15/20/50/100 (`data-qamt`; draft uses `#stake`, queued bets use `q.stake`), Open in <app> buttons, **✓ Bet added** (saves to My bets via `betSave()` with the app last opened, then clears/removes the card).
+- The old long slip view (estimate, shop prices, boost, picks list, Save my bet receipt flow) is still there but collapsed under **ⓘ Prices, boost & save this bet** (`#slipMore`).
+- Amounts do NOT transfer to FanDuel/DraftKings: their links only carry the picks. Only BetRivers single-pick links have a `{wagerAmount}` slot, which `Engine.betslipLink(legs,book,stake)` now fills. Cards say "type $X in your app".
