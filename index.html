@@ -1234,7 +1234,7 @@ function renderGenOut(cx){
   var now=Date.now();
   el.innerHTML='<div class="pgrid">'+last.map(function(it,i){
     var LL=it.legs.map(function(x){return x.leg}),p={n:(i?"Earlier · ":"")+STYLE[it.set.style].name+" bet",d:(it.auto?"↪ "+it.auto+" ":"")+(it.chg?"⇄ You changed "+it.chg+" pick"+(it.chg>1?"s":"")+". The % and payout are for your version. ":"")+(it.note||""),l:LL},
-      x=slipInfo(p,true);x.sig="";x.gen={cx:cx,i:i};x.open=!i;if(x.ch!==null)it.ch=x.ch;
+      x=slipInfo(p,true);x.sig="";x.gen={cx:cx,i:i};x.open=false;if(x.ch!==null)it.ch=x.ch;
     return slipCardW(x,"gen"+cx+i)}).join("")+'</div>';
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
