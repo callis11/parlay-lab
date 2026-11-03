@@ -699,7 +699,7 @@ body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body
       <button class="btn flag" id="placeSave" style="margin-top:8px">Save to My bets</button>
       <p class="sub hlp" style="margin:6px 0 0">Saved only on this phone, so nobody else sees it. Uses the stake above.</p></div>
     </details>
-    <button class="btn" id="slipClose" style="width:100%;margin:10px 0 4px">✕ Close slip</button>
+    <div class="bqb" style="display:flex;gap:8px;margin:12px 0 4px"><button class="btn" id="clearAll" style="flex:1">Clear all</button><button class="btn" id="slipClose" style="flex:1">✕ Close slip</button></div>
   </div>
   <button class="qchip" id="qChip" hidden></button>
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
@@ -2735,6 +2735,10 @@ document.addEventListener("click",function(e){
   else if(t.dataset.r){delete SLIP[t.dataset.r];if(!Object.keys(SLIP).length)closeSlip();renderSlip()}
   else if(t.id==="clear"){SLIP={};SENT=null;sentSave();placeHide();SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
   else if(t.id==="slipClose"){closeSlip();renderSlip()}
+  else if(t.id==="clearAll"){
+    var any=Object.keys(SLIP).length||QUEUE.length;if(!any){closeSlip();return}
+    if(!t.classList.contains("sure")){t.classList.add("sure");t.textContent="Tap again to clear";setTimeout(function(){if(t.isConnected){t.classList.remove("sure");t.textContent="Clear all"}},3000);return}
+    SLIP={};SENT=null;sentSave();SHOT.slipMeta=null;QUEUE=[];QLAST=-1;qSave();closeSlip();renderSlip();t.classList.remove("sure");t.textContent="Clear all";toast("Cleared your slip and all queued bets.")}
   else if(t.id==="placeOpen"){placeShow()}
   else if(t.id==="shotPaste"){shotPasteBtn()}
   else if(t.id==="placePaste"){shotPasteBtn("slip")}
@@ -2956,19 +2960,21 @@ function qPanel(barOnly){
     cards.push('<div class="qc first"><button class="qx" data-qslipclear="1" aria-label="Clear this slip">✕</button><h4>Your slip · building</h4>'+
       Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'}).join("")+
       '<div class="qbig"><b>'+(sg?"~":"")+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins '+(sg?"~":"")+'$'+usd(stake*(d-1))+'</span></div>'+
-      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b>'+(sg?' · same-game: your app sets its own price':'')+'</div>':'')+
-      qWT("s",stake,d)+qAmt("s")+qNote(stake)+qPrice(legs,d,ch,stake,sg)+(legs.length>1?'<button class="qsing" data-qsingles="s">+ Also bet each pick alone ('+legs.length+' singles)</button>':'')+
+      qWT("s",stake,d)+qAmt("s")+
       (started?'<p class="warn" style="margin:0">A game in this slip has started. Remove that pick.</p>':qLinks(legs,stake,'data-sendbook="{bk}"'))+
-      '<div class="bqb"><button class="btn flag" data-qa="ps"'+(started?" disabled":"")+'>✓ Bet added</button></div></div>')}
+      '<div class="bqb"><button class="btn flag" data-qa="ps"'+(started?" disabled":"")+'>✓ Bet added</button></div>'+
+      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b>'+(sg?' · same-game: your app sets its own price':'')+'</div>':'')+
+      qNote(stake)+qPrice(legs,d,ch,stake,sg)+(legs.length>1?'<button class="qsing" data-qsingles="s">+ Also bet each pick alone ('+legs.length+' singles)</button>':'')+'</div>')}
   left.forEach(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),d=1,stake=q.stake||USUAL,ch=null;
     q.legs.forEach(function(l){d*=dec(l.a)});try{ch=slipChance(q.legs,"").ch}catch(e){}AMT["q"+i]=stake;
     cards.push('<div class="qc'+(!nSlip&&pos===0?" first":"")+'"><button class="qx" data-qa="r" data-i="'+i+'" aria-label="Delete this bet">✕</button><h4>Bet '+(pos+1)+' of '+left.length+(q.n&&!/^Bundle bet/.test(q.n)?' · '+esc(q.n):'')+'</h4>'+
       q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'}).join("")+
       '<div class="qbig"><b>'+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins $'+usd(stake*(d-1))+'</span></div>'+
-      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b></div>':'')+
-      qWT("q"+i,stake,d)+qAmt("q"+i)+qNote(stake)+qPrice(q.legs,d,ch,stake,(function(){var e={},g=false;q.legs.forEach(function(l){if(e[l.ev])g=true;e[l.ev]=1});return g})())+(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Also bet each pick alone ('+q.legs.length+' singles)</button>':'')+
+      qWT("q"+i,stake,d)+qAmt("q"+i)+
       (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Delete it.</p>':qLinks(q.legs,stake,'data-qbook="{bk}" data-i="'+i+'"'))+
-      '<div class="bqb"><button class="btn flag" data-qa="p" data-i="'+i+'"'+(started?" disabled":"")+'>✓ Bet added</button></div></div>')});
+      '<div class="bqb"><button class="btn flag" data-qa="p" data-i="'+i+'"'+(started?" disabled":"")+'>✓ Bet added</button></div>'+
+      (ch!=null?'<div class="sub" style="margin:0">Our estimate: <b style="color:'+pctColor(ch)+'">'+pct(ch)+' to hit</b></div>':'')+
+      qNote(stake)+qPrice(q.legs,d,ch,stake,(function(){var e={},g=false;q.legs.forEach(function(l){if(e[l.ev])g=true;e[l.ev]=1});return g})())+(q.legs.length>1?'<button class="qsing" data-qsingles="q'+i+'">+ Also bet each pick alone ('+q.legs.length+' singles)</button>':'')+'</div>')});
   if(cards.length)h+='<div class="qtrack">'+cards.join("")+'</div>';
   else h+='<p class="sub" style="margin:0 0 6px">'+(placed?'All placed. Nice.':'Queue is empty.')+'</p>';
   var foot=[];if(placed)foot.push('✓ '+placed+' placed <button class="lnk" data-qa="c" style="padding:0 0 0 6px">Clear</button>');if(QLAST>=0&&QUEUE[QLAST]&&QUEUE[QLAST].st!==0)foot.push('<button class="lnk" data-qa="u" data-i="'+QLAST+'" style="padding:0">Undo last</button>');
@@ -3099,7 +3105,7 @@ function planGo(){
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
   try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
   genUI("par");setTimeout(function(){var go=$("genGo_par");if(go&&go.scrollIntoView)go.scrollIntoView({block:"start"})},0);if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
-usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);$("sum").addEventListener("click",function(){setTimeout(qPanel,0)});renderSlip();
+usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);$("sum").addEventListener("click",function(){setTimeout(function(){qPanel();if($("panel").classList.contains("open"))$("panel").scrollTop=0},0)});renderSlip();
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
