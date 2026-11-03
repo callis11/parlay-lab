@@ -243,6 +243,12 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - `picks.js` writes `<sport>/finals.json` (NFL: `finals.json`, added to refresh.yml's git add; college/NBA folders are added with `*.json`): for every gradebook game that's final, `hs`/`as` (+ `h1h`/`h1a`), and `props["Player|Label"]` = the graded stat (null = didn't play). Kept 45 days. Only games that had a gradebook entry (odds before kickoff) get in.
 - Site loads it as `FINALS`; `legResult()` falls back to `finalResult(l)` (moneyline, spread, total, 1H, props over/under). Saved legs now keep `ev`, `kind`, `t`, `pt` or `player`/`label`/`line`/`side` (`legKeep()`); old legs without them are matched by leg name. Won profit uses the screenshot payout (`pay`) when present. Manual Mark won/lost still overrides.
 
+## Zero-stat players grade as 0, not void (Nov 3)
+- Bug: a player with no row in nflverse weekly stats was always voided ("didn't play"), but TEs/RBs who played with no catches or carries (Sam Roush 37 snaps, Emanuel Wilson special teams only) have no stat row. Books grade those as 0.
+- Fix in `picks.js` `gradeLeg`: NFL also loads `snap_counts_<year>.csv`; a player with any offense, defense or special-teams snaps and no stat row grades as 0 (over = lost, under = won, anytime TD = lost). No snaps = true DNP = void (Uchenna Nwosu). If a game has no snap data yet, the leg stays pending instead of voiding. NBA and college unchanged.
+- Regraded week 8 by hand: `finals.json` (16 props, null to 0), `cards.json` (12 legs: 10 lost, Otton and Carter unders won), `picks.json` (4 legs lost; Mon Night High Floor and Shootout changed won to lost).
+- Not added to `graded-legs.json` calibration: the 16 legs' pre-calibration estimate (`p0`) wasn't saved on cards, and the calibrated `p` would be double-counted. Future legs include zeros automatically.
+
 ## Automations already running (don't duplicate)
 - **Monday 7:35 AM ET email:** "ParlayLabs Monday review" scheduled task. Grades the weekend locally (no push, no credits), breaks results down by market, % bucket, price, situation, tags and closing line, and suggests model and site changes with "change now / watch / leave". Andrew brings the ones he wants to a chat.
 - **Tuesday 1:13 PM ET email:** "ParlayLabs weekly report" scheduled task. Last week, season to date, this week's top parlays.
