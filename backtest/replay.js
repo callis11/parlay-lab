@@ -39,7 +39,13 @@ const imp = a => 1 / dec(a);
 (async () => {
   const sched = await getCSV(`${NFLVERSE}/schedules/games.csv`);
   const STUDY = process.env.STUDY === "1", ST = []; // STUDY=1: test the "rarely clears this line" note, write nothing
-  const seasons = [2021, 2022, 2023, 2024, 2025].filter(s => load("lines-" + s) && (!STUDY || load("props-" + s)));
+  // STUDY=2: the signal study. Writes one row per site-type pick (props and game lines) with everything we knew before
+  // kickoff (history, snaps, targets, opponent, weather, team situation, price) to backtest/study-rows.json.gz, then stop.
+  // Read it with: node backtest/study.js
+  const STUDY2 = process.env.STUDY === "2", ROWS = [];
+  const nvp = (x, y) => { const px = imp(x), py = imp(y); return px / (px + py); };
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const seasons = [2021, 2022, 2023, 2024, 2025].filter(s => load("lines-" + s) && (!(STUDY || STUDY2) || load("props-" + s)));
   const R = { builtAt: new Date().toISOString(), seasons: {}, legs: { byCat: {}, byP: {}, byMarket: {} }, slips: {}, teamParlays: {}, cards: { pieces: [0, 0, 0, 0], straights: [0, 0, 0, 0], tds: [0, 0, 0, 0] }, games: { ats: {}, fav: {} } };
   const teams = {}; // team -> stats for the Teams page
   const graded = [];
@@ -57,6 +63,24 @@ const imp = a => 1 / dec(a);
     let long = null;
     if (STUDY) { const prev2 = await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${season - 2}.csv`); long = {};
       [].concat(prev2, statsPrev, statsNow).forEach(r => { if (r.season_type && r.season_type !== "REG") return; (long[norm(r.player_display_name)] = long[norm(r.player_display_name)] || []).push(r); }); }
+    // STUDY=2 extras: snap counts (PFR via nflverse), team pace / pass rate, and every player's weekly rows in order
+    let SN = null, TS = null, PH = null, REST = null;
+    if (STUDY2) {
+      const [sn1, sn0, ts1, ts0] = await Promise.all([
+        getCSV(`${NFLVERSE}/snap_counts/snap_counts_${season}.csv`), getCSV(`${NFLVERSE}/snap_counts/snap_counts_${season - 1}.csv`),
+        getCSV(`${NFLVERSE}/stats_team/stats_team_week_${season}.csv`), getCSV(`${NFLVERSE}/stats_team/stats_team_week_${season - 1}.csv`)]);
+      SN = {}; [].concat(sn0, sn1).forEach(r => { if (r.game_type !== "REG") return; (SN[norm(r.player)] = SN[norm(r.player)] || []).push({ s: +r.season, w: +r.week, pct: +r.offense_pct, team: r.team }); });
+      for (const k in SN) SN[k].sort((a, b) => (a.s - b.s) || (a.w - b.w));
+      TS = {}; [].concat(ts0, ts1).forEach(r => { if (r.season_type !== "REG") return; const att = +r.attempts || 0, car = +r.carries || 0;
+        (TS[r.team] = TS[r.team] || []).push({ s: +r.season, w: +r.week, plays: att + car + (+r.sacks_suffered || 0), pass: att + car ? att / (att + car) : null, pts: null }); });
+      for (const k in TS) TS[k].sort((a, b) => (a.s - b.s) || (a.w - b.w));
+      PH = {}; [].concat(statsPrev, statsNow).forEach(r => { if (r.season_type !== "REG") return; (PH[norm(r.player_display_name)] = PH[norm(r.player_display_name)] || []).push(r); });
+      for (const k in PH) PH[k].sort((a, b) => (+a.season - +b.season) || (+a.week - +b.week));
+      // days since each team's previous game (bye = 13+)
+      REST = {}; const tg = {}; sched.filter(g => +g.season === season && g.game_type === "REG").forEach(g => { [g.away_team, g.home_team].forEach(t => (tg[t] = tg[t] || []).push({ w: +g.week, d: new Date(g.gameday + "T12:00:00Z") })); });
+      for (const t in tg) { tg[t].sort((a, b) => a.w - b.w); tg[t].forEach((g, i) => { REST[t + "|" + g.w] = i ? Math.round((g.d - tg[t][i - 1].d) / 864e5) : 7; }); }
+    }
+    const before = (arr, wk, key) => { const sk = key || "season", wkk = key ? "w" : "week"; return (arr || []).filter(x => (+x[sk] < season) || (+x[sk] === season && +x[wkk] < wk)); };
     const byGid = {}; statsNow.forEach(r => { (byGid[r.game_id] = byGid[r.game_id] || []).push(r); });
     const games = {}; sched.forEach(g => { games[g.game_id] = g; });
     // group every saved kickoff into its NFL week
@@ -78,6 +102,7 @@ const imp = a => 1 / dec(a);
       const E = Engine.make(odds, data, BOOK, now, Object.assign({}, Engine.OPTS.nfl, { calib: CAL }));
       S.weeks++; S.games += W.length; S.propGames += odds.props.length;
       const meta = id => { const m = data.games[id] || {}; return { gid: m.gid, away: m.away, home: m.home }; };
+      const rawMap = {}; if (STUDY2) (data.props || []).forEach(p => { rawMap[p.event + "|" + p.player + "|" + p.label] = p; });
 
       const perGame = {}; // ev -> [{info, won}]
       const pg = (ev, info, won) => (perGame[ev] = perGame[ev] || []).push({ info, won });
@@ -88,6 +113,15 @@ const imp = a => 1 / dec(a);
           const L = g.legs[t], leg = { kind: "g", t, pt: L.pt, a: L.a, p: g.p0[t] };
           const res = grade(leg, G0); if (res !== "won" && res !== "lost") return;
           const won = res === "won", cat = Engine.category(leg);
+          if (STUDY2) { const other = { "ml-a": "ml-h", "ml-h": "ml-a", "sp-a": "sp-h", "sp-h": "sp-a", "ov": "un", "un": "ov" }[t], O = g.legs[other];
+            const W = (data.games[g.id] || {}).weather || {}, side = /-a$/.test(t) ? m.away : /-h$/.test(t) ? m.home : null, oppT = side === m.away ? m.home : m.away;
+            const pace = (tm, k) => mean(before(TS && TS[tm], +wk, "s").slice(-3).map(x => x[k]).filter(x => x != null));
+            ROWS.push({ k: "g", s: season, wk: +wk, t, pt: L.pt, a: L.a, nv: O ? +nvp(L.a, O.a).toFixed(4) : null, bp: leg.p, won: won ? 1 : 0,
+              home: side ? (side === m.home ? 1 : 0) : null, hsp: g.legs["sp-h"].pt, tot: g.legs["ov"].pt, div: (data.games[g.id] || {}).div ? 1 : 0,
+              rest: side ? REST[side + "|" + wk] : null, orest: side ? REST[oppT + "|" + wk] : null, restH: REST[m.home + "|" + wk], restA: REST[m.away + "|" + wk],
+              wind: W.wind == null ? null : W.wind, dome: W.roof === "dome" ? 1 : 0, temp: W.temp == null ? null : W.temp,
+              pace: side ? pace(side, "plays") : null, opace: side ? pace(oppT, "plays") : null, paceH: pace(m.home, "plays"), paceA: pace(m.away, "plays"),
+              passH: pace(m.home, "pass"), passA: pace(m.away, "pass") }); }
           add(R.legs.byCat, cat, won, L.a, leg.p); add(R.legs.byMarket, cat.split("|")[0], won, L.a, leg.p);
           if (leg.p !== undefined) add(R.legs.byP, pBucket(leg.p), won, L.a, leg.p);
           graded.push([cat, +(leg.p || 0).toFixed(3), won ? 1 : 0, first]);
@@ -129,6 +163,33 @@ const imp = a => 1 / dec(a);
               const vals = rows0.map(x => p.td ? (+x.rushing_tds || 0) + (+x.receiving_tds || 0) : (Engine.NFL_STAT[p.label] ? Engine.NFL_STAT[p.label](x) : undefined)).filter(v => v !== undefined && !isNaN(v));
               const hit = vals.filter(v => sd.side === "under" ? v < r.line : p.td ? v > 0 : v > r.line).length;
               if (vals.length >= 8) ST.push([sd.p, won ? 1 : 0, hit / vals.length, sd.a, p.healthy ? 1 : 0, sd.side]); }
+            if (STUDY2) {
+              const rp = rawMap[p.ev + "|" + p.player + "|" + p.label], rr = rp && rp.ladder.find(x => x.line === r.line);
+              const stat = p.td ? (x => (+x.rushing_tds || 0) + (+x.receiving_tds || 0)) : Engine.NFL_STAT[p.label];
+              const hrows = before(PH && PH[norm(p.player)], +wk), hv = stat ? hrows.map(stat).filter(v => v !== undefined && !isNaN(v)) : [];
+              const last10 = hv.slice(-10), last3 = hv.slice(-3), avg = mean(last10), avg3 = mean(last3);
+              const sdv = last10.length > 2 ? Math.sqrt(mean(last10.map(v => (v - avg) * (v - avg)))) : null;
+              const cur = hrows.filter(x => +x.season === season), gp = cur.length;
+              const ts = k => mean(hrows.slice(-3).map(x => +x[k]).filter(x => !isNaN(x))), tsS = k => mean(cur.map(x => +x[k]).filter(x => !isNaN(x)));
+              const sn = before(SN && SN[norm(p.player)], +wk, "s"), snC = sn.filter(x => x.s === season);
+              const snL = sn.length ? sn[sn.length - 1].pct : null, sn3 = mean(sn.slice(-3).map(x => x.pct)), snS = mean(snC.map(x => x.pct));
+              const W = (data.games[p.ev] || {}).weather || {}, isHome = p.team === m.home, oppT = isHome ? m.away : m.home;
+              const tsp = isHome ? g.legs["sp-h"].pt : g.legs["sp-a"].pt;
+              const pace = (tm, k) => mean(before(TS && TS[tm], +wk, "s").slice(-3).map(x => x[k]).filter(x => x != null));
+              const over = sd.side === "over";
+              const rate = arr => arr.length ? arr.filter(v => p.td ? v > 0 : over ? v > r.line : v < r.line).length / arr.length : null;
+              ROWS.push({ k: "p", s: season, wk: +wk, player: p.player, team: p.team, ev: p.ev, mkt: p.label, td: p.td ? 1 : 0, side: p.td ? "td" : sd.side, line: r.line, a: sd.a,
+                nv: (!p.td && r.under !== undefined) ? +(over ? nvp(r.a, r.under) : nvp(r.under, r.a)).toFixed(4) : null,
+                bp: sd.p, rp: rr && rr.p !== undefined ? (over || p.td ? rr.p : 1 - rr.p) : null, n: r.n, won: won ? 1 : 0, act: leg.actual,
+                avg, avg3, sdv, gp, h10: rate(last10), h3: rate(last3), since: rate(hv), hn: hv.length,
+                vs: rate(hrows.filter(x => x.opponent_team === oppT).map(stat).filter(v => !isNaN(v))), vsn: hrows.filter(x => x.opponent_team === oppT).length,
+                tgt3: ts("target_share"), tgtS: tsS("target_share"), ay3: ts("air_yards_share"), car3: ts("carries"), att3: ts("attempts"),
+                snL, sn3, snS, snN: sn.length, g50: snC.length ? snC.filter(x => x.pct >= 0.5).length / snC.length : null,
+                oppF: p.oppF, inj: p.injury ? 1 : 0, injT: p.injury || "", missed: p.missedLast ? 1 : 0, healthy: p.healthy ? 1 : 0,
+                home: isHome ? 1 : 0, tsp, tot: g.legs["ov"].pt, rest: REST[p.team + "|" + wk], orest: REST[oppT + "|" + wk],
+                wind: W.wind == null ? null : W.wind, dome: W.roof === "dome" ? 1 : 0, temp: W.temp == null ? null : W.temp,
+                pace: pace(p.team, "plays"), opace: pace(oppT, "plays"), pass: pace(p.team, "pass"), opass: pace(oppT, "pass") });
+            }
             const cat = Engine.category(leg);
             add(R.legs.byCat, cat, won, sd.a, sd.p); add(R.legs.byMarket, cat.split("|")[0], won, sd.a, sd.p); add(R.legs.byP, pBucket(sd.p), won, sd.a, sd.p);
             graded.push([cat, +sd.p.toFixed(3), won ? 1 : 0, first]);
@@ -185,6 +246,7 @@ const imp = a => 1 / dec(a);
   for (const k in R.slips) { R.slips[k].expRaw = R.slips[k].exp; R.slips[k].exp = 0; }
   for (const x of slipLog) { if (x.ch == null) continue; const a = Engine.corrAdj(x.legs, ev => x.metas[ev], corr); R.slips[x.name].exp += Math.min(0.99, x.ch * a.f); }
   if (STUDY) { studyReport(ST); return; }
+  if (STUDY2) { fs.writeFileSync("backtest/study-rows.json.gz", zlib.gzipSync(JSON.stringify(ROWS))); console.log("study rows:", ROWS.length, "-> backtest/study-rows.json.gz (not committed). Next: node backtest/study.js"); return; }
   fs.writeFileSync("backtest/corr.json", JSON.stringify(corr, null, 1));
   // round
   const r2 = o => { for (const k in o) for (const f of ["profit", "exp", "book"]) if (typeof o[k][f] === "number") o[k][f] = +o[k][f].toFixed(2); };
