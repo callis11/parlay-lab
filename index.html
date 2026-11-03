@@ -495,6 +495,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
 .tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
 .tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
+.shop{margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.4}.bestp{color:#3DDC84;font-weight:600}
 .esg{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:11px;line-height:1;margin-top:1px;letter-spacing:.3px}.esg.up{color:#3DDC84}.esg.dn{color:#FF7A6B}
 .tl .tpr{font-size:11px}.tlh{margin:18px 0 2px;font-size:18px}.tlh small{font-size:12px;color:var(--muted);font-weight:500}.tls{margin:0 0 6px;font-size:12.5px}
 .start1{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}.start1 ol{margin:6px 0 4px;padding-left:20px}.start1 li{margin:3px 0}
@@ -788,6 +789,14 @@ function setMyTeam(abbr){
 function build(){ENG=Engine.make(ODDS,DATA,BOOK,Date.now(),Object.assign({},Engine.OPTS[SPORT],{calib:CALIB,upcomingOnly:true}));GAMES=ENG.G;PROPS=ENG.P;BUILT=Date.now()}
 function gkey(g,t){return ENG.gkey(g,t)}
 function gameLeg(g,t){return ENG.gameLeg(g,t)}
+// Best price for this exact pick among the apps the user has (★ › My betting apps); null if we only know one price
+function bestFor(l){var b=null;if(!l||!l.px)return null;MYAPPS.forEach(function(k){var a=l.px[k];if(a===undefined||a===null)return;if(!b||dec(a)>dec(b.a))b={book:k,a:a,name:Engine.BOOK_NAMES[k]||k}});return b}
+function bestDec(l){var b=bestFor(l);return dec(b&&dec(b.a)>dec(l.a)?b.a:l.a)}
+// "Shop the prices" summary for a set of picks: payout if each pick is placed at its best app, grouped by app
+function shopHTML(legs,stake){var d=1,bd=1,by={};legs.forEach(function(l){d*=dec(l.a);var b=bestFor(l),a=b&&dec(b.a)>dec(l.a)?b:{book:BOOK,a:l.a,name:Engine.BOOK_NAMES[BOOK]||BOOK};bd*=dec(a.a);(by[a.name]=by[a.name]||[]).push(shortLeg(l)+" ("+fmt(a.a)+")")});
+  if(bd<=d*1.005)return"";var apps=Object.keys(by);stake=stake||10;
+  return'<div class="shop"><b>Shop the prices:</b> $'+stake.toFixed(0)+' wins <b>$'+(stake*(bd-1)).toFixed(2)+'</b> at the best app for each pick, vs $'+(stake*(d-1)).toFixed(2)+' all at '+esc(Engine.BOOK_NAMES[BOOK]||BOOK)+'.'+(apps.length>1?' '+apps.map(function(k){return'<br>· <b>'+esc(k)+':</b> '+esc(by[k].join(", "))}).join(""):' All picks are best at <b>'+esc(apps[0])+'</b>.')+'</div>'}
+function shortLeg(l){return l.n.replace(/\s+(receiving|rushing|passing)\s+y(ar)?ds/i," $1 yds").replace(/\banytime TD\b/,"TD")}
 function propLeg(p,r){return ENG.propLeg(p,r)}
 function rungName(p,r){return ENG.rungName(p,r)}
 // Plain-English spread: "DET must win by 4+ · MIN can lose by 3 or less (or win)"
@@ -1338,7 +1347,8 @@ function roleLines(R){var a=[];
 function roleChip(R){if(!R)return"";return'<span class="chip'+(R.gp===0||(R.s3!=null&&R.s3<0.4)?" alert":"")+'">'+esc(roleTag(R))+'</span>'}
 function legStory(l){
   var pct=function(x){return Math.round(x*100)+"%"},S={role:[],price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
-  S.price.push("Odds "+fmt(l.a)+(l.best&&l.best.a!==undefined&&dec(l.best.a)>dec(l.a)+1e-9?" (best "+l.best.book+" "+fmt(l.best.a)+")":""));
+  var bb0=bestFor(l);S.price.push("Odds "+fmt(l.a)+(bb0&&dec(bb0.a)>dec(l.a)+1e-9?" (best among your apps: "+bb0.name+" "+fmt(bb0.a)+")":""));
+  if(l.px&&Object.keys(l.px).length>1)S.price.push("At your apps: "+MYAPPS.filter(function(k){return l.px[k]!==undefined}).map(function(k){return Engine.BOOK_NAMES[k]+" "+fmt(l.px[k])}).join(" · "));
   S.price.push("Book's chance "+pct(1/dec(l.a))+(l.p0!=null&&l.kind==="g"?", "+pct(l.p0)+" with its cut removed":""));
   if(l.kind==="p"){
     var pp=pmap()[l.k],r=pp&&pp.rungs.filter(function(x){return x.line===l.line})[0],U=l.side==="under";
@@ -1419,7 +1429,7 @@ function slipWhy(legs,name){
 }
 function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
 function slipCard(x,key){
-  PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=dec(l.best?l.best.a:l.a)});
+  PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
   return'<details class="pc"'+(PST.exp||POPEN===x.sig?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw">'+pctWord(x.ch)+'<br>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
@@ -2359,7 +2369,7 @@ function renderPresetRow(el,list,prefix){
   list=(list||[]).filter(function(p){return p&&!(p.l||[]).some(legStarted)});
   if(!list.length){$(el).innerHTML='<p class="empty">Not enough lines to build these yet.</p>';return}
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
-    var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=dec(l.best?l.best.a:l.a)});
+    var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=bestDec(l)});
     var ch=Engine.chance(p.l),shop=bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"";
     return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">$10 wins '+(sg?"about ":"")+'$'+(10*(d-1)).toFixed(2)+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
@@ -2477,7 +2487,7 @@ function renderSlip(){
       return'<p style="margin:8px 0 0">Our estimate: <b style="color:'+pctColor(c)+'">'+pct(c)+' to hit</b> · '+pctWord(c)+'</p><p class="sub" style="margin:2px 0 0">That\'s our number from stats and history. '+(same?'Some picks share a game, so your app will set its own price for this one: compare there.':(function(){var v=priceVerdict(c,d);return'To break even at this price it has to hit '+pct(1/d)+' of the time (the app\'s own number, with its cut built in). '+(v.k==="good"?'Ours is higher, so the price is in your favor.':v.k==="fair"?'Ours is about the same, so it\'s a fair price.':'<b>Ours is lower, so this loses money over time</b>, like most parlays. Bet it for fun, not as a sure thing.')})())+'</p>'})()+
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn">Every pick must win. One miss loses the whole slip.</p>':"")+
-    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
+    (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' · '+winsOn10(l.a)+' alone</small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· game started, remove it</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
     fdButton(legs);
   $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);

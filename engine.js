@@ -165,12 +165,14 @@
         function nv(x, y) { var px = 1 / dec(x), py = 1 / dec(y); return px / (px + py); }
         // Best price for the same side at the same number across the four books
         function best(mkey, name, pt, mine) {
-          var b = { a: mine, book: bk.title };
+          var px = {}; px[bk.key] = mine; // px = every book's price for this side at this number
+          var b = { a: mine, book: bk.title, px: px };
           e.bookmakers.forEach(function (o) {
             if (BOOKS.indexOf(o.key) < 0) return;
             var m = (o.markets || []).filter(function (x) { return x.key === mkey; })[0]; if (!m) return;
             var oc2 = m.outcomes.filter(function (x) { return x.name === name && (pt === undefined || x.point === pt); })[0];
-            if (oc2 && dec(oc2.price) > dec(b.a)) b = { a: oc2.price, book: o.title };
+            if (!oc2) return; px[o.key] = oc2.price;
+            if (dec(oc2.price) > dec(b.a)) { b.a = oc2.price; b.book = o.title; }
           });
           return b;
         }
@@ -207,7 +209,7 @@
             gg.best[t1] = best(X[2], X[3], X[0].point, X[0].price); gg.links[t1] = fl(X[2], X[3]); } }
       });
     function gkey(g, t) { var h = t.charAt(0) === "1" ? "1" : "", u = t.replace(/^1/, ""); return "G|" + g.id + "|" + h + (u.slice(0, 2) === "sp" ? "sp" : u.slice(0, 2) === "ml" ? "ml" : "tot"); }
-    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], links: g.links[t] }; }
+    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], px: g.best[t] ? g.best[t].px : null, links: g.links[t] }; }
 
     // ---------- props ----------
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
@@ -233,7 +235,7 @@
           ev = pa * dec(a) - 1; fair = pa >= 0.5 ? Math.round(-100 * pa / (1 - pa)) : Math.round(100 * (1 - pa) / pa); }
         var b = { a: a, book: BOOK_NAMES[book] || book };
         BOOKS.forEach(function (k) { var x = r.prices[k]; if (x !== undefined && dec(x) > dec(b.a)) b = { a: x, book: BOOK_NAMES[k] }; });
-        return { line: r.line, a: a, p: pa, p0: p0, pc: pc, sg: sg, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0, pcU: pcU, sgU: sgU };
+        return { line: r.line, a: a, p: pa, p0: p0, pc: pc, sg: sg, hits: r.hits, n: r.n, since: r.since, vs: r.vs, fair: fair, ev: ev, best: b, links: r.links || (r.fd ? { fanduel: r.fd } : null), under: ua, pu: pu, pu0: pu0, pcU: pcU, sgU: sgU, px: r.prices, pxU: r.under || null };
       });
       if (!rungs.length) return;
       P.push({ id: p.event + "|" + p.player + "|" + p.label, ev: p.event, g: g, player: p.player, team: p.team, opp: p.opp, oppF: p.oppF, windF: p.windF, injury: p.injury, missedLast: p.missedLast, healthy: healthy, role: p.role, gp: p.gp, tgt3: p.tgt3, pass3: p.pass3,
@@ -244,8 +246,8 @@
     function rungName(p, r) { return p.player + (p.td ? " anytime TD" : " " + (r.line + 0.5) + "+ " + unit(p.label, r.line + 0.5)); }
     // The under side of a main line (only main lines have an under price)
     function underLeg(p, r) { if (r.under === undefined || r.pu === undefined) return null;
-      return { k: "P|" + p.id + "|u", kind: "p", side: "under", since: r.since ? [r.since[1] - r.since[0], r.since[1]] : r.since, line: r.line, n: p.player + " under " + r.line + " " + unit(p.label, r.line), a: r.under, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: false, p: r.pu, p0: r.pu0, pc: r.pcU, sg: r.sgU, best: { a: r.under, book: BOOK_NAMES[book] || book }, links: null }; }
-    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, pc: r.pc, sg: r.sg, best: r.best, links: r.links }; }
+      return { k: "P|" + p.id + "|u", kind: "p", side: "under", since: r.since ? [r.since[1] - r.since[0], r.since[1]] : r.since, line: r.line, n: p.player + " under " + r.line + " " + unit(p.label, r.line), a: r.under, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: false, p: r.pu, p0: r.pu0, pc: r.pcU, sg: r.sgU, px: r.pxU, best: { a: r.under, book: BOOK_NAMES[book] || book }, links: null }; }
+    function propLeg(p, r) { return { k: "P|" + p.id, kind: "p", since: r.since, line: r.line, n: rungName(p, r), a: r.a, ev: p.ev, time: p.g.t, player: p.player, team: p.team, label: p.label, td: p.td, p: r.p, p0: r.p0, pc: r.pc, sg: r.sg, px: r.px, best: r.best, links: r.links }; }
 
     // ---------- presets ----------
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
