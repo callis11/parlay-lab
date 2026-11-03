@@ -80,6 +80,13 @@ Filters: kickoff window chips, division/conference, team (★ team's game first)
 - **Beating the closing line**, **Game report cards** (Safe picks / Straights / Anytime TD vs books expected), **By section**, **What's working** (each bet type: hit %, what we said, how we adjust).
 - **Estimate vs reality:** graded picks by % bucket.
 
+## Live games (started games, every sport)
+- Once a game starts, its pre-game spreads, totals and player lines are gone everywhere (greyed out on the game card, left out of every parlay, generator, Build and Players list).
+- While it's on, the phone checks ESPN about every minute (free). Game cards and the spotlight show **🔴 LIVE · clock · score · ESPN: Team X% to win**, and the win bar becomes ESPN's live win chance.
+- A started game can stay in a later parlay only as the **moneyline on a team ESPN gives 25%+ to win** (generators add their own bar: Safe 60%+, Balanced 45%+, Long shot 25%+). Those picks carry a red **🔴 LIVE 62%** tag; parlays with one get a **🔴 Live pick** badge and a Heads up line.
+- For a live pick, the % is ESPN's live win chance (not our model) and the price is **our estimate** of the live price (shown as "est."); the app's live price will differ and moves every play. There's no app link for a live pick: find the game under Live in the app.
+- When ESPN's % drops under the bar, the pick leaves every parlay at the next check; one already on the slip says "its live win chance fell under the bar, remove it". If ESPN can't be reached, started games are left out completely.
+
 ## Slip (bar at the bottom, every tab)
 - Closed: "Your slip is empty · tap to see how it works", or "2 picks · $10 wins $14.66 · tap to view" with the parlay price (e.g. +147).
 - Empty and open: "New to parlays?" explainer.

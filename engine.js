@@ -3,6 +3,10 @@
 (function (root) {
   function dec(a) { return a > 0 ? 1 + a / 100 : 1 + 100 / -a; }
   function amFromDec(d) { var a = d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); return a; }
+  // Live legs: lowest ESPN win % a started game's team may have to stay in a parlay (the generators add their own style bar on top), and how old live data may be
+  var LIVE_MIN = 0.25, LIVE_MAX_AGE = 10 * 60e3;
+  // Estimated live moneyline from a win %: a live book prices a little under fair (about a 3-pt cut on the favorite's side)
+  function liveA(wp) { return amFromDec(1 / Math.min(0.985, Math.max(0.03, wp) + 0.03)); }
   function nick(n) { return n.split(" ").pop(); }
   var BOOKS = ["fanduel", "draftkings", "betmgm", "betrivers"];
   var BOOK_NAMES = { fanduel: "FanDuel", draftkings: "DraftKings", betmgm: "BetMGM", betrivers: "BetRivers" };
@@ -148,6 +152,14 @@
     var G = [], P = [];
     // Parlays only use games that haven't kicked off (the site passes upcomingOnly; Node point-in-time builds don't)
     function up(g) { return !(opts && opts.upcomingOnly) || +new Date(g.t) > Date.now(); }
+    // ---------- live legs (started games) ----------
+    // A started game can stay in a later parlay only as a moneyline on the team ESPN's live win % still likes (opts.live = {eventId: {state, wp:{a,h}, hs, as, detail, at}}).
+    // The chance IS ESPN's live win % (no pre-game model, no history); the price is an estimate from that % with a normal live cut, so the app's own live price will differ.
+    // Pre-game spreads, totals and props of a started game are never offered (their numbers are gone once the game starts).
+    function liveOK(g, side) { var L = g.live; if (!L || L.state !== "in" || !L.wp) return false; var w = L.wp[side];
+      return w !== undefined && w !== null && w >= LIVE_MIN && Date.now() - (L.at || 0) < LIVE_MAX_AGE; }
+    function liveSide(g) { var a = liveOK(g, "a"), h = liveOK(g, "h"); if (a && h) return g.live.wp.h >= g.live.wp.a ? "h" : "a"; return h ? "h" : a ? "a" : null; }
+    function liveGame(g) { return !up(g) && !!liveSide(g); }
     // Team display name: college uses the school (and AP rank) from ESPN; pro leagues use the nickname
     function tname(full) { return (data && data.names && data.names[full]) || (opts.full ? full : nick(full)); }
     var wk = now + (opts.windowH || 168) * 36e5;
@@ -192,6 +204,7 @@
             "1ov": [o1, u1, "totals_h1", "Over", A + "/" + H + " 1H over " + o1.point], "1un": [u1, o1, "totals_h1", "Under", A + "/" + H + " 1H under " + u1.point] }; }
         var lk = { "sp-a": fl("spreads", e.away_team), "sp-h": fl("spreads", e.home_team), "ml-a": fl("h2h", e.away_team), "ml-h": fl("h2h", e.home_team), "ov": fl("totals", "Over"), "un": fl("totals", "Under") };
         G.push({ id: e.id, t: e.commence_time, away: A, home: H, alt: alt ? bk.title : null, total: ov.point, p0: raw, links: lk,
+          live: opts.live && opts.live[e.id] && +new Date(e.commence_time) <= Date.now() ? opts.live[e.id] : null,
           p: { "sp-a": cg(nv(as.price, hs.price), "sp-a", as.price), "sp-h": cg(nv(hs.price, as.price), "sp-h", hs.price), "ml-a": cg(nv(mlA, mlH), "ml-a", mlA), "ml-h": cg(nv(mlH, mlA), "ml-h", mlH), "ov": cg(nv(ov.price, un.price), "ov", ov.price), "un": cg(nv(un.price, ov.price), "un", un.price) },
           best: { "sp-a": best("spreads", e.away_team, as.point, as.price), "sp-h": best("spreads", e.home_team, hs.point, hs.price),
             "ml-a": best("h2h", e.away_team, undefined, mlA), "ml-h": best("h2h", e.home_team, undefined, mlH),
@@ -209,7 +222,11 @@
             gg.best[t1] = best(X[2], X[3], X[0].point, X[0].price); gg.links[t1] = fl(X[2], X[3]); } }
       });
     function gkey(g, t) { var h = t.charAt(0) === "1" ? "1" : "", u = t.replace(/^1/, ""); return "G|" + g.id + "|" + h + (u.slice(0, 2) === "sp" ? "sp" : u.slice(0, 2) === "ml" ? "ml" : "tot"); }
-    function gameLeg(g, t) { var L = g.legs[t]; return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], px: g.best[t] ? g.best[t].px : null, links: g.links[t] }; }
+    function gameLeg(g, t) { var L = g.legs[t], side = t === "ml-a" ? "a" : t === "ml-h" ? "h" : null;
+      if (side && g.live && liveOK(g, side)) { var wp = g.live.wp[side];
+        return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: liveA(wp), ev: g.id, time: g.t, p: wp, p0: wp, best: null, px: null, links: null,
+          live: { wp: wp, hs: g.live.hs, as: g.live.as, ha: g.live.ha, aa: g.live.aa, detail: g.live.detail, at: g.live.at } }; }
+      return { k: gkey(g, t), kind: "g", t: t, n: L.n, a: L.a, pt: L.pt, ev: g.id, time: g.t, p: g.p[t], p0: g.p0[t], best: g.best[t], px: g.best[t] ? g.best[t].px : null, links: g.links[t] }; }
 
     // ---------- props ----------
     var live = {}; G.forEach(function (g) { live[g.id] = g; });
@@ -253,12 +270,16 @@
     function favSide(g) { return g.legs["ml-h"].a <= g.legs["ml-a"].a ? "h" : "a"; }
     function gamePresets() {
       // Skip moneylines so lopsided they barely pay (common in college)
-      var GU = G.filter(up), fav = GU.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; }).filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
+      var GU = G.filter(up), GL = G.filter(liveGame);
+      var fav = GU.map(function (g) { var s = favSide(g); return { g: g, s: s, ml: g.legs["ml-" + s].a }; })
+        .concat(GL.map(function (g) { var s = liveSide(g); return { g: g, s: s, ml: liveA(g.live.wp[s]), live: true }; })) // started games: the live leader, at its live chance
+        .filter(function (f) { return f.ml >= -1000; }).sort(function (a, b) { return a.ml - b.ml; });
+      var favSP = fav.filter(function (f) { return !f.live; }); // spreads are pre-game numbers, so never for a started game
       var low = GU.slice().sort(function (a, b) { return a.total - b.total; }), out = [];
       function add(n, d, l, need) { if (l.length >= need) out.push({ n: n, d: d, l: l }); }
       add("The Safe 3", "Three biggest moneyline favorites", fav.slice(0, 3).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 3);
       add("Favorites Trio", "Next tier of moneyline favorites", fav.slice(3, 6).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 3);
-      add("Spread Trio", "Favorites laying points", fav.slice(6, 9).map(function (f) { return gameLeg(f.g, "sp-" + f.s); }), 3);
+      add("Spread Trio", "Favorites laying points", favSP.slice(6, 9).map(function (f) { return gameLeg(f.g, "sp-" + f.s); }), 3);
       add("Unders Special", "Three lowest game totals", low.slice(0, 3).map(function (g) { return gameLeg(g, "un"); }), 3);
       add("Longshot 4-Leg", "Closer lines, bigger payout", fav.slice(9, 13).map(function (f) { return gameLeg(f.g, "ml-" + f.s); }), 4);
       return out;
@@ -287,8 +308,8 @@
         if (!set[p.ev] || (team && p.team !== team) || !p.healthy || !up(p.g)) return;
         p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6) props.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a, e: r.ev, td: p.td }); });
       });
-      var gs = G.filter(function (g) { return set[g.id] && up(g); });
-      function gl(g, t) { return { leg: gameLeg(g, t), who: "G|" + g.id + "|" + (t === "ov" || t === "un" ? "tot" : "side"), ev: g.id, a: g.legs[t].a, p: g.p[t] }; }
+      var gs = G.filter(function (g) { return set[g.id] && up(g); }), gsL = G.filter(function (g) { return set[g.id] && liveGame(g); });
+      function gl(g, t) { var L = gameLeg(g, t); return { leg: L, who: "G|" + g.id + "|" + (t === "ov" || t === "un" ? "tot" : "side"), ev: g.id, a: L.a, p: L.p }; }
       var by = function (f) { return function (a, b) { return f(b) - f(a); }; };
       function sideOf(g, abbr) { var m = data && data.games[g.id]; return m && m.home === abbr ? "h" : "a"; }
       return {
@@ -297,7 +318,7 @@
         plus: props.filter(function (x) { return x.p >= 0.4 && x.a >= 100 && x.a <= 180; }).sort(by(function (x) { return x.e; })),
         tds: props.filter(function (x) { return x.td; }).sort(by(function (x) { return x.p; })),
         mid: props.filter(function (x) { return !x.td && x.p >= 0.55 && x.p <= 0.8 && x.a >= -250; }).sort(by(function (x) { return x.e; })),
-        favML: gs.map(function (g) { return gl(g, "ml-" + favSide(g)); }).sort(function (a, b) { return a.a - b.a; }),
+        favML: gs.map(function (g) { return gl(g, "ml-" + favSide(g)); }).concat(gsL.map(function (g) { return gl(g, "ml-" + liveSide(g)); })).sort(function (a, b) { return a.a - b.a; }),
         favSP: gs.map(function (g) { return gl(g, "sp-" + favSide(g)); }).sort(function (a, b) { return a.leg.a - b.leg.a; }),
         over: gs.map(function (g) { return gl(g, "ov"); }),
         side: function (g, abbr) { var s = sideOf(g, abbr); return gl(g, (favSide(g) === s ? "ml-" : "sp-") + s); },
@@ -372,7 +393,10 @@
     function likelyPool() {
       var c = [];
       P.forEach(function (p) { if (!p.healthy || !up(p.g)) return; p.rungs.forEach(function (r) { if (r.p !== undefined && r.n >= 6 && r.a >= -400 && r.a <= 200) c.push({ leg: propLeg(p, r), who: p.player, ev: p.ev, p: r.p, a: r.a }); }); });
-      G.forEach(function (g) { if (!up(g)) return; ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(function (t) { var a = g.legs[t].a; if (a >= -400 && a <= 200) c.push({ leg: gameLeg(g, t), who: "G|" + g.id, ev: g.id, p: g.p[t], a: a }); }); });
+      G.forEach(function (g) {
+        if (up(g)) ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(function (t) { var a = g.legs[t].a; if (a >= -400 && a <= 200) c.push({ leg: gameLeg(g, t), who: "G|" + g.id, ev: g.id, p: g.p[t], a: a }); });
+        else ["ml-a", "ml-h"].forEach(function (t) { if (!liveOK(g, t === "ml-a" ? "a" : "h")) return; var L = gameLeg(g, t); if (L.a >= -400 && L.a <= 200) c.push({ leg: L, who: "G|" + g.id, ev: g.id, p: L.p, a: L.a }); }); // started: live moneyline only
+      });
       return c;
     }
     // Search small combinations for the slip with the highest chance that still pays at least `target` (decimal odds).
@@ -434,7 +458,7 @@
       out.push({ group: "Game lines only", slips: gamePresets() });
       return out;
     }
-    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, underLeg: underLeg, rungName: rungName, gamePresets: gamePresets, playerPresets: playerPresets,
+    return { G: G, P: P, gkey: gkey, gameLeg: gameLeg, propLeg: propLeg, underLeg: underLeg, rungName: rungName, liveOK: liveOK, liveSide: liveSide, gamePresets: gamePresets, playerPresets: playerPresets,
       slateSlips: slateSlips, teamSlips: teamSlips, slates: slates, allParlays: allParlays, likelySlips: likelySlips };
   }
 
@@ -477,6 +501,6 @@
     return { f: f, pairs: out };
   }
 
-  var Engine = { make: make, edgeSigns: edgeSigns, edgeTotal: edgeTotal, EDGE_CAP: EDGE_CAP, HIST_K: HIST_K, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
+  var Engine = { make: make, liveA: liveA, LIVE_MIN: LIVE_MIN, LIVE_MAX_AGE: LIVE_MAX_AGE, edgeSigns: edgeSigns, edgeTotal: edgeTotal, EDGE_CAP: EDGE_CAP, HIST_K: HIST_K, cfbSlate: cfbSlate, NFL_STAT: NFL_STAT, MARKET_GROUPS: MARKET_GROUPS, marketGroup: marketGroup, legInfo: legInfo, pairKey: pairKey, corrAdj: corrAdj, joint: joint, pairRho: pairRho, propGroup: propGroup, betslipLink: betslipLink, legLink: legLink, category: category, bucket: bucket, dec: dec, amFromDec: amFromDec, slateName: slateName, dateName: dateName, chance: chance, unit: unit, BOOK_NAMES: BOOK_NAMES, OPTS: OPTS };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine; else root.Engine = Engine;
 })(this);
