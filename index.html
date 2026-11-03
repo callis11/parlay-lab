@@ -3004,7 +3004,7 @@ function planHTML(){
 function bqHTML(o){
   var n=o.bets.filter(function(b,i){return!(o.st&&o.st[i]===2)}).length;
   var h='<div class="bqbar"><b>Place them one at a time</b><p class="sub" style="margin:4px 0 0">'+(o.sent?'<b>✓ Sent '+o.sent+' bet'+(o.sent>1?'s':'')+' to your bet queue.</b> Open it to place them one by one.':'An app can only hold one bet on its slip at a time, so these go into your <b>bet queue</b>. There you open each one in your app, place it, and tap Placed.')+'</p><div class="row2">'+
-    (o.sent?'':'<button class="btn flag" data-qbundle="1">Send all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button>')+'<button class="btn'+(o.sent?' flag':'')+'" data-qopen="1">Open my bet queue</button></div></div>';
+    (o.sent?'':'<button class="btn flag" data-qbundle="1">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button>')+'<button class="btn'+(o.sent?' flag':'')+'" data-qopen="1">Open my bet queue</button></div></div>';
   return h+'<div class="pgrid">'+o.bets.map(function(b,i){return slipCardW(b.x,"plan"+i)}).join("")+'</div>'}
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){

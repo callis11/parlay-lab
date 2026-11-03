@@ -276,7 +276,7 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 
 
 ## Bundle -> bet queue
-- After "Build my bundle" the cards are view-only and a **Send all N bets to my queue** button (data-qbundle) adds each bet (with its own stake = budget/N) to the shared bet queue and opens it. The old separate bundle checklist was removed; bqSave/bqLoad (localStorage `bundle_<sport>`) still keep the built bundle across reloads.
+- After "Build my bundle" the cards are view-only and a **+ Add all N bets to my queue** button (data-qbundle) adds each bet (with its own stake = budget/N) to the shared bet queue and opens it. The old separate bundle checklist was removed; bqSave/bqLoad (localStorage `bundle_<sport>`) still keep the built bundle across reloads.
 - Reason: an app link can only fill ONE slip, so bets are placed one at a time from the queue.
 
 ## Bet queue (any bets, placed one at a time)
