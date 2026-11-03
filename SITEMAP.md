@@ -117,3 +117,4 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - **One slip results (all generators, Nov 3):** each result is the same slip card as the Parlays tab (tap to open: pick cards with badges, why, Load slip); all results start closed (tap to open), two per row, up to 3 kept. ⇄ Change works inside it. Moneyline, spread and over/under picks no longer repeat the team name under the title.
 
 - Bet bundle checklist: each bet card has Open in <app> / Placed ✓ / Remove; progress bar on top; saved on the phone (3 days).
+- Bet queue: "+ Queue" on parlay cards and slip panel; yellow "Bet queue (n)" chip opens the one-by-one place list (Open in app / Placed / Remove).

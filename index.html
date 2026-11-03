@@ -131,7 +131,7 @@ th{color:var(--muted);font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bqbar{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin:10px 0}.bqbar .row2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bqw{display:flex;flex-direction:column;gap:6px;min-width:0}.bqw:has(details[open]){grid-column:1/-1}.bqw .bqb{display:flex;gap:6px;flex-wrap:wrap}.bqw .bqb .btn{flex:1 1 auto;text-align:center}.bqw.next{outline:2px solid var(--flag);outline-offset:2px;border-radius:8px}.bqdone li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
+.qchip{position:fixed;right:12px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:40;background:var(--flag);color:#1a1400;border:0;border-radius:20px;padding:9px 14px;font:inherit;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.45)}.qchip[hidden]{display:none}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bqbar{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin:10px 0}.bqbar .row2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bqw{display:flex;flex-direction:column;gap:6px;min-width:0}.bqw:has(details[open]){grid-column:1/-1}.bqw .bqb{display:flex;gap:6px;flex-wrap:wrap}.bqw .bqb .btn{flex:1 1 auto;text-align:center}.bqw.next{outline:2px solid var(--flag);outline-offset:2px;border-radius:8px}.bqdone li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:14px}
 @media (min-width:640px){.pgrid{grid-template-columns:repeat(3,1fr)}}
 .pc{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:6px;min-width:0}
 .pc[data-tag="safe"]{border-top-color:var(--green)}
@@ -515,6 +515,8 @@ body.pro .hlp,body.pro .start1,body.pro .sphint,body.pro .sph,body.pro .tls,body
 </head>
 <body>
 <div class="tour" id="sentBox" hidden role="dialog" aria-modal="true" aria-label="Your slip"><div class="tbox" id="sentIn"></div></div>
+<div class="tour" id="qBox" hidden role="dialog" aria-modal="true" aria-label="Bet queue"><div class="tbox" id="qIn"></div></div>
+<button class="qchip" id="qChip" hidden></button>
 <div class="tour" id="swapBox" hidden role="dialog" aria-modal="true" aria-label="Change a pick"><div class="tbox" id="swapIn"></div></div>
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
   <div class="ticon">★</div><h2 class="fh" id="favH" hidden>Set up ParlayLabs</h2>
@@ -1519,7 +1521,7 @@ function slipCard(x,key){
     '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</div>'+(x.chg||x.noSwap||x.gen?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button></summary>'+
     '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
-    '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'">Load slip</button></div></div></details>';
+    '<div class="row"><span class="mt">Tap the top of the card to close</span><span style="display:flex;gap:6px">'+(x.noSwap?"":'<button class="btn" data-qadd="'+key+'" data-qn="'+escA(slipName(p.n))+'">+ Queue</button>')+'<button class="btn flag" data-pre="'+key+'">Load slip</button></span></div></div></details>';
 }
 function slipCardW(x,key){return whyWrap(slipCard(x,key),x.s.l,x.s.n)}
 // ---------- spotlight game (hero) ----------
@@ -2511,7 +2513,7 @@ function renderPresetRow(el,list,prefix){
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=bestDec(l)});
     var ch=Engine.chance(p.l),shop=(bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"")+(BOOST&&!sg?(function(){var db=boostDec(d),v=ch!=null?priceVerdict(ch,db):null;return'<span class="d">With your '+BOOST+'% boost: '+usualWins(db)+(v&&v.k==="good"?' · <b class="pos">in your favor</b>':v&&v.k==="fair"?' · about fair':'')+'</span><br>'})():"");
-    return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">'+usualWins(d,sg?"about ":"")+'</span></span><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
+    return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">'+usualWins(d,sg?"about ":"")+'</span></span><span style="display:flex;gap:6px"><button class="btn" data-qadd="'+prefix+i+'" data-qn="'+escA(slipName(p.n))+'">+ Queue</button><button class="btn flag" data-pre="'+prefix+i+'">Load slip</button></span></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>',p.l,p.n)}).join("");
 }
 function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false")}
 // The slip is kept on this phone (per sport) so it survives a reload or iOS closing the app. On load each pick is
@@ -2630,7 +2632,7 @@ function renderSlip(){
     '<p style="margin:8px 0 0">Payout on $'+stake.toFixed(2)+': <b>$'+(stake*d).toFixed(2)+'</b> (profit $'+(stake*(d-1)).toFixed(2)+')</p>'+
     (legs.length>1?'<p class="warn hlp">Every pick must win. One miss loses the whole slip.</p>':"")+
     (same?'<p class="warn">Some picks share a game. Your book will price that as a same-game parlay, so the real payout will differ.</p>':"")+(same?"":shopHTML(legs,stake))+(function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}return boostHTML(c,d,stake)})()+'</div><h4 class="slh">Your picks</h4>'+legs.map(function(l){var bb=bestFor(l),bt=bb&&dec(bb.a)>dec(l.a)+1e-9?' <small class="bestp">best: '+esc(bb.name)+' '+fmt(bb.a)+'</small>':"";return'<div class="leg"><span>'+esc(l.n)+' <small style="color:var(--muted)">'+fmt(l.a)+' <span class="hlp">· '+winsOn10(l.a)+' alone</span></small>'+bt+(legStarted(l)?' <small style="color:var(--red);font-weight:700">· '+(l.live?"its live win chance fell under the bar, remove it":"game started, remove it")+'</small>':l.live?' <small class="lvs">· '+liveTag(l)+' '+esc(livePrice(l))+', check the app</small>':'<br><button class="swb" data-swap="slip" data-k="'+esc(l.k)+'">⇄ Change</button>')+'</span><span>'+(Engine.legLink(l,BOOK)&&(legs.length>1||!Engine.betslipLink(legs,BOOK).combined)?'<a href="'+esc(Engine.legLink(l,BOOK))+'" target="_blank" rel="noopener" style="font-size:13px;color:inherit;margin-right:4px">'+esc(Engine.BOOK_NAMES[BOOK])+'</a>':"")+'<button data-r="'+esc(l.k)+'">Remove</button></span></div>'}).join("")+
-    fdButton(legs);
+    '<p style="margin:10px 0 0"><button class="btn" data-qslip="1">+ Add this slip to my bet queue</button><span class="sub" style="display:block;margin-top:4px">Line up several bets, then place them one at a time.</span></p>'+fdButton(legs);
   $("sumL").textContent=(sentNow()?"Sent to "+(Engine.BOOK_NAMES[SENT.book]||"your app")+" · ":"")+legs.length+(legs.length===1?" pick":" picks")+" · $"+stake.toFixed(0)+" wins $"+(stake*(d-1)).toFixed(2)+($("panel").classList.contains("open")?"  ·  tap to hide":"  ·  tap to view");
   $("sumR").textContent=am(d);
 }
@@ -2692,6 +2694,9 @@ document.addEventListener("click",function(e){
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
   else if(t.dataset.bq){bqAct(t.dataset.bq,+t.dataset.i)}
+  else if(t.dataset.qa){qAct(t.dataset.qa,+t.dataset.i)}
+  else if(t.dataset.qadd){var ql=PRE[t.dataset.qadd];if(ql){var okq=ql.filter(function(l){return!legStarted(l)});if(!okq.length){toast(STARTED_MSG,true);return}if(qAdd(okq,t.dataset.qn)){var o0=t.textContent;t.textContent="Added ✓";setTimeout(function(){t.textContent=o0},1500)}}}
+  else if(t.dataset.qslip){var sl=Object.keys(SLIP).map(function(k){return SLIP[k]});if(sl.length&&qAdd(sl,"My slip")){SLIP={};SENT=null;sentSave();closeSlip();renderSlip()}}
   else if(t.dataset.planfill){planBuild(true);genUI("par")}
   else if(t.dataset.planall){GENS.par.games="all";GENS.par.multi=[];genSave("par",genSaved("par"));planBuild(false);genUI("par")}
   else if(t.dataset.gmode){GENS.par.mode=t.dataset.gmode;genSave("par",genSaved("par"));genUI("par")}
@@ -2896,6 +2901,37 @@ function planTry(pool,N,n,reuse){
     bets.push({legs:best.LL,ch:best.ch,d:d})}
   var rep=Object.keys(usedLeg).filter(function(k){return usedLeg[k]>1}).length;
   return{bets:bets,use:use,n:n,reuse:!!reuse,rep:rep}}
+// ---------- bet queue: any bets you add, placed one at a time ----------
+var QKEY="queue_"+SPORT,QUEUE=[];
+try{QUEUE=JSON.parse(localStorage.getItem(QKEY)||"[]")||[]}catch(e){QUEUE=[]}
+QUEUE=QUEUE.filter(function(q){return q&&q.legs&&q.legs.length&&Date.now()-(q.at||0)<3*864e5});
+function qSave(){try{localStorage.setItem(QKEY,JSON.stringify(QUEUE))}catch(e){}}
+function qSig(legs){return legs.map(function(l){return l.k+"|"+(l.t||"")+"|"+(l.line==null?"":l.line)}).sort().join()}
+function qAdd(legs,name){
+  legs=legs.map(function(l){return Object.assign({},l)});var sg=qSig(legs);
+  if(QUEUE.some(function(q){return q.st===0&&qSig(q.legs)===sg})){toast("That bet is already in your queue.",true);return false}
+  QUEUE.push({n:name||"Bet",legs:legs,st:0,at:Date.now()});qSave();qChip();
+  toast("Added to your bet queue ("+QUEUE.filter(function(q){return q.st===0}).length+"). Tap the yellow Queue button to place them.");return true}
+function qChip(){var n=QUEUE.filter(function(q){return q.st===0}).length,c=$("qChip");if(!c)return;c.hidden=!QUEUE.length;c.textContent="Bet queue ("+n+")"}
+function qOpen(){$("qIn").innerHTML=qHTML();$("qBox").hidden=false}
+function qHTML(){
+  var left=[],done=[],apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),stake=USUAL;
+  QUEUE.forEach(function(q,i){(q.st===0?left:done).push(i)});
+  var d=function(q){var v=1;q.legs.forEach(function(l){v*=dec(l.a)});return v},placed=QUEUE.filter(function(q){return q.st===1}).length;
+  var h='<div class="ticon">🧾</div><h2 class="fh" style="margin:6px 0">Bet queue</h2><p class="fsub" style="margin:0 0 8px">'+(left.length?left.length+' to place at $'+usd(stake)+' each ($'+usd(left.length*stake)+' total). Tap <b>Open in '+esc(Engine.BOOK_NAMES[BOOK]||"your app")+'</b>, place it there, come back and tap <b>Placed</b>. Prices can move: check the odds your app shows. Change your usual amount on ★.':placed?'All placed. Nice.':'Your queue is empty. Tap <b>+ Queue</b> on any parlay, or <b>+ Add this slip</b> on your slip.')+'</p>';
+  h+='<div class="pgrid" style="grid-template-columns:1fr">'+left.map(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),btns=[];
+    var x=slipInfo({n:q.n,d:"",l:q.legs},true);x.stake=stake;x.noSwap=1;x.sig="";
+    if(!started)apps.forEach(function(bk){var L=Engine.betslipLink(q.legs,bk);if(L&&L.combined)btns.push('<a class="btn'+(bk===BOOK?" flag":"")+'" href="'+esc(L.url)+'" target="_blank" rel="noopener">Open in '+esc(Engine.BOOK_NAMES[bk]||bk)+(L.n<q.legs.length?" ("+L.n+" of "+q.legs.length+")":"")+'</a>')});
+    return'<div class="bqw'+(pos===0?" next":"")+'">'+slipCardW(x,"q"+i)+
+      (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Remove it.</p>':btns.length?'<div class="bqb">'+btns.join("")+'</div>':'<p class="sub" style="margin:0">No app link yet for this bet. Add its picks by hand.</p>')+
+      '<div class="bqb"><button class="btn flag" data-qa="p" data-i="'+i+'"'+(started?" disabled":"")+'>Placed ✓</button><button class="btn rm" data-qa="r" data-i="'+i+'">Remove</button></div></div>'}).join("")+'</div>';
+  if(done.length)h+='<details style="margin:10px 0"><summary class="lnk" style="cursor:pointer">'+placed+' placed'+(done.length-placed?' · '+(done.length-placed)+' removed':'')+'</summary><ul class="bqdone" style="list-style:none;padding:0;margin:6px 0">'+done.map(function(i){var q=QUEUE[i];return'<li><span>'+(q.st===1?"✓ Placed":"Removed")+': '+am(d(q))+' · '+q.legs.length+' pick'+(q.legs.length>1?"s":"")+'</span><button class="btn" data-qa="u" data-i="'+i+'">Undo</button></li>'}).join("")+'</ul></details><p style="margin:0 0 8px"><button class="btn" data-qa="c">Clear finished</button></p>';
+  return h+'<p style="margin:12px 0 0"><button class="btn flag" data-qa="x" style="width:100%">Close</button></p>'}
+function qAct(a,i){
+  if(a==="x"){$("qBox").hidden=true;return}
+  if(a==="c"){QUEUE=QUEUE.filter(function(q){return q.st===0})}
+  else{var q=QUEUE[i];if(!q)return;q.st=a==="p"?1:a==="r"?2:0;if(a==="p")toast("Placed. "+QUEUE.filter(function(z){return z.st===0}).length+" left.")}
+  qSave();qChip();$("qIn").innerHTML=qHTML();if(a==="p"||a==="r")$("qIn").scrollTop=0}
 function planMk(b,i,K,stake){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.noSwap=1;x.sig="";b.x=x}
 // the checklist survives closing the app: save the plan (without the card objects) and the placed/removed marks
 var BQKEY="bundle_"+SPORT;
@@ -2989,7 +3025,7 @@ function planGo(){
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
   try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
   genUI("par");if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
-usualUI();$("stake").value=String(USUAL);
+usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);qChip();
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
