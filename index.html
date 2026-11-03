@@ -1628,7 +1628,7 @@ function renderParlays(){
   html+=legendHTML();
   $("pList").innerHTML=html;
   fitHero();
-  var sel=$("slateChips").querySelector('[aria-selected="true"]');if(sel&&sel.scrollIntoView)sel.scrollIntoView({block:"nearest",inline:"center"});
+  var row0=$("slateChips"),sel=row0.querySelector('[aria-selected="true"]');if(sel){var rr=row0.getBoundingClientRect(),sr=sel.getBoundingClientRect(); /* only slide the row sideways, and only as far as needed, so the first chip is never cut off */if(sr.left<rr.left)row0.scrollLeft+=sr.left-rr.left-8;else if(sr.right>rr.right)row0.scrollLeft+=sr.right-rr.right+8;if(row0.scrollLeft<40||[].indexOf.call(row0.children,sel)<=1)row0.scrollLeft=0}
 }
 // "How to read these cards", per sport: only what that sport actually uses, plus where its numbers come from
 function legendHTML(){
