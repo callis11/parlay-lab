@@ -467,8 +467,6 @@ select,input,textarea{font-size:max(16px,1em)}
 .bwhy{padding:2px 12px 12px 42px;font-size:13px}
 .bhow{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
 .bfoot{font-size:12px;color:var(--muted);text-align:center;margin:8px 0}
-#refreshBtn{font-size:20px}
-#refreshBtn.spin{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .toast.long{border-radius:14px;width:min(92vw,420px);font-size:14px;line-height:1.35;text-align:center}
@@ -561,7 +559,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 <div class="wrap">
 <header>
   <div class="toprow"><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav></div>
-  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><span class="tbtns"><button class="helpq" id="refreshBtn" aria-label="Refresh to get the latest picks and updates">↻</button><button class="helpq star" id="favBtn" aria-label="My teams and betting apps">★</button><button class="helpq info" id="helpBtn" aria-label="How to use ParlayLabs"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="6.2" r="1.9" fill="currentColor"/><path d="M12 10.5v8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></button></span></div>
+  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><span class="tbtns"><button class="helpq star" id="favBtn" aria-label="My teams and betting apps">★</button><button class="helpq info" id="helpBtn" aria-label="How to use ParlayLabs"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="6.2" r="1.9" fill="currentColor"/><path d="M12 10.5v8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></button></span></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
 </header>
 
@@ -2739,7 +2737,7 @@ document.addEventListener("click",function(e){
     var tgt=gcx==="tm"?$("teamCar"):gd,r=tgt.getBoundingClientRect();if(gcx==="tm"||r.top<70)window.scrollTo({top:r.top+window.scrollY-120,behavior:"smooth"})}}
   else if(t.dataset.pre){
     var pl=PRE[t.dataset.pre];if(!pl){toast("Couldn't load that one. Pull down to refresh and try again.",true);return}
-    var ok=pl.filter(function(l){return!legStarted(l)});if(!ok.length){toast("Every game in this parlay has started. Tap ↻ for parlays on games still to come.",true);return}
+    var ok=pl.filter(function(l){return!legStarted(l)});if(!ok.length){toast("Every game in this parlay has started. Reload the page for parlays on games still to come.",true);return}
     var left0=pl.length-ok.length;
     if(qAdd(ok,t.dataset.qn||"Bet",0,true)){toast("Added to your bets"+(left0?" ("+left0+" pick"+(left0>1?"s":"")+" left out: that game started)":"")+". Swipe the cards at the bottom.");qOpen()}
     else{toast("That bet is already in your list.");qOpen()}
@@ -2798,12 +2796,6 @@ $("stake").addEventListener("input",renderSlip);
 $("boost").value=String(BOOST);$("boost").addEventListener("change",function(){BOOST=+$("boost").value||0;try{localStorage.setItem("boost",String(BOOST))}catch(e){}renderSlip();try{renderParlays()}catch(e){}});
 // Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
 // Works inside the home-screen app, where pull-to-refresh isn't available.
-$("refreshBtn").addEventListener("click",function(){
-  var b=$("refreshBtn");b.disabled=true;b.classList.add("spin");toast("Refreshing…");
-  var files=[location.pathname,location.pathname+"?nba",location.pathname+"?cfb",location.pathname+"?cbb","engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json",DIR+"finals.json"];
-  Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
-    var u=location.pathname+location.search.replace(/[?&]r=\d+/,"");u+=(u.indexOf("?")<0?"?":"&")+"r="+Date.now();location.replace(u+location.hash)});
-});
 // Sport tabs always open the newest version of the page (each sport is its own address, so the phone could show an older saved copy)
 document.querySelectorAll(".sport a").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();
   var q=a.getAttribute("href").replace("./","");location.href=location.pathname+(q?q+"&":"?")+"r="+Date.now()})});
@@ -2833,7 +2825,7 @@ var TOUR=[
  ["🏈","Players tab","One card per player: each stat with its likeliest lines, how often he's hit it lately and over a longer stretch, and his last 5 games.<br><br>The <b>ParlayLabs Generator</b> here is players only: pick <b>markets</b> (All markets, or check several), <b>Overs, Unders or Both</b>, and games.","Tap any line to add it to your slip."],
  ["🔄","Games tab","Swipe through every game. The front shows each team's record against the spread and on overs this season. <b>Tap a card to flip it</b> for the lines, last 5 games (✓ covered), past meetings and weather.<br><br>Under the card: the ParlayLabs Generator for that game, for either team or <b>Both</b>.","Your ★ team comes first; when they're off, it's the game of the week."],
  ["🛠️","Build tab","Every pick on the board ranked by our chance to hit. <b>Tap a row to add it</b> to your parlay (tap again to remove), or tap <b>ⓘ</b> for its data and history. Filter by game or type, or pick several games.<br><br>Your parlay sits at the top and updates live: honest %, payout, red flags and <b>How we got this %</b>.","Same-game picks get adjusted, and your app will pay less for them than shown."],
- ["🧾","Your slip and Results","Tap lines anywhere to build a slip, or tap <b>Load slip</b> on a parlay: each bet becomes a card at the bottom that you swipe through. Tap <b>Open in</b> your betting app, place it there, then tap <b>✓ Bet added</b> and we save it to My bets.<br><br><b>Results</b>: the weekly report card (every Monday), how our picks did, whether we beat the closing line, and your saved bets.","Tap ↻ for the latest odds and updates."],
+ ["🧾","Your slip and Results","Tap lines anywhere to build a slip, or tap <b>Load slip</b> on a parlay: each bet becomes a card at the bottom that you swipe through. Tap <b>Open in</b> your betting app, place it there, then tap <b>✓ Bet added</b> and we save it to My bets.<br><br><b>Results</b>: the weekly report card (every Monday), how our picks did, whether we beat the closing line, and your saved bets.","Reload the page for the latest odds and updates."],
  ["★","Your teams and apps","Tap <b>★</b> to set your team for each sport and pick the <b>betting apps</b> you use. Your slip gets an <b>Open in …</b> button for each app, and you choose which app's odds the site shows.","Tap ⓘ at the top any time to see this tour again.<br><br>Something confusing? Tap <b>💬 Tell us</b> at the bottom of any page."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
@@ -3122,7 +3114,7 @@ function planGo(){
   var G=GENS.par,B=parseFloat($("plB_par").value),N=parseInt($("plN_par").value,10);
   if(!(B>=2&&B<=100000)){toast("Enter a budget of at least $2.",true);return}if(!(N>=2&&N<=15)){toast("Pick 2 to 15 bets.",true);return}
   G.budget=B;G.nbets=N;genSave("par",genSaved("par"));
-  try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Tap ↻ and try again."};if(window.console)console.error(err)}
+  try{planBuild()}catch(err){PLANOUT={err:"Couldn't build the plan. Reload the page and try again."};if(window.console)console.error(err)}
   genUI("par");setTimeout(function(){var go=$("genGo_par");if(go&&go.scrollIntoView)go.scrollIntoView({block:"start"})},0);if(PLANOUT&&PLANOUT.short)toast("Can't fill all "+N+" bets"+(PLANOUT.K?" (only "+PLANOUT.K+" fit)":"")+". Add more games or change the risk.",true)}
 usualUI();$("stake").value=String(USUAL);$("qChip").addEventListener("click",qOpen);$("sum").addEventListener("click",function(){setTimeout(function(){qPanel();if($("panel").classList.contains("open"))$("panel").scrollTop=0},0)});renderSlip();
 $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data-usual]");if(b)setUsual(+b.dataset.usual)});
