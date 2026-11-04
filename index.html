@@ -728,7 +728,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <h2>Build your own</h2>
   <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
-  <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">Full table</button></div>
+  <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">All picks</button></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters" id="bFilt">
     <select id="bGame" aria-label="Game"></select>
@@ -2035,7 +2035,7 @@ function topListHTML(){
     sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
     sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10)+
     (NOPROPS?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
-  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full table has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
+  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). All picks has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
