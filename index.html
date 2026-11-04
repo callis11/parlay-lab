@@ -634,6 +634,12 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 .ptpl{font-size:11.5px;color:var(--muted);padding:0 0 6px}.ptal{color:var(--red);font-weight:700}
 .ptshow{display:block;margin:2px 0 4px;font-size:12px}
 .ptmk{display:flex;align-items:baseline;gap:8px;padding:8px 0 2px}.ptmk b{font-size:13px;color:var(--flag)}.ptmk small{font-size:11px;color:var(--muted)}
+.pfx{flex:1 1 auto}.pfx[open]{flex:1 1 100%}
+.pfx>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.pfx>summary::-webkit-details-marker{display:none}
+.pfx[open]>summary{color:var(--ink)}
+.pfxb{display:flex;gap:8px;margin-top:8px}.pfxb select{flex:1;min-width:120px}
+.pts.tip{font-style:italic;color:var(--ink);opacity:.8}
 .pvw{display:flex;margin:0 0 10px}
 .tl .tinfo{display:block;font-size:11px;padding:2px 0 0}
 .tl .bwhy{grid-column:1/-1;padding:4px 0 8px}
@@ -693,30 +699,32 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 <div class="tabs" role="tablist">
   <button class="tab" role="tab" id="t-parlays" data-v="parlays" aria-selected="true" aria-controls="v-parlays">Parlays</button>
   <button class="tab" role="tab" id="t-games" data-v="games" aria-selected="false" aria-controls="v-games" hidden>Games</button>
-  <button class="tab" role="tab" id="t-build" data-v="build" aria-selected="false" aria-controls="v-build">Build</button>
-  <button class="tab" role="tab" id="t-props" data-v="props" aria-selected="false" aria-controls="v-props">Players</button>
+  <button class="tab" role="tab" id="t-build" data-v="build" aria-selected="false" aria-controls="v-build">Picks</button>
+  <button class="tab" role="tab" id="t-props" data-v="props" aria-selected="false" aria-controls="v-props" hidden>Players</button>
   <button class="tab" role="tab" id="t-team" data-v="team" aria-selected="false" aria-controls="v-team">Games</button>
   <button class="tab" role="tab" id="t-results" data-v="results" aria-selected="false" aria-controls="v-results">Results</button>
 </div>
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
   <div class="start1" id="start1" hidden><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>New here? Start in 3 taps</b><button class="lnk" id="start1x" aria-label="Hide this">✕</button></div>
-    <ol><li><b>Pick a parlay below</b> and tap <b>Load slip</b>, or open <b>Build → Top picks</b> and tap the picks you like.</li>
+    <ol><li><b>Pick a parlay below</b> and tap <b>Add bet</b>, or open <b>Picks</b> and tap the ones you like.</li>
     <li><b>Tap the bar at the bottom</b> to see your slip: the chance it hits, what your usual bet pays, and whether the price is fair.</li>
     <li><b>Tap Open in FanDuel</b> (or your app). Your picks land on its slip and you place the bet there. We never take money.</li></ol>
     <small class="sub">Words like ML, spread or −138? Tap <b>ⓘ</b> at the top, slide 2.</small></div>
-  <div id="genMount_par"></div>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="prow pfilt" role="group" aria-label="Filter"><span class="plab">Filter</span>
       <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
-      <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
-      <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select></div>
+      <details class="pfx" id="pfx"><summary>More filters</summary><div class="pfxb">
+        <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
+        <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select></div></details></div>
     <div class="prow pview" role="group" aria-label="View"><span class="plab">View</span>
       <div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div>
       <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px">Expand all</button></div>
   </div>
   <div id="pList"></div>
+  <div id="genMount_par"></div>
+  <div id="pLegend"></div>
 </section>
 
 <section id="v-games" role="tabpanel" aria-labelledby="t-games" hidden>
@@ -725,7 +733,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 </section>
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
-  <h2>Build your own</h2>
+  <h2>Picks</h2>
   <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
   <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">All picks</button></div>
@@ -1711,7 +1719,7 @@ function slipCard(x,key){
     '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+(x.plan!=null?"":'<button class="qplus" data-pre="'+key+'" data-ico="1" data-qn="'+escA(slipName(p.n))+'" aria-label="Add this bet to my slip" title="Add to my bets">+</button>')+'</div>'+(x.chg||x.noSwap||x.gen||x.plan!=null?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button>'+'</summary>'+
     '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
-    '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(p.n))+'">Load slip</button></div></div></details>';
+    '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(p.n))+'">Add bet</button></div></div></details>';
 }
 function slipCardW(x,key){return whyWrap(slipCard(x,key),x.s.l,x.s.n)}
 // ---------- spotlight game (hero) ----------
@@ -1819,8 +1827,9 @@ function renderParlays(){
   if(PST.slate==="all")html=S.map(function(sl,ix){first=ix===0;return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
   if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
-  html+=legendHTML();
+  $("pLegend").innerHTML=legendHTML();
   $("pList").innerHTML=html;
+  var fxa=!!(PST.legs||PST.kind);$("pfx").firstElementChild.textContent=fxa?"Filters on ●":"More filters";if(fxa)$("pfx").open=true;
   fitHero();
   var row0=$("slateChips"),sel=row0.querySelector('[aria-selected="true"]');if(sel){var rr=row0.getBoundingClientRect(),sr=sel.getBoundingClientRect(); /* only slide the row sideways, and only as far as needed, so the first chip is never cut off */if(sr.left<rr.left)row0.scrollLeft+=sr.left-rr.left-8;else if(sr.right>rr.right)row0.scrollLeft+=sr.right-rr.right+8;if(row0.scrollLeft<40||[].indexOf.call(row0.children,sel)<=1)row0.scrollLeft=0}
 }
@@ -1833,7 +1842,7 @@ function legendHTML(){
     cbb:"Every team's results from last season and this one, their closing lines (ESPN / DraftKings; ESPN keeps them from mid-November 2025 on), AP ranks and records, and every pick we've graded live so far."}[SPORT];
   P.push('<p><b>Reading the numbers</b> <b>ML</b> (moneyline) = just pick who wins the game, by any score. <b>Spread</b> (like −3.5) = the favorite has to win by more than that; the other team (+3.5) can lose by less and still count. <b>Over / Under</b> = total points scored by both teams. <b>−138</b> = the favorite: you risk more than you win ($10 wins $7.25). <b>+110</b> = the underdog: you win more than you risk ($10 wins $11). <b>Pick</b> = one bet inside a parlay; betting apps call it a "leg."</p>');
   P.push('<p><b>% to hit</b> Our honest estimate that every pick wins. It\'s usually low, because each pick has to win. Most parlays lose, and that\'s normal; the payout is what makes up for it. A 25% parlay hits about 1 time in 4.</p>');
-  P.push('<p><b>Where the % comes from</b> '+src+' Open any pick (ⓘ on Build, or How we got this % on a card) to see its price, recent form, past seasons, matchup and the math.</p>');
+  P.push('<p><b>Where the % comes from</b> '+src+' Open any pick (ⓘ on Picks, or How we got this % on a parlay) to see its price, recent form, past seasons, matchup and the math.</p>');
   if(nfl){P.push('<p><span class="hb pr">Proven</span> This type of parlay made money over at least 40 slips when we replayed the 2023–2025 seasons with real prices at $10 each. It\'s about the type, not these exact picks, and most Proven types are long shots that win rarely but pay big.</p>');
     P.push('<p><span class="hb wk">Weak history</span> This type lost 20% or more of what was bet over at least 40 past slips. These stay out of the top 3 picks.</p>')}
   P.push('<p><b>adj. from</b> Picks multiplied together don\'t match how parlays really finish, so the chance is moved up or down'+(nfl?' by how often this type really hit in past seasons':' using how NFL parlays really hit in our replay (this sport doesn\'t have its own replay yet)')+'.</p>');
@@ -1978,7 +1987,7 @@ function renderTeamLower(){
   renderTeamHist(v,m.away===v?m.home:m.away);
 }
 
-// ---------- Build tab: pick your own legs from a ranked list ----------
+// ---------- Picks tab (was Build + Players): pick your own legs from a ranked list ----------
 // College is game lines only (no type filters); NBA has no TDs
 if(NOPROPS){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
 else if(SPORT==="nba"){var _td=document.querySelector('#bKind [data-bk="td"]');if(_td)_td.hidden=true}
@@ -2292,7 +2301,7 @@ function cfbGate(){if(SPORT!=="cfb"||!DATA)return;if((DATA.props||[]).length)CPR
   if(!CPR.on){DATA.props=[];}
   else if(CFB_INSTATE[CPR.st]){var PL=DATA.places||{},re=new RegExp(", "+CPR.st+"$");DATA.props=CPR.all.filter(function(p){return!p.team||!re.test(PL[p.team]||"")})}
   else DATA.props=CPR.all;
-  try{if($("t-props"))$("t-props").hidden=!DATA.props.length}catch(e){}
+  try{if($("t-props"))$("t-props").hidden=true}catch(e){}
   setTimeout(cfbBanner,0)}
 function cfbBanner(){if(SPORT!=="cfb")return;["v-parlays","v-build"].forEach(function(v){var sec=$(v);if(!sec)return;var el=sec.querySelector(".cfbgeo");
   if(!CPR.all.length){if(el)el.remove();return}
@@ -2707,7 +2716,7 @@ function renderPresetRow(el,list,prefix){
   $(el).innerHTML=list.map(function(p,i){PRE[prefix+i]=p.l;var d=1;p.l.forEach(function(l){d*=dec(l.a)});
     var evs={},sg=false,bd=1;p.l.forEach(function(l){if(evs[l.ev])sg=true;evs[l.ev]=1;bd*=bestDec(l)});
     var ch=Engine.chance(p.l),shop=(bd>d*1.02?'<span class="d">Shop each pick for the best price: up to '+am(bd)+'</span><br>':"")+(BOOST&&!sg?(function(){var db=boostDec(d),v=ch!=null?priceVerdict(ch,db):null;return'<span class="d">With your '+BOOST+'% boost: '+usualWins(db)+(v&&v.k==="good"?' · <b class="pos">in your favor</b>':v&&v.k==="fair"?' · about fair':'')+'</span><br>'})():"");
-    return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">'+usualWins(d,sg?"about ":"")+'</span></span><button class="btn flag" data-pre="'+prefix+i+'" data-qn="'+escA(slipName(p.n))+'">Load slip</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button><button class="qplus" data-pre="'+prefix+i+'" data-ico="1" data-qn="'+escA(slipName(p.n))+'" aria-label="Add this bet to my slip" title="Add to my bets">+</button></div>',p.l,p.n)}).join("");
+    return whyWrap('<div class="preset"><h3 class="ph">'+esc(slipName(p.n))+(ch!==null?'<span class="pct2" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%<small>to hit</small></span>':"")+'</h3><div class="d">'+p.d+'</div><ul>'+p.l.map(function(l){return"<li>"+esc(l.n)+" ("+fmt(l.a)+")</li>"}).join("")+'</ul>'+(ch!==null?'<p class="d" style="margin:0 0 4px"><b>'+Math.round(ch*100)+'% to hit</b>'+(sg?" (same-game picks move together, so treat this as rough)":"")+'</p>':"")+shop+(sg?'<p class="sg">Includes same-game picks, so the real payout will be lower.</p>':"")+'<div class="row"><span><span class="num">'+(sg?"~":"")+am(d)+'</span><br><span class="d">'+usualWins(d,sg?"about ":"")+'</span></span><button class="btn flag" data-pre="'+prefix+i+'" data-qn="'+escA(slipName(p.n))+'">Add bet</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button><button class="qplus" data-pre="'+prefix+i+'" data-ico="1" data-qn="'+escA(slipName(p.n))+'" aria-label="Add this bet to my slip" title="Add to my bets">+</button></div>',p.l,p.n)}).join("");
 }
 function closeSlip(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");if(typeof qPanel==="function")qPanel()}
 // The slip is kept on this phone (per sport) so it survives a reload or iOS closing the app. On load each pick is
@@ -2818,7 +2827,7 @@ function renderSlip0(){
   if(SLIP_RESTORED)slipSave();
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),stake=parseFloat($("stake").value)||0;
   if($("placeOpen")){if(!legs.length)$("placeBox").hidden=true;$("placeOpen").hidden=!legs.length||!$("placeBox").hidden}
-  if(!legs.length){$("legs").innerHTML=!NEWB?'<p class="empty">Your slip is empty. Tap any pick to add it, or <b>Load slip</b> on a parlay.</p>':'<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Load slip</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":NEWB?" · tap to see how it works":"");$("sumR").textContent="";return}
+  if(!legs.length){$("legs").innerHTML=!NEWB?'<p class="empty">Your slip is empty. Tap any pick to add it, or <b>Add bet</b> on a parlay.</p>':'<p class="empty"><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.<br><br><b>Example:</b> 3 picks at −110 each. Bet $10: if all 3 win, you get back $69.58 ($59.58 profit). If any one loses, you get $0.<br><br>Tap any team, line or player below to add your first pick, or tap <b>Add bet</b> on a parlay we built.</p>';$("sumL").textContent="Your slip is empty"+($("panel").classList.contains("open")?" · tap to close":NEWB?" · tap to see how it works":"");$("sumR").textContent="";return}
   var d=1,evs={},same=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])same=true;evs[l.ev]=1});
   $("legs").innerHTML='<div class="slsum">'+
     (function(){var c=null;try{c=slipChance(legs).ch}catch(e){c=Engine.chance(legs)}if(c===null)return"";
@@ -3005,12 +3014,11 @@ if(SPORT==="nba"){document.title="ParlayLabs";$("tagline").textContent="Tonight'
 var TOUR=[
  ["🧪","Welcome to ParlayLabs","Parlays built from live sportsbook odds and real history: every player's recent games, his record at each line, every team's record against the spread and on overs this season and last, and (NFL) three replayed seasons. Every % is our honest chance to hit.","Pick a sport at the top: NFL, NBA, NCAAF or NCAAB."],
  ["🔢","Reading the odds","<b>Parlay</b> = 2 or more picks in one bet. Every pick has to win, and that\'s why it pays more.<br><br><b>ML</b> (moneyline) = pick who wins, by any score. <b>Spread</b> (−3.5) = the favorite must win by 4 or more; the underdog (+3.5) can lose by 3 or less and still win the bet. <b>Over / Under</b> = total points by both teams.<br><br><b>−138</b> = favorite: $10 wins $7.25. <b>+110</b> = underdog: $10 wins $11. <b>% to hit</b> = our honest estimate that every pick wins. Low is normal for parlays.<br><br><b>Prop</b> = a bet on one player\'s stats (yards, catches, points). <b>ATS</b> (against the spread) and <b>covered</b> = won the bet once the spread is counted. <b>Push</b> = landed exactly on the number, so you get your money back.","Every word here is also in How to read these cards on the Parlays tab."],
- ["⚡","Parlays tab","<b>ParlayLabs Generator:</b> choose how many picks, a risk level (Low, Medium, High) and games (one, several or all), and it builds the best one it can and explains every pick. <b>Generate another</b> gives the next best.<br><br>Below it, <b>slate chips</b> show our top 3 parlays for each day or window. Tags: <b>All green</b> (every pick 70%+), <b>Spread out</b> (every pick a different game), <b>⚑ Red flag</b> (something to check first).","Circle colors show each pick's chance: green 70%+, yellow 50–69%, red under 50%."],
+ ["⚡","Parlays tab","<b>Easiest way:</b> pick a slate chip, tap <b>Add bet</b> on a parlay you like, then <b>Open in FanDuel</b>.<br><br>The <b>ParlayLabs Generator</b> (below the list) lets you choose how many picks, a risk level (Low, Medium, High) and games, builds the best one it can and explains every pick. <b>Generate another</b> gives the next best.<br><br><b>Slate chips</b> at the top show our top 3 parlays for each day or window; the <b>ParlayLabs Generator</b> below the list builds one from your choices. Tags: <b>All green</b> (every pick 70%+), <b>Spread out</b> (every pick a different game), <b>⚑ Red flag</b> (something to check first).","Circle colors show each pick's chance: green 70%+, yellow 50–69%, red under 50%."],
  ["ⓘ","Why trust the %?","Every pick tells the same story wherever you open it: <b>The price</b> · <b>Recent form</b> · <b>Past seasons</b> · <b>Matchup</b> (vs this opponent, past meetings, line moves) · <b>How we got the %</b>.<br><br>Tap <b>How we got this %</b> on a parlay to flip it. Same-game picks are adjusted for how pairs like them really finished together. <b>Proven</b> and <b>Weak history</b> (NFL) show how that parlay type did in replayed seasons.","Estimates, not guarantees. They hold up over many bets, not one."],
- ["🏈","Players tab","One card per player: each stat with its likeliest lines, how often he's hit it lately and over a longer stretch, and his last 5 games.<br><br>The <b>ParlayLabs Generator</b> here is players only: pick <b>markets</b> (All markets, or check several), <b>Overs, Unders or Both</b>, and games.","Tap any line to add it to your slip."],
  ["🔄","Games tab","Swipe through every game. The front shows each team's record against the spread and on overs this season. <b>Tap a card to flip it</b> for the lines, last 5 games (✓ covered), past meetings and weather.<br><br>Under the card: the ParlayLabs Generator for that game, for either team or <b>Both</b>.","Your ★ team comes first; when they're off, it's the game of the week."],
- ["🛠️","Build tab","Every pick on the board ranked by our chance to hit. <b>Tap a row to add it</b> to your parlay (tap again to remove), or tap <b>ⓘ</b> for its data and history. Filter by game or type, or pick several games.<br><br>Your parlay sits at the top and updates live: honest %, payout, red flags and <b>How we got this %</b>.","Same-game picks get adjusted, and your app will pay less for them than shown."],
- ["🧾","Your slip and Results","Tap lines anywhere to build a slip, or tap <b>Load slip</b> on a parlay: each bet becomes a card at the bottom that you swipe through. Tap <b>Open in</b> your betting app, place it there, then tap <b>✓ Bet added</b> and we save it to My bets.<br><br><b>Results</b>: the weekly report card (every Monday), how our picks did, whether we beat the closing line, and your saved bets.","Reload the page for the latest odds and updates."],
+ ["🛠️","Picks tab","Every pick on the board, players and games, in one list. <b>Top picks</b> shows the likeliest ones by section; <b>All picks</b> lists everything, ranked, with filters for game, <b>Players, TDs or Game lines</b>. <b>Tap a row to add it</b> to your parlay (tap again to remove), or tap <b>ⓘ Data and history</b> to see why.<br><br>Your parlay sits at the top and updates live: honest %, payout, red flags and <b>How we got this %</b>.","Same-game picks get adjusted, and your app will pay less for them than shown."],
+ ["🧾","Your slip and Results","Tap lines anywhere to build a slip, or tap <b>Add bet</b> on a parlay: each bet becomes a card at the bottom that you swipe through. Tap <b>Open in</b> your betting app, place it there, then tap <b>✓ Bet added</b> and we save it to My bets.<br><br><b>Results</b>: the weekly report card (every Monday), how our picks did, whether we beat the closing line, and your saved bets.","Reload the page for the latest odds and updates."],
  ["★","Your teams and apps","Tap <b>★</b> to set your team for each sport and pick the <b>betting apps</b> you use. Your slip gets an <b>Open in …</b> button for each app, and you choose which app's odds the site shows.","Tap ⓘ at the top any time to see this tour again.<br><br>Something confusing? Tap <b>💬 Tell us</b> at the bottom of any page."]];
 var TI=0;
 function tourShow(){var tr=$("ttrack");tr.innerHTML=TOUR.map(function(t,i){return'<div class="tslide'+(i===TI?" on":"")+'"><div class="ticon">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><p class="ttip">'+t[3]+'</p></div>'}).join("");
@@ -3033,6 +3041,7 @@ function tourMaybe(){if(!NEWB)return;var seen=false;try{seen=localStorage.getIte
 // Pages: #parlays, #games, #props, #team-DET (shareable links)
 function route(){
   var h=(location.hash||"#parlays").slice(1),v=h.indexOf("team")===0||h==="games"?"team":h;
+  if(v==="props")v="build";
   if(["parlays","build","games","props","team","results"].indexOf(v)<0)v="parlays";
   ["parlays","build","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
   if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();TPICKED=true;TSIDE="team";if(DATA){renderTeam();renderSlip()}}
@@ -3155,7 +3164,7 @@ function qPanel(barOnly){
   if(left.length&&!nSlip){$("sumL").textContent=left.length+" bet"+(left.length>1?"s":"")+" in your queue"+($("panel").classList.contains("open")?" · tap to close":" · tap to place them");$("sumR").textContent=""}
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
   if(barOnly)return;
-  if(!total&&!placed&&QLAST<0){el.innerHTML='<p class="sub" style="margin:0 0 10px"><b>No bets yet.</b> Tap <b>Load slip</b> on any parlay, or tap teams, lines and players to build your own. Each bet shows up here as a card you can swipe through, with a button to open it in your app.'+(NEWB?'<br><br><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.':'')+'</p>';return}
+  if(!total&&!placed&&QLAST<0){el.innerHTML='<p class="sub" style="margin:0 0 10px"><b>No bets yet.</b> Tap <b>Add bet</b> on any parlay, or tap teams, lines and players to build your own. Each bet shows up here as a card you can swipe through, with a button to open it in your app.'+(NEWB?'<br><br><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.':'')+'</p>';return}
   var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button>':'')+'</div>',cards=[];
   if(nSlip){var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),d=1,ch=null,sg=false,evs={},stake=parseFloat($("stake").value)||USUAL,started=legs.some(function(l){return legStarted(l)});
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
@@ -3336,13 +3345,25 @@ function bqBar(o){
   return'<div class="bqbar"><button class="btn flag" data-qbundle="1" style="width:100%">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button><p class="sub" style="margin:6px 0 0">'+(o.sent?'<b>✓ Added '+o.sent+' to your queue.</b> ':'')+'An app holds only one bet on its slip, so you place them one at a time from your queue: open each in your app, place it, tap Placed.</p><div class="row2"><button class="btn" data-qopen="1">Open my bet queue'+(q?' ('+q+')':'')+'</button></div></div>'}
 // ---------- Table view: one block per parlay, one line per pick (position, snap share, record since 2023) ----------
 var PVIEW="cards";try{PVIEW=localStorage.getItem("pview")==="table"?"table":"cards"}catch(e){}
+// Plain English for a pick: what has to happen for it to win (beginner help; hidden when New to parlays? is No)
+function legWhat(l){try{
+  if(!l)return"";var h1=l.kind==="g"&&/^1/.test(l.t||""),pre=h1?"In the first half: ":"";
+  if(l.kind==="p"){if(l.td)return"Needs to score a touchdown";var u=Engine.unit(l.label,l.line+(l.side==="under"?0:0.5));
+    return l.side==="under"?"Needs to stay under "+l.line+" "+u:"Needs "+(l.line+0.5)+" or more "+u}
+  var t0=String(l.t||"").replace(/^1/,""),nm=String(l.n||""),num=(nm.match(/([+-]?\d+(?:\.\d+)?)\s*$/)||[])[1];
+  if(/^ml/.test(t0))return pre+nm.replace(/\s*ML\s*$/i,"")+" must win"+(h1?"":" the game (any score)");
+  if(/^sp/.test(t0)&&l.pt!=null){var tm=nm.replace(/\s*[+-]?\d+(?:\.\d+)?\s*$/,""),pt=l.pt;return pre+(pt<0?tm+" must win by "+spWin(pt)+" or more":Math.ceil(pt)-1<=0?tm+" must not lose":tm+" can lose by "+(Math.ceil(pt)-1)+" or less, or win")}
+  if(t0==="ov"&&num)return pre+"Both teams' points added up must be over "+num.replace(/^[+]/,"");
+  if(t0==="un"&&num)return pre+"Both teams' points added up must be under "+num.replace(/^[+]/,"");
+  return""}catch(e){return""}}
 function ptSub(l,S,R){
   var b=[];
   if(l.kind==="p"){var ps=[legPos(R),legSnap(R)&&legSnap(R)+" of snaps"].filter(Boolean).join(" · ");if(ps)b.push(ps);
     var r0=S.recent[0];if(r0&&!/^Not enough/.test(r0))b.push(r0);
     var inj=S.matchup.filter(function(m){return/^(Injury|Missed)/.test(m)})[0];if(inj)b.push(inj)}
   var bb=bestFor(l);if(bb&&dec(bb.a)>dec(l.a)+1e-9)b.push("Best: "+bb.name+" "+fmt(bb.a));
-  return b.length?'<small class="pts">'+esc(b.join(" · "))+'</small>':""}
+  var w=legWhat(l);
+  return(w?'<small class="pts hlp tip">'+esc(w)+'</small>':"")+(b.length?'<small class="pts">'+esc(b.join(" · "))+'</small>':"")}
 function ptBlock(x,key,i){
   var L=x.s.l,ch=x.ch;PRE[key]=L;PCUR[x.sig]=L;
   var anyRec=false,legs=L.map(function(l){var r=legRec(l);if(r)anyRec=true;return{l:l,rec:r,R:legRole(l),S:l.live?{recent:[],matchup:[]}:legStory(l)}});
@@ -3362,7 +3383,7 @@ function ptBlock(x,key,i){
   var shop=0,bd=1;L.forEach(function(l){bd*=bestDec(l)});if(bd>x.d*1.02)shop=bd;
   var notes=(shop?'<p class="mt">Shop each pick for the best price: up to '+am(shop)+'</p>':"")+(x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"");
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
-    '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+fl+
+    '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add bet</button></div>'+fl+
     '<div class="ptr pthd '+cls+'"><span class="ptn">Pick</span><span>Odds</span>'+(anyRec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'+rows+act+
     '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>How we got this %</summary>'+notes+slipWhy(L,x.s.n)+'</details></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
