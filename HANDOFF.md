@@ -341,3 +341,8 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Row tips (beginner help):** `legWhat(l)` adds one plain-English line under each pick ("Chiefs must win the game (any score)", "Needs 25 or more receiving yds"). Class `hlp tip`, so New to parlays? = No hides them.
 - Build's Most likely player picks shows 15 before Show all. Bet queue cards no longer show role/history lines.
 - Not done (ideas): step-by-step guide banner (Andrew chose row tips instead), merge duplicate generators, SITEMAP.md still describes the old Build / Players tabs (update before giving it to another AI).
+
+## Nov 4 (Games tab = Picks list)
+- Removed the big page headings "Picks" (Picks tab) and "Games" (Games tab); the tab bar already shows them. Inner headings stay.
+- Games tab's old **Players** cards are replaced by the Picks-tab list scoped to the chosen game (and team): `renderTeamPicks()` + `TPK` state next to `renderTeamLower()`, reusing `topListHTML(gid, team, kind)`, `buildRows()` and `lstRow()`, with its own All/Players/TDs/Game lines and Top picks/All picks buttons (`#tKind`, `#tMode`). Row taps go through the shared `pickTap()`.
+- Not yet tested on a phone: Pages builds were stuck "queued" for 25+ min that morning, so the change hadn't gone live when the chat ended. Check it after tapping ↻.
