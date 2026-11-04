@@ -457,7 +457,8 @@ select,input,textarea{font-size:max(16px,1em)}
 .bslip{background:linear-gradient(135deg,color-mix(in srgb,var(--flag) 12%,var(--surface)),var(--surface) 60%);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:12px;padding:12px;margin:6px 0 14px}
 .bstrip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:4;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:6px 10px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
 .bstrip.on{border-color:color-mix(in srgb,var(--flag) 55%,var(--line))}
-.bstrip .bbt{display:flex;gap:6px}.bstrip .btn{min-height:34px;padding:4px 12px;font-size:13px}
+.bstrip .bbt{display:flex;gap:6px}
+.qhead{display:flex;justify-content:space-between;align-items:center}.qhb{display:flex;gap:10px;align-items:center}.qnext{min-height:28px;padding:2px 10px;font-size:12px}.bstrip .btn{min-height:34px;padding:4px 12px;font-size:13px}
 .bslip.empty2{color:var(--muted);font-size:14px;text-align:center}
 .bslip .gh{display:flex;justify-content:space-between;align-items:flex-end}
 .bslip .big{font-family:"Barlow Condensed",sans-serif;font-size:36px;font-weight:700;line-height:1}
@@ -737,7 +738,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
   <h2>Picks</h2>
-  <p class="sub hlp">Tap picks to add them. Tap <b>Next slip</b> to save a bet and start another; place them from the bar at the bottom.</p>
+  <p class="sub hlp">Tap picks to add them. Your slip is in the bar at the bottom: tap <b>Next slip</b> there to save a bet and start another.</p>
   <div id="bSlip"></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters" id="bFilt">
@@ -2068,12 +2069,7 @@ function renderBuild(){
       var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
       return lstRow(L,attrs,L.a,L.p,frec,k)}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
     (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>'}
-  // slip strip: the full slip lives in the bar at the bottom; here just the count and "Next slip"
-  var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),nq=QUEUE.filter(function(q){return q.st===0}).length+1;
-  if(!legs.length){$("bSlip").innerHTML='<div class="bstrip"><span><b>Slip '+nq+'</b> · tap picks to add them</span></div>';return}
-  var d=1,sg=false,evs={};legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
-  var ch=null;try{ch=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),"").ch}catch(x){}
-  $("bSlip").innerHTML='<div class="bstrip on"><span><b>Slip '+nq+'</b> · '+legs.length+' pick'+(legs.length>1?"s":"")+' · '+(ch!=null?'<b style="color:'+pctColor(ch)+'">'+pct(ch)+'</b> · ':"")+(sg?"~":"")+am(d)+'</span><span class="bbt"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" data-bnew="1">Next slip</button></span></div>';
+  $("bSlip").innerHTML="";
 }
 // ---------- closing line value ----------
 // Every pick leg we posted (slips and report cards) whose game has started, with its first price and its closing price
@@ -3142,7 +3138,7 @@ function qOpen(){$("panel").classList.add("open");$("sum").setAttribute("aria-ex
 // the queue lives in the slip panel at the bottom: swipe left/right through the bets
 function qWT(sel,stake,d){return'<div class="qwt" data-sel="'+sel+'" data-d="'+d+'"><label>Wager $<input inputmode="decimal" data-wg="1" value="'+(Math.round(stake*100)/100)+'" aria-label="Wager in dollars"></label><label>To win $<input inputmode="decimal" data-tw="1" value="'+(Math.round(stake*(d-1)*100)/100)+'" aria-label="Amount to win in dollars"></label></div>'}
 function qNote(stake){return''}
-var QCOMPACT=false;try{QCOMPACT=localStorage.getItem('qcompact')==='1'}catch(e){}var QMO={};
+var QCOMPACT=true;try{QCOMPACT=localStorage.getItem('qcompact')!=='0'}catch(e){}var QMO={};
 var QPO=false;
 function qExtra(price,sing){return'<div class="qex">'+price+sing+'</div>'}
 function qPrice(legs,d,ch,stake,sg){var opts=$("boost").innerHTML.replace(/ selected(="[^"]*")?/g,"").replace('value="'+BOOST+'"','value="'+BOOST+'" selected'),sh="",bo="";
@@ -3167,7 +3163,7 @@ function qPanel(barOnly){
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
   if(barOnly)return;
   if(!total&&!placed&&QLAST<0){el.innerHTML='<p class="sub" style="margin:0 0 10px"><b>No bets yet.</b> Tap <b>Add bet</b> on any parlay, or tap teams, lines and players to build your own. Each bet shows up here as a card you can swipe through, with a button to open it in your app.'+(NEWB?'<br><br><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.':'')+'</p>';return}
-  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button>':'')+'</div>',cards=[];
+  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<span class="qhb">'+(nSlip?'<button class="btn flag qnext" data-bnew="1">Next slip</button>':'')+'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button></span>':'')+'</div>',cards=[];
   if(nSlip){var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),d=1,ch=null,sg=false,evs={},stake=parseFloat($("stake").value)||USUAL,started=legs.some(function(l){return legStarted(l)});
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
     AMT.s=stake;
