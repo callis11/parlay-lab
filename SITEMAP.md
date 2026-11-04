@@ -124,3 +124,6 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 
 ## Top list: role line under player names (Nov 3)
 - Each player row in Build > Top list shows a small line under the name, e.g. "TE1 starter · 70% of snaps" (same text as the role tag on parlay cards, from roles.json). Team rows have none.
+
+## Longer record under names (Nov 3)
+- Build > Top list player rows get a second gray line under the name with that pick's longer record, e.g. "26 of 40 games since 2023" (flipped for unders). Players tab cards get a chip under the name with the same record for the player's most likely line, e.g. "Rec yds 25+: 26 of 40 games since 2023". Helper: `sinceTxt()`.

@@ -961,6 +961,8 @@ function icoKey(l){
 }
 var PMAP=null;function pmap(){if(!PMAP||PMAP._n!==PROPS){PMAP={_n:PROPS};PROPS.forEach(function(p){PMAP["P|"+p.id]=p;PMAP["P|"+p.id+"|u"]=p})}return PMAP}
 // A rung's record from the leg's side: unders flip the counts (no pushes on .5 lines)
+// "26 of 40 games since 2023" for one line (flipped for unders); "" when there is no longer record
+function sinceTxt(r,u){if(!r||!r.since||!(r.since[1]>(r.n||0)))return"";var a=u?r.since[1]-r.since[0]:r.since[0];return a+" of "+r.since[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons")}
 function sideRec(l,r){var u=l.side==="under";return{hits:u?r.n-r.hits:r.hits,n:r.n,since:r.since?(u?[r.since[1]-r.since[0],r.since[1]]:r.since):null,word:u?"Stayed under in ":(l.td?"Scored in ":"Hit it in ")}}
 function vsRec(l,v){return l.side==="under"?[v[1],v[0]]:v}
 function legTeam(l){
@@ -1033,6 +1035,8 @@ function playerGroups(list){
 function playerCard(G){
   var ps=G.ps,p0=ps[0],main=ps.filter(function(p){return!p.td})[0]||p0,pc="#8A97A8";
   var inj=roleChip(p0.role)+(p0.injury?'<span class="chip alert">'+esc(p0.injury)+'</span>':"")+(p0.missedLast?'<span class="chip alert">Missed last game</span>':"")+(p0.windF&&p0.windF<1?'<span class="chip">Windy: estimates lowered</span>':"");
+  (function(){var bp=null,br=null;ps.forEach(function(p){if(p.td)return;p.rungs.forEach(function(r){if(r.p!==undefined&&r.a>=-700&&sinceTxt(r)&&(!br||r.p>br.p)){bp=p;br=r}})});
+    if(bp)inj+='<span class="chip">'+esc(bp.label)+" "+(br.line+0.5)+"+: "+esc(sinceTxt(br))+'</span>'})();
   var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p0.team],v=T&&p0.opp&&T.pvs&&T.pvs[p0.player]&&T.pvs[p0.player][p0.opp];
   if(v&&v[0]+v[1]>=2)inj+='<span class="chip">vs '+esc(p0.opp)+': '+v[0]+" of "+(v[0]+v[1])+' overs</span>';
   var secs=ps.map(function(p){
@@ -1835,7 +1839,7 @@ function topListHTML(){
     else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
     var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(!x.g&&x.p.role&&roleTag(x.p.role)?'<small class="rtg2">'+esc(roleTag(x.p.role))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
+      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(!x.g&&x.p.role&&roleTag(x.p.role)?'<small class="rtg2">'+esc(roleTag(x.p.role))+'</small>':"")+(!x.g&&sinceTxt(x.r,x.u)?'<small class="rtg2">'+esc(sinceTxt(x.r,x.u))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
       '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
