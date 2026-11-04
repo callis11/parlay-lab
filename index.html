@@ -2875,8 +2875,8 @@ document.addEventListener("click",function(e){
     var pl=PRE[t.dataset.pre];if(!pl){toast("Couldn't load that one. Pull down to refresh and try again.",true);return}
     var ok=pl.filter(function(l){return!legStarted(l)});if(!ok.length){toast("Every game in this parlay has started. Reload the page for parlays on games still to come.",true);return}
     var left0=pl.length-ok.length;
-    if(qAdd(ok,t.dataset.qn||"Bet",0,true)){toast("Added to your bets"+(left0?" ("+left0+" pick"+(left0>1?"s":"")+" left out: that game started)":"")+". Swipe the cards at the bottom.");qOpen()}
-    else{toast("That bet is already in your list.");qOpen()}
+    if(qAdd(ok,t.dataset.qn||"Bet",0,true))toast("Added to your bets ("+QUEUE.filter(function(q){return q.st===0}).length+")"+(left0?" ("+left0+" pick"+(left0>1?"s":"")+" left out: that game started)":"")+". Keep adding, then tap the bar at the bottom to place them.");
+    else toast("That bet is already in your list.");
     var old=t.textContent;t.textContent=t.dataset.ico?"✓":"Added ✓";t.classList.add("done");setTimeout(function(){t.textContent=old;t.classList.remove("done")},1800)}
   else if(t.dataset.r){delete SLIP[t.dataset.r];if(!Object.keys(SLIP).length)closeSlip();renderSlip()}
   else if(t.id==="clear"){SLIP={};SENT=null;sentSave();placeHide();SHOT.slipMeta=null;if($("placeStat"))$("placeStat").textContent="";closeSlip();renderSlip();toast("Slip cleared.")}
@@ -3310,7 +3310,7 @@ function ptBlock(x,key,i){
   // place the bet: open the app with these picks, or add to My bets
   var live=L.filter(function(l){return!legStarted(l)}),apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),links="";
   if(live.length)apps.forEach(function(bk){if(links)return;var nm=Engine.BOOK_NAMES[bk]||bk,K=null;try{K=Engine.betslipLink(live,bk)}catch(e){}if(K&&K.combined)links+='<a class="btn'+(bk===BOOK?" flag":"")+' ptopen" href="'+esc(K.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(K.n<live.length?" ("+K.n+" of "+live.length+")":"")+'</a>'});
-  var act='<div class="ptact">'+links+'<button class="btn ptq" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">+ My bets</button></div>';
+  var act='<div class="ptact">'+links+'</div>';
   var shop=0,bd=1;L.forEach(function(l){bd*=bestDec(l)});if(bd>x.d*1.02)shop=bd;
   var notes=(shop?'<p class="mt">Shop each pick for the best price: up to '+am(shop)+'</p>':"")+(x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"");
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
