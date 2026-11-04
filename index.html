@@ -487,7 +487,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--green);color:var(--green-ink);font-weight:700;padding:10px 16px;border-radius:999px;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .toast.long{border-radius:14px;width:min(92vw,420px);font-size:14px;line-height:1.35;text-align:center}
 .btn.done{background:var(--green);color:var(--green-ink)}
-.panel.open{display:block}.plnm{font-weight:700;font-size:15px!important;white-space:nowrap!important}.tl .tn2>.plbet,.plbet{display:block;font-size:13px;font-weight:600;color:var(--ink);white-space:normal!important;margin-top:1px}.ptr .ptn .plbet{color:var(--ink);font-size:13px}.qfoot{position:sticky;bottom:0;z-index:5;background:var(--bg);padding:8px 0 6px;border-top:1px solid var(--line)}
+.panel.open{display:block}.ptr .ptn .ptl1{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;letter-spacing:-.02em}.qfoot{position:sticky;bottom:0;z-index:5;background:var(--bg);padding:8px 0 6px;border-top:1px solid var(--line)}
 .leg{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
 .leg button{background:none;border:0;color:var(--red);font:inherit;font-weight:600;cursor:pointer;padding:6px}
 .stake{display:flex;align-items:center;gap:8px;margin:10px 0}
@@ -1218,7 +1218,7 @@ function propRows(p,cls,rec){
   var open=OPENP[p.id],hidden=p.rungs.filter(function(r){return!keep[r.line]}).length;
   var rows=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line,L=propLeg(p,r);if(!L)return"";
     var tm=legTeam(L),rc=legRec(L),S=L.live?{recent:[],matchup:[]}:legStory(L),pr=L.p!=null?Math.round(L.p*100):null;
-    return'<button class="ptr ptrow rung '+cls+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span class="ptn">'+plTitle(L,tm,"small")+ptSub(L,S,legRole(L))+'</span><span class="pto2">'+fmt(L.a)+'</span>'+(rec?'<span>'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
+    return'<button class="ptr ptrow rung '+cls+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span class="ptn"><span class="ptl1">'+esc(L.n.replace("receiving yds","rec yds").replace("rushing yds","rush yds").replace("passing yds","pass yds").replace("anytime TD","any TD"))+(tm?' <small>'+esc(tm)+'</small>':"")+'</span>'+ptSub(L,S,legRole(L))+'</span><span class="pto2">'+fmt(L.a)+'</span>'+(rec?'<span>'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
       '<span class="ptp"'+(pr!==null?' style="color:'+hitColor(L.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></button>'}).join("");
   return rows+(hidden?'<button class="lnk ptshow" data-openp="'+esc(p.id)+'">'+(open?"Show fewer lines for "+esc(p.player):"Show all "+p.rungs.length+" "+esc(p.label)+" lines for "+esc(p.player))+'</button>':"")}
 function playersTable(groups){
@@ -2024,7 +2024,7 @@ function lstRow(L,attrs,a,P,rec,info){
     nl=L.kind==="g"&&legL5(L)?'<small class="ptl5">'+esc(legL5(L))+'</small>':"",lv=L.live?'<small class="pts">🔴 '+esc(livePrice(L))+'</small>':"",
     open=info&&BLD.open===info,ib=info?'<button class="lnk tinfo" data-bopen="'+esc(info)+'" aria-expanded="'+!!open+'">ⓘ '+(open?"Hide":"Data and history")+'</button>':"";
   return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'>'+
-    '<span class="tn2">'+plTitle(L,tm2,"tag2")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
+    '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
     '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
 function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
 function topListHTML(){
