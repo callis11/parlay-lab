@@ -706,7 +706,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
     </details>
     <div class="bqb" style="display:flex;gap:8px;margin:12px 0 4px"><button class="btn" id="clearAll" style="flex:1">Clear all</button><button class="btn" id="slipClose" style="flex:1">✕ Close slip</button></div>
   </div>
-  <button class="qchip" id="qChip" hidden></button>
+  <button class="qchip" id="qChip" hidden style="display:none"></button>
   <button class="sum" id="sum" aria-expanded="false" aria-controls="panel"><span id="sumL">Your slip is empty</span><span class="num" id="sumR"></span></button>
 </div></div>
 
@@ -2955,7 +2955,7 @@ function qPanel(barOnly){
   var left=[],placed=QUEUE.filter(function(q){return q.st===1}).length,nSlip=Object.keys(SLIP).length,more=$("slipMore");
   QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});
   var total=left.length+(nSlip?1:0),chip=$("qChip");
-  if(chip){chip.hidden=!left.length||$("panel").classList.contains("open");chip.textContent="Bet"}
+  if(chip){chip.hidden=true}
   if(more){more.hidden=!nSlip&&left.length>0;var none=!nSlip&&!left.length;more.classList.toggle("nosum",none);if(none)more.open=true;else if(more.dataset.was==="none")more.open=false;more.dataset.was=none?"none":"some"}
   if(left.length&&!nSlip){$("sumL").textContent=left.length+" bet"+(left.length>1?"s":"")+" in your queue"+($("panel").classList.contains("open")?" · tap to close":" · tap to place them");$("sumR").textContent=""}
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
