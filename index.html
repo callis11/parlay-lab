@@ -125,6 +125,10 @@ th{color:var(--muted);font-weight:600}
 .ptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
 .ptools select{flex:1;min-width:120px}
 .ptpair{display:flex;gap:8px;align-items:center}
+.prow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
+.prow+.prow{padding-top:8px;border-top:1px solid var(--line)}
+.plab{flex:0 0 100%;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ptools{flex-direction:column;align-items:stretch}
 .plan{border:1px solid var(--line);border-radius:8px;background:var(--surface);margin:10px 0;padding:0}.plan>summary{cursor:pointer;padding:12px 14px;font-weight:700;list-style:none}.plan>summary::-webkit-details-marker{display:none}.plan .pb{padding:0 14px 14px}
 .gplan{display:flex;align-items:center;gap:6px;flex:1}.gplan input{font:inherit;font-size:15px;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);width:70px;min-width:0}.plan.nb{border:0;background:none;margin:8px 0}.plan.nb .pb{padding:0}.plan .prow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}.plan .prow label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}.plan .prow input,.plan .prow select{font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);min-width:0}
 .plan table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.plan td{padding:6px 4px;border-bottom:1px solid var(--line)}.plan td.r{text-align:right;font-weight:700}
@@ -668,11 +672,13 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
   <div id="genMount_par"></div>
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
-    <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
-    <div class="ptpair"><div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div></div>
-    <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px;flex:1 1 100%">Expand all</button>
-    <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
-    <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
+    <div class="prow pview" role="group" aria-label="View"><span class="plab">View</span>
+      <div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div>
+      <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px;flex:1">Expand all</button></div>
+    <div class="prow pfilt" role="group" aria-label="Filter"><span class="plab">Filter</span>
+      <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
+      <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
+      <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select></div>
   </div>
   <div id="pList"></div>
 </section>
