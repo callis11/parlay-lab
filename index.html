@@ -2026,8 +2026,8 @@ function topListHTML(){
   function row(x,i,rec){var L=legOf(x),attrs;if(!L)return"";
     if(x.g)attrs='data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"';else attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");
     return lstRow(L,attrs,x.a,x.P,rec,"")}
-  // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
-  function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
+  // Most likely player picks shows its top 15, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
+  function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?15:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'">'+lstHead(rec)+''+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
       (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
   var out=sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30)+
