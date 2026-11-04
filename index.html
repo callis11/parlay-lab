@@ -632,6 +632,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 .pltb{margin-bottom:10px}.pltb .pth{padding-bottom:2px}
 .plnm{font-family:"Barlow Condensed",sans-serif;font-size:22px;line-height:1}.plnm small{font-family:inherit;font-size:12px;color:var(--muted);font-weight:600}
 .ptpl{font-size:11.5px;color:var(--muted);padding:0 0 6px}.ptal{color:var(--red);font-weight:700}
+.ptshow{display:block;margin:2px 0 4px;font-size:12px}
 .ptmk{display:flex;align-items:baseline;gap:8px;padding:8px 0 2px}.ptmk b{font-size:13px;color:var(--flag)}.ptmk small{font-size:11px;color:var(--muted)}
 .pvw{display:flex;margin:0 0 10px}
 </style>
@@ -1166,7 +1167,7 @@ function renderProps(){
   list.sort(so==="name"?function(a,b){return a.player.localeCompare(b.player)}:so==="value"?function(a,b){return b.best-a.best}:function(a,b){return b.top-a.top});
   if(!list.length){$("props").innerHTML='<p class="empty">No props for this book and filter yet.</p>';return}
   var nUp=GAMES.filter(function(g){return+new Date(g.t)>nowP}).length,nPg=Object.keys(pg).filter(function(k){return+new Date(pg[k].t)>nowP}).length,pnote=nPg<nUp?'<p class="sub" style="margin:0 0 8px">'+nPg+' of '+nUp+' games have player lines so far. The rest usually post closer to kickoff.</p>':"";
-  $("props").innerHTML=pnote+list.slice(0,SHOWN).map(playerCard).join("")+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
+  $("props").innerHTML=pnote+(PVIEW==="table"?playersTable(list.slice(0,SHOWN)):list.slice(0,SHOWN).map(playerCard).join(""))+(list.length>SHOWN?'<button class="more" id="more">Show more ('+(list.length-SHOWN)+' left)</button>':"");
 }
 var OPENP={};
 // One market's lines for a player: top 3 most likely that still pay (-700 or better), the rest behind "Show all"
@@ -1189,29 +1190,23 @@ function playerGroups(list){
   var by={},order=[];list.forEach(function(p){var k=p.ev+"|"+p.player;if(!by[k]){by[k]=[];order.push(k)}by[k].push(p)});
   return order.map(function(k){var ps=by[k].sort(function(a,b){return(b.td?1:0)-(a.td?1:0)||a.label.localeCompare(b.label)});return{ps:ps,top:Math.max.apply(null,ps.map(topPlayable)),best:Math.max.apply(null,ps.map(function(p){return p.best})),player:ps[0].player}});
 }
+// Players table: one flat table, every row laid out like a Parlays row (full name, role/snaps/form notes, odds, since '23, hit %, + to add)
 function propRows(p,cls,rec){
   var cur=SLIP["P|"+p.id],playable=p.rungs.filter(function(r){return r.p!==undefined&&r.a>=-700}).sort(function(a,b){return b.p-a.p}),keep={};
   (playable.length?playable:p.rungs.slice().sort(function(a,b){return(b.p||0)-(a.p||0)})).slice(0,p.td?1:3).forEach(function(r){keep[r.line]=1});
   if(cur)keep[cur.line]=1;
   var open=OPENP[p.id],hidden=p.rungs.filter(function(r){return!keep[r.line]}).length;
-  var rows=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line,sub=[];
-    if(r.p!==undefined&&r.n)sub.push((p.td?"Scored in ":"Hit ")+r.hits+" of last "+r.n);
-    if(r.best&&r.best.a!==r.a)sub.push("Best: "+r.best.book+" "+fmt(r.best.a));
-    var sn=r.since&&r.since[1]>(r.n||0)?r.since[0]+"/"+r.since[1]:"–";
-    return'<button class="ptr ptrow rung '+cls+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span class="ptn">'+(p.td?"Scores a TD":(r.line+0.5)+"+ "+esc(Engine.unit(p.label,r.line+0.5)))+(sub.length?'<small class="pts">'+esc(sub.join(" · "))+'</small>':"")+'</span><span class="pto2">'+fmt(r.a)+'</span>'+(rec?'<span>'+sn+'</span>':"")+
-      '<span class="ptp"'+(r.p!==undefined?' style="color:'+hitColor(r.p)+'"':"")+'>'+(r.p!==undefined?Math.round(r.p*100)+"%":"–")+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></button>'}).join("");
-  return rows+(hidden?'<button class="lnk" data-openp="'+esc(p.id)+'">'+(open?"Show fewer":"Show all "+p.rungs.length+" lines")+'</button>':"")}
-function playerTable(G){
-  var ps=G.ps,p0=ps[0],bits=[];
-  var rt=roleTag(p0.role);if(rt)bits.push(esc(rt));if(p0.injury)bits.push('<span class="ptal">'+esc(p0.injury)+'</span>');if(p0.missedLast)bits.push('<span class="ptal">Missed last game</span>');if(p0.windF&&p0.windF<1)bits.push("Windy: estimates lowered");
-  var T=SPORT==="nfl"&&BT&&BT.teams&&BT.teams[p0.team],v=T&&p0.opp&&T.pvs&&T.pvs[p0.player]&&T.pvs[p0.player][p0.opp];if(v&&v[0]+v[1]>=2)bits.push("vs "+esc(p0.opp)+": "+v[0]+" of "+(v[0]+v[1])+" overs");
-  var rec=ps.some(function(p){return p.rungs.some(function(r){return r.since&&r.since[1]>(r.n||0)})}),cls=rec?"pt5":"pt4";
+  var rows=p.rungs.filter(function(r){return open||keep[r.line]}).map(function(r){var on=cur&&cur.line===r.line,L=propLeg(p,r);if(!L)return"";
+    var tm=legTeam(L),rc=legRec(L),S=L.live?{recent:[],matchup:[]}:legStory(L),pr=L.p!=null?Math.round(L.p*100):null;
+    return'<button class="ptr ptrow rung '+cls+'" data-p="'+esc(p.id)+'" data-l="'+r.line+'" aria-pressed="'+!!on+'"><span class="ptn">'+esc(L.n)+(tm?' <small>'+esc(tm)+'</small>':"")+ptSub(L,S,legRole(L))+'</span><span class="pto2">'+fmt(L.a)+'</span>'+(rec?'<span>'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
+      '<span class="ptp"'+(pr!==null?' style="color:'+hitColor(L.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></button>'}).join("");
+  return rows+(hidden?'<button class="lnk ptshow" data-openp="'+esc(p.id)+'">'+(open?"Show fewer lines for "+esc(p.player):"Show all "+p.rungs.length+" "+esc(p.label)+" lines for "+esc(p.player))+'</button>':"")}
+function playersTable(groups){
+  var rec=groups.some(function(G){return G.ps.some(function(p){return p.rungs.some(function(r){return r.since&&r.since[1]>(r.n||0)})})}),cls=rec?"pt5":"pt4";
   var hd='<div class="ptr pthd '+cls+'"><span class="ptn">Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>';
-  return'<div class="ptb pltb"><div class="pth"><b class="plnm">'+esc(p0.player)+' <small>'+esc(p0.team||"")+'</small></b><span class="ptw">'+esc(p0.g.away)+" at "+esc(p0.g.home)+'</span></div>'+(bits.length?'<div class="ptpl">'+bits.join(" · ")+'</div>':"")+hd+
-    ps.map(function(p){var d=p.opp&&p.oppF&&p.oppF!==1&&!p.td?(p.oppF>=1.04?" · soft defense":p.oppF<=0.96?" · tough defense":""):"";
-      return'<div class="ptmk"><b>'+esc(p.label)+'</b><small>'+(p.avg!==null&&!p.td?"avg "+p.avg:p.td&&p.recent.length?"TDs last 5: "+p.recent.join(", "):"")+esc(d)+'</small></div>'+propRows(p,cls,rec)}).join("")+'</div>'}
+  return'<div class="ptb pltb">'+hd+groups.map(function(G){return G.ps.map(function(p){return propRows(p,cls,rec)}).join("")}).join("")+'</div>'}
 function playerCard(G){
-  if(PVIEW==="table")return playerTable(G);
+  if(PVIEW==="table")return playersTable([G]);
   var ps=G.ps,p0=ps[0],main=ps.filter(function(p){return!p.td})[0]||p0,pc="#8A97A8";
   var inj=roleChip(p0.role)+(p0.injury?'<span class="chip alert">'+esc(p0.injury)+'</span>':"")+(p0.missedLast?'<span class="chip alert">Missed last game</span>':"")+(p0.windF&&p0.windF<1?'<span class="chip">Windy: estimates lowered</span>':"");
   (function(){var bp=null,br=null;ps.forEach(function(p){if(p.td)return;p.rungs.forEach(function(r){if(r.p!==undefined&&r.a>=-700&&sinceTxt(r)&&(!br||r.p>br.p)){bp=p;br=r}})});
