@@ -507,7 +507,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .oddsw .sgn{font:inherit;font-weight:800;font-size:20px;min-width:44px;border:0;border-right:1px solid var(--line);background:var(--surface,#1b2a1e);color:var(--ink);cursor:pointer;padding:0 10px}
 .oddsw input{font:inherit;border:0;background:transparent;color:var(--ink);padding:8px;min-width:0;flex:1;outline:none}
 .stsum{margin:0 0 8px;font-size:14px;line-height:1.4;color:var(--ink)}
-.cfbgeo{border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4;background:rgba(247,198,0,.06)}
+.cfbgeo{margin:6px 0;font-size:14px;line-height:1.4;text-align:right}.cfbgeo .geoic{position:relative;width:40px;height:40px;border-radius:50%;border:1px solid var(--flag);background:rgba(247,198,0,.06);font-size:18px;line-height:1;cursor:pointer;color:inherit}.cfbgeo .geoic.need::after{content:"";position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--flag)}.cfbgeo .geob{text-align:left;border:1px solid var(--flag);border-radius:6px;padding:10px 12px;margin-top:8px;background:rgba(247,198,0,.06)}
 .bmode{margin:10px 0 6px}.tlmore{display:block;margin:6px auto 0;font-weight:700}
 .tl{border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .tl .b2{border-bottom:1px solid var(--line)}.tl .b2:last-child{border-bottom:0}
@@ -859,7 +859,7 @@ var SPORT=/[?&](nba|sport=nba)\b/.test(location.search)?"nba":/[?&](cfb|sport=cf
 // phone's location (asked only when the user taps "Check my location"; the state is kept on the phone for 12 hours).
 var CFB_NO={AZ:1,CO:1,LA:1,MA:1,MD:1,MS:1,NY:1,OH:1,PA:1,TN:1,VA:1,VT:1,WY:1},CFB_INSTATE={CT:1,DC:1,IA:1,IL:1,MO:1,NJ:1,WA:1};
 var STNAME={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"Washington, D.C.",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",XX:"outside the U.S."};
-var CPR={st:null,at:0,on:false,all:[]};try{var _geo=JSON.parse(localStorage.getItem("geo")||"null");if(_geo&&Date.now()-_geo.at<12*36e5){CPR.st=_geo.st;CPR.at=_geo.at}}catch(e){}
+var GEOOPEN=false,CPR={st:null,at:0,on:false,all:[]};try{var _geo=JSON.parse(localStorage.getItem("geo")||"null");if(_geo&&Date.now()-_geo.at<12*36e5){CPR.st=_geo.st;CPR.at=_geo.at}}catch(e){}
 CPR.on=SPORT==="cfb"&&!!CPR.st&&CPR.st!=="XX"&&!CFB_NO[CPR.st];
 var NOPROPS=COL&&!CPR.on;
 var BUILT=0,FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=10,TEAM="",SLATE_OPEN={},first=false;
@@ -2318,9 +2318,10 @@ function cfbBanner(){if(SPORT!=="cfb")return;["v-parlays","v-build"].forEach(fun
   if(!CPR.all.length){if(el)el.remove();return}
   if(!el){el=document.createElement("div");el.className="cfbgeo";sec.insertBefore(el,sec.firstChild)}
   var nm=STNAME[CPR.st]||CPR.st,games={};CPR.all.forEach(function(p){games[p.event]=1});var ng=Object.keys(games).length;
-  el.innerHTML=!CPR.st?'<b>🏈 College player props are here</b> (passing, rushing and receiving yards, catches, TDs) for '+ng+' game'+(ng>1?"s":"")+': Michigan State, ranked teams and the Big Ten, SEC, Big 12 and ACC. They\'re only legal in some states, so we check where you are first.<div style="margin-top:8px"><button class="btn flag" data-geo="1">📍 Check my location</button></div><small class="sub">Your location stays on this phone. It\'s checked again after 12 hours.</small>'
+  var msg=!CPR.st?'<b>🏈 College player props are here</b> (passing, rushing and receiving yards, catches, TDs) for '+ng+' game'+(ng>1?"s":"")+': Michigan State, ranked teams and the Big Ten, SEC, Big 12 and ACC. They\'re only legal in some states, so we check where you are first.<div style="margin-top:8px"><button class="btn flag" data-geo="1">📍 Check my location</button></div><small class="sub">Your location stays on this phone. It\'s checked again after 12 hours.</small>'
     :!CPR.on?'College player props aren\'t allowed '+(CPR.st==="XX"?"outside the U.S.":"in "+esc(nm))+', so they\'re hidden. Game lines work as normal. <button class="btn" data-geo="1" style="margin-left:4px">Recheck</button>'
-    :'<b>College player props are on</b> · checked in '+esc(nm)+(CFB_INSTATE[CPR.st]?'. '+esc(nm)+' doesn\'t allow props on its own schools, so those players are hidden':"")+'. <button class="btn" data-geo="1" style="margin-left:4px">Recheck</button>'})}
+    :'<b>College player props are on</b> · checked in '+esc(nm)+(CFB_INSTATE[CPR.st]?'. '+esc(nm)+' doesn\'t allow props on its own schools, so those players are hidden':"")+'. <button class="btn" data-geo="1" style="margin-left:4px">Recheck</button>';
+  el.innerHTML='<button class="geoic'+(CPR.st?"":" need")+'" data-geotog="1" aria-expanded="'+GEOOPEN+'" aria-label="College player props location check">📍</button>'+(GEOOPEN?'<div class="geob">'+msg+'</div>':"")})}
 // point in polygon on states.json (state → polygons → rings of [lon,lat,...])
 function inRing(x,y,r){var c=false;for(var i=0,j=r.length-2;i<r.length;j=i,i+=2){var xi=r[i],yi=r[i+1],xj=r[j],yj=r[j+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c}return c}
 function stateAt(lon,lat,S){for(var k in S){var polys=S[k];for(var p=0;p<polys.length;p++){var inside=false;polys[p].forEach(function(r){if(inRing(lon,lat,r))inside=!inside});if(inside)return k}}return"XX"}
@@ -2331,7 +2332,7 @@ function checkGeo(){if(!navigator.geolocation){toast("This phone can't share its
       toast(st==="XX"?"You're outside the U.S.":"You're in "+(STNAME[st]||st)+".");setTimeout(function(){location.reload()},700)})},
     function(err){toast(err&&err.code===1?"Location is off for this site. On iPhone: Settings › Privacy & Security › Location Services › Safari Websites (or the home-screen app) › While Using.":"Couldn't get your location. Try again outside or with Wi-Fi on.",true)},
     {enableHighAccuracy:false,timeout:15000,maximumAge:10*6e4})}
-document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-geo]");if(b){e.preventDefault();checkGeo()}});
+document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-geotog]");if(t){e.preventDefault();GEOOPEN=!GEOOPEN;cfbBanner();return}var b=e.target.closest&&e.target.closest("[data-geo]");if(b){e.preventDefault();checkGeo()}});
 // ---------- Check scores: live and final scores straight from ESPN, on this phone (no credits) ----------
 // Tap 🔄 Check scores, or leave Results open while a game is on (checks every 2 min). Final games are saved on the
 // phone (SC.fin) and grade My bets right away; finals.json from the server still wins when it has the game.
