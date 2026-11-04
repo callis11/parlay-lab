@@ -2900,12 +2900,12 @@ $("favBtn").onclick=function(){favOpen()};
 // Kept: saved bets in Results (deleted there by hand), favorite teams, betting apps, theme, usual bet, age/location checks and intro flags.
 var KEEP_KEYS=/^(mybets|scfin_|fav_|apps|book|theme|usual|age21|geo|newbie|setup1|tour1|start1|wkseen_)/;
 $("resetBtn").onclick=function(){
-  if(!window.confirm("Reset and refresh?\n\nThis clears your slip, queued bets and generated parlays, then loads the newest odds and picks. Your saved bets in Results, favorite teams, betting apps, theme and settings stay."))return;
+  if(!window.confirm("Reset and refresh?\n\nThis clears your slip, queued bets, generated parlays and every tab's filters (back to Games remaining, starting on Parlays), then loads the newest odds and picks. Your saved bets in Results, favorite teams, betting apps, theme and settings stay."))return;
   var b=$("resetBtn");b.disabled=true;b.classList.add("spin");toast("Resetting…");
   try{Object.keys(localStorage).forEach(function(k){if(!KEEP_KEYS.test(k))localStorage.removeItem(k)})}catch(e){}try{sessionStorage.clear()}catch(e){}
   var files=[location.pathname,location.pathname+"?nba",location.pathname+"?cfb",location.pathname+"?cbb","engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json",DIR+"finals.json"];
   Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
-    location.replace(location.pathname+location.search.replace(/[?&]r=\d+/,"")+(location.search.replace(/[?&]r=\d+/,"").indexOf("?")<0?"?":"&")+"r="+Date.now()+location.hash)})};
+    location.replace(location.pathname+location.search.replace(/[?&]r=\d+/,"")+(location.search.replace(/[?&]r=\d+/,"").indexOf("?")<0?"?":"&")+"r="+Date.now())})};
 // ---------- Feedback: opens the phone's email app to feedback@parlaylabs.net (forwards to Andrew), with the screen's details filled in ----------
 function fbOpen(){var tab=(document.querySelector('[role="tab"][aria-selected="true"].tab')||{}).textContent||"",legs=Object.keys(SLIP).length,
     sp={nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"}[SPORT];
