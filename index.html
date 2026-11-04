@@ -3052,7 +3052,7 @@ function recOpen(kind,i){
     '<div class="filters" style="margin:6px 0 0"><select id="recBook" aria-label="Betting app">'+ALL_APPS.map(function(a){return'<option value="'+a+'"'+(a===book?" selected":"")+'>'+esc(Engine.BOOK_NAMES[a]||a)+'</option>'}).join("")+'</select>'+
     '<span class="oddsw" style="flex:1;min-width:140px"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch" title="Tap to switch + / −">'+(our<0?"−":"+")+'</button><input id="recOdds" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Odds, e.g. '+Math.abs(our)+'" aria-label="Odds your app gave you (number only)"></span></div>'+
     '<p style="margin:8px 0 0;display:flex;align-items:center;gap:8px"><label class="sub" for="recStake" style="margin:0">Wager $</label><input id="recStake" inputmode="decimal" value="'+(Math.round(stake*100)/100)+'" style="font:inherit;width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)"></p>'+
-    '<button class="btn flag" id="recSave" style="width:100%;margin-top:10px">Save to My bets</button><div class="row" style="margin-top:8px"><button class="btn" id="recCancel">Cancel</button><button class="btn" id="recSkip">Skip</button></div>';
+    '<button class="btn flag" id="recSave" style="width:100%;margin-top:10px">Save Bet</button><div class="row" style="margin-top:8px"><button class="btn" id="recCancel">Cancel</button><button class="btn" id="recSkip">Skip</button></div>';
   $("recBox").hidden=false}
 function recFromText(text){
   var b=shotParse(text)[0],st=$("recStat");
