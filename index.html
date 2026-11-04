@@ -517,6 +517,56 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 .qplus{font-size:0!important}.qplus::before,.qplus::after{content:"";position:absolute;left:50%;top:50%;background:#1a1400;border-radius:2px;transform:translate(-50%,-50%)}.qplus::before{width:14px;height:3px}.qplus::after{width:3px;height:14px}.qplus.done::before{content:"✓";width:auto;height:auto;background:none;font-size:18px;line-height:1;color:#1a1400;font-weight:800}.qplus.done::after{display:none}.whyb{max-width:calc(100% - 40px)}
 .pc .mt{position:relative;padding-right:40px;min-height:30px;display:flex;align-items:center}.pc .mt .qplus{bottom:auto;top:50%;right:0;transform:translateY(-50%)}.whyb{max-width:none}
 .sum{justify-content:center;text-align:center;color:var(--flag);font-weight:700;letter-spacing:.2px}#sumL{font-size:15px}.sum .num{color:var(--ink)}
+
+/* compact pick rows and cards (Nov 3) */
+.piece{gap:8px;padding:6px 8px;margin:4px 0}
+.piece .who{font-size:14px}
+.pln{font-size:11.5px;line-height:1.3;color:var(--muted);margin-top:1px}
+.pln.pk{color:var(--ink);opacity:.85}
+.piece .hp b{font-size:22px}
+.piece .meter{height:3px;margin-top:-1px}
+.pc summary{padding:8px 10px}
+.pc .bd{padding:0 10px 8px}
+.pc .bd>.mt:first-child{margin:6px 0 2px}
+.pc[open] summary .pcs,.pc[open] summary .nm:after{display:none}
+.pc .nm{margin:1px 0 4px}
+.pc .big{font-size:30px}
+.pc .bd .row{margin-top:6px}
+
+/* open card: header in a tight grid, Change button beside the pick, small notes */
+.pc[open] summary{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center}
+.pc[open] summary>*{grid-column:1/-1}
+.pc[open] summary>.big{grid-column:1;grid-row:2}
+.pc[open] summary>.odrow{grid-column:2;grid-row:2;justify-self:end}
+.pc[open] summary .pw .hlp{display:none}
+.pc[open] summary .pw{margin:0 0 2px}
+.pc[open] summary .rec{margin-top:2px;padding-top:0;border-top:0;line-height:1.25}
+.pc .bd .mt,.pc .bd .shop{margin-top:3px;margin-bottom:0}
+.pc[open] summary .whyb{margin-top:2px}
+.pc[open] summary .mt{margin-top:2px}
+.piece>:first-child{grid-row:1/3;align-self:start}
+.piece>div:nth-child(2){grid-row:1/3}
+.piece .hp{grid-column:3;grid-row:1}
+.piece .pswb{grid-column:3;grid-row:2;align-self:end;justify-self:end;margin:0;min-height:26px;padding:2px 8px;font-size:12px}
+.piece .meter{grid-row:3}
+.pc .sg,.pc .bd .gauto{font-size:12px;margin:4px 0;color:var(--muted)}
+.pc .bd .row .mt{display:none}
+/* table view */
+.ptlist{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.ptb{border:1px solid var(--line);border-top:3px solid var(--flag);border-radius:8px;background:var(--surface);padding:6px 8px}
+.pth{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;padding-bottom:4px}
+.ptn0{font-weight:800;color:var(--muted);font-size:13px}
+.pto{font-family:"Barlow Condensed",sans-serif;font-size:24px;line-height:1}
+.ptc{font-weight:700;font-size:13px}.ptw{font-size:12px;color:var(--muted);flex:1}
+.ptadd{min-height:32px;padding:4px 10px;font-size:13px}
+.ptr{display:grid;grid-template-columns:minmax(0,1fr) 38px 40px 50px 38px;gap:4px;align-items:center;padding:4px 0;border-top:1px solid var(--line);font-size:12.5px}
+.ptr>span:not(.ptn){text-align:center;color:var(--muted)}
+.ptr .ptn{font-weight:600;line-height:1.2;min-width:0}.ptr .ptn small{color:var(--muted);font-weight:600;font-size:10px}
+.ptr .ptp{font-weight:800}
+.ptr.pthd{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-top:0}
+.ptr.pthd>span{color:var(--muted);font-weight:700;line-height:1.1}
+.ptmore{margin-top:4px}.ptmore>summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--flag);padding:6px 0 2px}
+.ptmore .pc{border-top-width:1px}
 </style>
 </head>
 <body>
@@ -588,6 +638,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
+    <div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div>
     <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px">Expand all</button>
     <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
     <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
@@ -998,6 +1049,11 @@ function legHist(l){
 // Two-column fact list used across cards: first items brighter (matchup, odds), the rest muted
 function factGrid(keys,rest){var cap=function(t){t=String(t);return t.charAt(0).toUpperCase()+t.slice(1)};
   return'<ul class="gwl">'+keys.filter(Boolean).map(function(k){return'<li class="gk">'+esc(k)+'</li>'}).join("")+rest.filter(Boolean).map(function(k){return'<li'+(String(k).length>19?' class="wide"':"")+'>'+esc(cap(k))+'</li>'}).join("")+'</ul>'}
+// Compact facts for a pick: position / depth chart, snap share, and how often it hit since 2023 (props only)
+function legRole(l){return l.kind==="p"&&pmap()[l.k]&&pmap()[l.k].role||null}
+function legRec(l){if(l.kind!=="p"||!DATA)return null;var S=legStory(l),h=(S.past||[]).filter(function(x){return/^\d+ of \d+ games/.test(x)})[0];if(!h)return null;var m=h.match(/^(\d+) of (\d+) games (.*)$/);return m?{a:+m[1],n:+m[2],lab:m[3],txt:h}:null}
+function legPos(R){return!R?"":R.dc?R.dc:(R.pos||"")}
+function legSnap(R){return!R?"":R.gp===0?"0%":R.s3!=null?Math.round(R.s3*100)+"%":""}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
@@ -1007,8 +1063,12 @@ function piece(l){
   if(l.live)return'<div class="piece live" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+' '+liveTag(l)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",livePrice(l)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"Live chance "+Math.round(l.p*100)+"%"+(l.live.nv!=null?" (ESPN "+Math.round(l.live.wp*100)+"%, price "+Math.round(l.live.nv*100)+"%)":" (ESPN)"),"price moves every play, check the app"])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to win</small>":"")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+'</div>'+(tm&&l.kind!=="g"?'<div class="gtm">'+esc(teamName(tm))+(RL?' · <span class="rtg">'+esc(roleTag(RL))+'</span>':"")+'</div>':"")+
-    factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"","Odds "+fmt(l.a)],[g?gTime(g.t):"",l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",hh])+'</div>'+
+  var rec=legRec(l),rl=[];
+  if(tm&&l.kind!=="g")rl.push(teamName(tm));
+  if(RL){var pp=legPos(RL);if(pp)rl.push(pp+(RL.dc?(RL.st?" starter":" backup"):""));if(RL.gp===0)rl.push("no snaps this season");else if(RL.s3!=null)rl.push(Math.round(RL.s3*100)+"% snaps")}
+  if(rec)rl.push(rec.a+" of "+rec.n+" "+rec.lab.replace(/^since /,"since "));
+  var l3=[g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",g?gTime(g.t):"","Odds "+fmt(l.a),l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",rec?"":hh].filter(Boolean);
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l,true)+'<div><div class="who">'+esc(l.n)+'</div>'+(rl.length?'<div class="pln pk">'+esc(rl.join(" · "))+'</div>':"")+'<div class="pln">'+esc(l3.join(" · "))+'</div></div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 var PSIDE="both";
@@ -1644,13 +1704,13 @@ function renderParlays(){
   $("slateChips").innerHTML=chips.map(function(c){return'<button role="tab" data-slate="'+esc(c.id)+'" aria-selected="'+(c.id===PST.slate)+'">'+esc(c.label)+(c.count>1?"<small>"+c.count+"</small>":"")+'</button>'}).join("");
   document.querySelectorAll("[data-pm]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pm===PST.mode)});
   $("fLegs").value=PST.legs;$("fKind").value=PST.kind;
-  $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);
+  $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);$("expAll").hidden=PVIEW==="table";document.querySelectorAll("[data-pview]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pview===PVIEW)});
   var html="",n=0;
   function block(sl,showHead){
-    var L=rankSlips(sl.list()),cards=L.map(function(x,i){return slipCardW(x,"q"+(n++))}).join("");
+    var L=rankSlips(sl.list()),tv=PVIEW==="table",cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
     var note=sl.team?teamNote():sl.note;
     return(showHead?'<h2 class="pgroup">'+esc(sl.label)+'</h2>':"")+'<p class="sub">'+esc(note)+'</p>'+
-      (L.length?'<div class="pgrid">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
+      (L.length?'<div class="'+(tv?"ptlist":"pgrid")+'">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
   }
   if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
@@ -2722,6 +2782,7 @@ document.addEventListener("click",function(e){
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
+  else if(t.dataset.pview){PVIEW=t.dataset.pview==="table"?"table":"cards";try{localStorage.setItem("pview",PVIEW)}catch(e){}renderParlays()}
   else if(t.dataset.bview){BVIEW=t.dataset.bview==='cards'?'cards':'table';try{localStorage.setItem('bview',BVIEW)}catch(e){}genUI('par')}
   else if(t.dataset.qopen){qOpen()}
   else if(t.dataset.qbundle){var oq=PLANOUT;if(oq&&oq.bets){var k0=0;oq.bets.forEach(function(b,i){if(qAdd(b.legs,"Bundle bet "+(i+1)+" of "+oq.K,oq.stake,true))k0++});oq.sent=k0;bqSave();qChip();toast(k0?k0+" bets added to your queue.":"Those bets are already in your queue.");genUI("par");if(k0)qOpen()}}
@@ -2873,7 +2934,7 @@ function route(){
 $("scBtn").addEventListener("click",function(){checkScores(false)});
 // Opening a parlay card: bring it to the middle of the screen (top of the screen if it's taller than the screen)
 var NOCENTER=false; // Expand all opens every card at once: don't scroll to each one
-document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open||d.closest(".qrow")||NOCENTER)return;
+document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open||d.closest(".qrow,.ptmore")||NOCENTER)return;
   setTimeout(function(){var r=d.getBoundingClientRect(),vh=window.innerHeight,bar=($("sum")&&$("sum").offsetHeight)||60,room=vh-bar;
     var y=r.height<room-40?window.scrollY+r.top-(room-r.height)/2:window.scrollY+r.top-12;window.scrollTo({top:Math.max(0,y),behavior:"smooth"})},60)},true);
 // "New here?" card: first few visits until hidden or a bet is saved
@@ -3166,14 +3227,24 @@ function planHTML(){
 function bqBar(o){
   var q=QUEUE.filter(function(x){return x.st===0}).length;
   return'<div class="bqbar"><button class="btn flag" data-qbundle="1" style="width:100%">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button><p class="sub" style="margin:6px 0 0">'+(o.sent?'<b>✓ Added '+o.sent+' to your queue.</b> ':'')+'An app holds only one bet on its slip, so you place them one at a time from your queue: open each in your app, place it, tap Placed.</p><div class="row2"><button class="btn" data-qopen="1">Open my bet queue'+(q?' ('+q+')':'')+'</button></div></div>'}
+// ---------- Table view: one block per parlay, one line per pick (position, snap share, record since 2023) ----------
+var PVIEW="cards";try{PVIEW=localStorage.getItem("pview")==="table"?"table":"cards"}catch(e){}
+function ptBlock(x,key,i){
+  var L=x.s.l,ch=x.ch;
+  var rows=L.map(function(l){var R=legRole(l),rec=legRec(l),pr=l.p!=null?Math.round(l.p*100):null,tm=legTeam(l),
+    nm=esc(l.n);
+    return'<div class="ptr"><span class="ptn">'+nm+(tm&&l.kind!=="g"?' <small>'+esc(tm)+'</small>':"")+'</span><span>'+esc(legPos(R)||"–")+'</span><span>'+esc(legSnap(R)||"–")+'</span><span>'+(rec?rec.a+"/"+rec.n:"–")+'</span><span class="ptp"'+(pr!==null?' style="color:'+hitColor(l.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span></div>'}).join("");
+  var wasOpen=x.open;x.open=true;var card=slipCardW(x,key);x.open=wasOpen;
+  return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
+    '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+
+    '<div class="ptr pthd"><span class="ptn">Pick</span><span>Pos</span><span>Snaps</span><span>Since \'23</span><span>Hit %</span></div>'+rows+
+    '<details class="ptmore"><summary>Full card: why, stats, change picks</summary>'+card+'</details></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
 var BVIEW="table";try{BVIEW=localStorage.getItem("bview")==="cards"?"cards":"table"}catch(e){}
 function bqHTML(o){
   var tg='<div class="seg" style="display:flex;margin:10px 0 0" role="group" aria-label="How to show the bets"><button data-bview="table" aria-pressed="'+(BVIEW==="table")+'" style="flex:1">Table</button><button data-bview="cards" aria-pressed="'+(BVIEW==="cards")+'" style="flex:1">Parlay cards</button></div>';
   if(BVIEW==="cards")return tg+'<div class="pgrid" style="margin-top:10px">'+o.bets.map(function(b,i){b.x.open=false;return slipCardW(b.x,"plan"+i)}).join("")+'</div>';
-  return tg+'<div class="qtab"><div class="qth"><span>#</span><span>Picks</span><span>Pays · Hits</span></div>'+o.bets.map(function(b,i){
-    b.x.open=true;var ch=b.ch;
-    return'<details class="qrow"><summary><span class="qn">'+(i+1)+'</span><span class="qp">'+b.legs.map(function(l){return'<span>'+esc(l.n)+'</span>'}).join("")+'</span><span class="qo"><b>'+am(b.d)+'</b>'+(ch!=null?'<small style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'%</small>':'')+'</span></summary><div class="pgrid" style="grid-template-columns:1fr;padding:0 0 8px">'+slipCardW(b.x,"plan"+i)+'</div></details>'}).join("")+'</div><p class="sub" style="margin:6px 0 0">Tap a row to open that bet\'s full card: every pick\'s stats, why we picked it, and the payout.</p>'}
+  return tg+'<div class="ptlist">'+o.bets.map(function(b,i){return ptBlock(b.x,"plan"+i,i)}).join("")+'</div><p class="sub" style="margin:6px 0 0">Every pick with its position, snap share and how often it hit since 2023. Open "Full card" for the why and to change picks.</p>'}
 document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qrow")&&t.open)setTimeout(function(){t.scrollIntoView({block:"start"})},0)},true);
 document.addEventListener("input",function(e){var t=e.target;if(t.id==="plB_par"){var v=parseFloat(t.value);if(v>0)GENS.par.budget=v}else if(t.id==="plN_par"){var k=parseInt(t.value,10);if(k>0)GENS.par.nbets=k}else return;genSave("par",genSaved("par"))});
 function planGo(){

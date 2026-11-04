@@ -138,3 +138,7 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Tapping **✓ Bet added** (slip card or queued bet) opens a pop-up: app, odds with the +/− button (blank = save our price), wager (prefilled from the card), and 📋 Paste / 📷 Pick receipt to read the app's odds and wager. **Save to My bets** stores the real odds; Cancel leaves the bet where it was. Code: `recOpen / recSave / recFromText`.
 - Profit boost is gone from the slip (FanDuel has no such control): BOOST is forced to 0, the selects are hidden, the section is now "ⓘ Prices". The $1–$100 amount buttons and the Wager box stay.
 - The pop-up has three outcomes: **Save Bet** (records real odds), **Skip** (you placed it but don't want it recorded: it leaves the slip/queue and nothing is saved), **Cancel** (tapped by mistake: nothing changes).
+
+## Parlay table view + compact cards (Nov 3)
+- Parlays tab has **Cards / Table** (saved as `pview`). Table = one block per parlay: odds, % to hit, "$10 wins", Load slip, then one line per pick with **Pos** (depth chart like WR1), **Snaps** (snap share), **Since '23** (times it hit, e.g. 50/54) and **Hit %**; "Full card" under each block opens the normal card (why, stats, ⇄ Change). Parlay Bundle's table uses the same block (`ptBlock`). Game lines show dashes for pos/snaps/since.
+- Every pick row (`piece()`) is now compact: name, a line with team · position · snap % · "50 of 54 since 2023", a line with matchup · time · odds; Change sits beside the %. Open cards use a tighter header grid and smaller notes.
