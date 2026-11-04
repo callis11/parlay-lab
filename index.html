@@ -2811,8 +2811,11 @@ function slipRestore(){if(SLIP_RESTORED)return;SLIP_RESTORED=true;var a=[];try{a
     if(x.kind==="g"){var g=GAMES.filter(function(y){return y.id===x.ev})[0];if(g&&g.legs[x.t])L=gameLeg(g,x.t)}
     else if(x.kind==="p"){var p=PROPS.filter(function(y){return y.id===x.pid})[0],r=p&&p.rungs.filter(function(y){return y.line===x.line})[0];if(r)L=x.side==="under"?ENG.underLeg&&ENG.underLeg(p,r):propLeg(p,r)}
     if(L&&!legStarted(L))SLIP[L.k]=L;else lost++});
-  if(lost&&a.length)setTimeout(function(){toast(lost+" pick"+(lost>1?"s":"")+" left your saved slip: "+(lost>1?"those games have":"that game has")+" started or isn't offered anymore.")},1200)}
-function renderSlip(){renderSlip0();qPanel()}
+  if(lost&&a.length)setTimeout(function(){toast(lost+" pick"+(lost>1?"s":"")+" left your saved slip: "+(lost>1?"those games have":"that game has")+" started or isn't offered anymore.")},1200);_slipN=Object.keys(SLIP).length}
+var _slipN=null;
+// first pick on an empty slip opens the slip panel (compact), so you see the slip building; later picks leave it as it is
+function renderSlip(){var n=Object.keys(SLIP).length,first=_slipN===0&&n>0;_slipN=n;renderSlip0();qPanel();
+  if(first&&!$("panel").classList.contains("open")){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip0();qPanel()}}
 function renderSlip0(){
   try{if($("v-build")&&!$("v-build").hidden)setTimeout(renderBuild,0)}catch(e){}
   document.querySelectorAll(".pick").forEach(function(b){if(!b.dataset.g)return;var g=GAMES.filter(function(x){return x.id===b.dataset.g})[0];if(!g)return;var k=gkey(g,b.dataset.t);b.setAttribute("aria-pressed",!!(SLIP[k]&&SLIP[k].t===b.dataset.t))});
