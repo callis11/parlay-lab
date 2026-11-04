@@ -322,3 +322,6 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Bottom bar (#sum): centered bold yellow text, 15px, e.g. "1 bet in your queue · tap to place them".
 - Still open: which other "All/Any" filters to rename (Andrew hasn't picked); unbuilt FanDuel-slip ideas (market subtitle/kickoff/same-game tag, "prices pulled N min ago" warning); ask how Open-in links behave with a real bet.
 - Reminder: tested at 390x650 in a browser, not on his phone; tell him to tap ↻.
+
+## Top list mini slip card (Nov 3)
+`miniSlipHTML()` in index.html renders a compact slip summary under the last-tapped Top list row (`BLD.last` holds the row key `g|id|t` or `p|id|line|u`). Buttons use `data-bclear` and `data-bopenslip`. Phone-size screen not yet eyeballed.
