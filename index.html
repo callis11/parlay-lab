@@ -499,7 +499,6 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .b2{border-bottom:1px solid var(--line)}.tl .b2:last-child{border-bottom:0}
 .tl .b2r{display:grid;grid-template-columns:18px minmax(0,1fr) auto 36px 38px;align-items:center;gap:6px;padding:5px 8px;min-height:38px;cursor:pointer;font-size:13.5px}
 .tl .b2.on .b2r{background:rgba(54,211,153,.12)}
-.mslip{margin:0 8px 8px;padding:10px;border:1px solid var(--flag);border-radius:12px;background:var(--surface)}.mslip .gh{display:flex;justify-content:space-between;align-items:baseline}.mslip .big{font-size:26px}.mslip .big small{font-size:12px;margin-left:6px}.mslip .od{font-size:22px;font-weight:800}
 .tl .bi{font-size:11px;color:var(--muted);text-align:right}
 .tl .tn2{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tl .tn2 .tag2{font-size:9.5px;padding:0 3px;border:0;color:var(--muted);font-weight:600}
 .tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
@@ -1816,14 +1815,6 @@ function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===
 // ---------- Top list (Build tab): everything worth picking on one scrolling screen ----------
 // Most likely player picks (best line per player that still pays), best single bets (main lines, either side),
 // anytime TDs, and teams to win. All games or one kickoff window (the chips above). Tap a row to add it to the slip.
-// Small slip summary shown right under the row you just tapped in the Top list
-function miniSlipHTML(){
-  var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length)return"";
-  var d=1,evs={},sg=false;legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
-  var ch=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),"").ch;
-  return'<div class="mslip"><div class="gh"><span class="big" style="color:'+pctColor(ch)+'">'+pct(ch)+'<small>to hit · '+pctWord(ch)+'</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+
-    '<div class="mt">'+legs.length+' pick'+(legs.length>1?"s":"")+' in your slip · '+usualWins(d,sg?"about ":"")+'</div>'+
-    '<div class="row" style="margin-top:6px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" data-bopenslip="1">Open slip to bet ›</button></div></div>'}
 var TOPX={};
 function topListHTML(){
   var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(!BLD.win||kickWin(g)===BLD.win)},upG=function(g){return g&&+new Date(g.t)>now};
@@ -1841,10 +1832,10 @@ function topListHTML(){
   function row(x,i){var L,attrs,nm,line;
     if(x.g){L=gameLeg(x.g,x.t);attrs='data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"';var m=DATA.games[x.g.id]||{},tm=legTeam(L);nm=tm?teamName(tm):L.n;line=(L.live?"🔴 live ML":/^ml/.test(x.t)?"ML":L.n.replace(/^.*?([+-][\d.]+)$/,"$1"))+" vs "+(tm===m.home?m.away:m.home)}
     else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
-    var tm2=x.g?"":legTeam(L),on=inSlip(L),rk=x.g?"g|"+x.g.id+"|"+x.t:"p|"+x.p.id+"|"+x.r.line+"|"+(x.u?"1":"");
+    var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
       '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
-      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div>'+(on&&BLD.last===rk?miniSlipHTML():"")+'</div>'}
+      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl">'+list.slice(0,k).map(row).join("")+'</div>'+
@@ -2736,7 +2727,7 @@ document.addEventListener("click",function(e){
   else if(t.id==="bMore"){BLD.n+=50;renderBuild()}
   else if(t.dataset.bgm){var ix=BLD.multi.indexOf(t.dataset.bgm);if(ix>=0)BLD.multi.splice(ix,1);else BLD.multi.push(t.dataset.bgm);BLD.n=50;renderBuild()}
   else if(t.dataset.bclear){SLIP={};renderSlip();renderBuild()}
-  else if(t.id==="bOpen"||t.dataset.bopenslip){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
+  else if(t.id==="bOpen"){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=30;renderProps();renderSlip()}
   else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
     // Teams tab: go back up to the game cards; elsewhere: back to the generator's header
@@ -2884,7 +2875,6 @@ $("bList").addEventListener("click",function(e){var b=e.target.closest("button[d
   if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
   if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
   else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
-  BLD.last=inSlip(L)?(r.dataset.ag?"g|"+r.dataset.ag+"|"+r.dataset.at:"p|"+r.dataset.ap+"|"+r.dataset.al+"|"+(r.dataset.au?"1":"")):null;
   renderSlip();renderBuild()});
 $("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-topx]");if(!b)return;e.stopPropagation();var k=b.dataset.topx;TOPX[k]=!TOPX[k];var y=b.getBoundingClientRect().top;renderBuild();
   if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);

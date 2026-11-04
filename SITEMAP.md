@@ -121,6 +121,3 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Parlay Bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
 - Parlay Bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
 - Parlay Bundle results: Table / Parlay cards toggle above the list.
-
-## Top list: slip card under the tapped row (Nov 3)
-- Tapping a Top list row adds it to the slip and shows a small slip card (chance, odds, picks, "$X wins", Clear, Open slip to bet) right under that row. Tapping the row again removes it and the card goes away. Only the last tapped row shows it.
