@@ -150,3 +150,4 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 ## Last-5 record on game picks (Nov 3)
 - Moneyline, spread and over/under picks now show how the team(s) did in their last 5 games where player picks show position/snaps/since-2023: "DET won 4 of last 5", "ATL covered 2 of last 5", "Overs in last 5: CIN 4 of 5, ATL 3 of 5" (unders for under picks). Helper `legL5()` (data: data.json th.teams[team].l5). Shown wherever `legFacts()` is used, plus Top list team rows and under the pick name in table views.
 - The since-2023 record is its own line under the position/snaps line on every pick (`legFactLines()` returns the two lines).
+- Inside a table block, "Full card" no longer repeats the header (odds, %, payout, Load slip, description): it shows only the "How we got this %" link, the picks (with ⇄ Change) and notes, with no extra border or padding.

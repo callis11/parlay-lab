@@ -582,7 +582,16 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 .ptr.pthd{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-top:0}
 .ptr.pthd>span{color:var(--muted);font-weight:700;line-height:1.1}
 .ptmore{margin-top:4px}.ptmore>summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--flag);padding:6px 0 2px}
-.ptmore .pc{border-top-width:1px}
+/* "Full card" inside a table block: the header above already shows odds, %, payout and Load slip, so show only picks, notes and the why link */
+.ptmore .pc{border:0;background:none;border-radius:0}
+.ptmore .pc summary{padding:0}
+.ptmore .pc summary>*:not(.whyb){display:none}
+.ptmore .pc .whyb{margin:2px 0 4px;padding:2px 0}
+.ptmore .pc .bd{padding:0;border-top:0}
+.ptmore .pc .bd>.mt:first-child{display:none}
+.ptmore .pc .bd .row{display:none}
+.ptmore .pc .gnote,.ptmore .pc .fnote{margin:4px 0}
+
 </style>
 </head>
 <body>
