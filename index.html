@@ -565,6 +565,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 .qc .pln{margin:0 0 3px}
 .qc .ql{align-items:baseline}
 .bleg{padding:5px 0}
+.ptr .ptl5{display:block;font-size:10.5px;font-weight:500;color:var(--muted);margin-top:1px}
 /* table view */
 .ptlist{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .ptb{border:1px solid var(--line);border-top:3px solid var(--flag);border-radius:8px;background:var(--surface);padding:6px 8px}
@@ -1068,7 +1069,16 @@ function legRole(l){return l.kind==="p"&&pmap()[l.k]&&pmap()[l.k].role||null}
 function legRec(l){if(l.kind!=="p"||!DATA)return null;var S=legStory(l),h=(S.past||[]).filter(function(x){return/^\d+ of \d+ games/.test(x)})[0];if(!h)return null;var m=h.match(/^(\d+) of (\d+) games (.*)$/);return m?{a:+m[1],n:+m[2],lab:m[3],txt:h}:null}
 function legPos(R){return!R?"":R.dc?R.dc:(R.pos||"")}
 function legSnap(R){return!R?"":R.gp===0?"0%":R.s3!=null?Math.round(R.s3*100)+"%":""}
-function legFacts(l){var R=legRole(l),rec=legRec(l);if(!R&&!rec)return"";var a=[];var t=R?roleTag(R):"";if(t)a.push(t);else if(R&&R.pos)a.push(R.pos);if(rec)a.push(rec.a+" of "+rec.n+" "+rec.lab);return a.join(" · ")}
+// Game picks (ML, spread, over/under): how the team(s) did in their last 5 games
+function legL5(l){if(!l||l.kind!=="g"||!DATA||!DATA.games)return"";var m=DATA.games[l.ev];if(!m)return"";var t0=String(l.t||"").replace(/^1/,"");
+  var five=function(tm){var X=tm&&thTeam(tm);return X&&X.l5&&X.l5.length?X.l5:null};
+  if(/^(ml|sp)-/.test(t0)){var tm=/-a$/.test(t0)?m.away:m.home,L5=five(tm);if(!L5)return"";var n=L5.length;
+    if(/^ml/.test(t0)){var w=L5.filter(function(g){return g.r.charAt(0)==="W"}).length;return tm+" won "+w+" of last "+n}
+    var c=L5.filter(function(g){return g.c==="cover"}).length;return tm+" covered "+c+" of last "+n}
+  if(t0==="ov"||t0==="un"){var key=t0==="ov"?"O":"U",parts=[m.away,m.home].map(function(tm){var L5=five(tm);return L5?tm+" "+L5.filter(function(g){return g.o===key}).length+" of "+L5.length:""}).filter(Boolean);
+    return parts.length?(t0==="ov"?"Overs in last 5: ":"Unders in last 5: ")+parts.join(", "):""}
+  return""}
+function legFacts(l){if(l&&l.kind==="g")return legL5(l);var R=legRole(l),rec=legRec(l);if(!R&&!rec)return"";var a=[];var t=R?roleTag(R):"";if(t)a.push(t);else if(R&&R.pos)a.push(R.pos);if(rec)a.push(rec.a+" of "+rec.n+" "+rec.lab);return a.join(" · ")}
 function factsDiv(l){var f=legFacts(l);return f?'<div class="pln pk">'+esc(f)+'</div>':""}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
@@ -1929,7 +1939,7 @@ function topListHTML(){
     else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
     var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(!x.g&&(roleTag(x.p.role)||sinceTxt(x.r,x.u))?'<small class="rtg2">'+esc([roleTag(x.p.role),sinceTxt(x.r,x.u)].filter(Boolean).join(" · "))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
+      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(x.g&&legL5(L)?'<small class="rtg2">'+esc(legL5(L))+'</small>':"")+(!x.g&&(roleTag(x.p.role)||sinceTxt(x.r,x.u))?'<small class="rtg2">'+esc([roleTag(x.p.role),sinceTxt(x.r,x.u)].filter(Boolean).join(" · "))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
       '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
@@ -3247,7 +3257,7 @@ var PVIEW="cards";try{PVIEW=localStorage.getItem("pview")==="table"?"table":"car
 function ptBlock(x,key,i){
   var L=x.s.l,ch=x.ch;
   var rows=L.map(function(l){var R=legRole(l),rec=legRec(l),pr=l.p!=null?Math.round(l.p*100):null,tm=legTeam(l),
-    nm=esc(l.n);
+    nm=esc(l.n)+(l.kind==="g"&&legL5(l)?'<small class="ptl5">'+esc(legL5(l))+'</small>':"");
     return'<div class="ptr"><span class="ptn">'+nm+(tm&&l.kind!=="g"?' <small>'+esc(tm)+'</small>':"")+'</span><span>'+esc(legPos(R)||"–")+'</span><span>'+esc(legSnap(R)||"–")+'</span><span>'+(rec?rec.a+"/"+rec.n:"–")+'</span><span class="ptp"'+(pr!==null?' style="color:'+hitColor(l.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span></div>'}).join("");
   var wasOpen=x.open;x.open=true;var card=slipCardW(x,key);x.open=wasOpen;
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+

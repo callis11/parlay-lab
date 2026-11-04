@@ -146,3 +146,6 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 ## One wording for pick facts everywhere (Nov 3)
 - Every pick shows the same line: **position/depth chart · snap share · record since 2023**, e.g. "TE1 starter · 59% snaps · 34 of 47 since 2023" (helper `legFacts()`; Top list builds it from its own row data). Used on: parlay cards, Top list, Full board rows, the Build parlay card, slip and queued-bet cards, Players tab chips. Table views use the same data as columns.
 - Spacing tightened on Players line cards, Build ⓘ panels and slip legs.
+
+## Last-5 record on game picks (Nov 3)
+- Moneyline, spread and over/under picks now show how the team(s) did in their last 5 games where player picks show position/snaps/since-2023: "DET won 4 of last 5", "ATL covered 2 of last 5", "Overs in last 5: CIN 4 of 5, ATL 3 of 5" (unders for under picks). Helper `legL5()` (data: data.json th.teams[team].l5). Shown wherever `legFacts()` is used, plus Top list team rows and under the pick name in table views.
