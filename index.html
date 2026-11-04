@@ -1356,7 +1356,7 @@ function renderGenOut(cx){
 }
 // ---------- Parlays page: pick a slate, see the top 3 (or everything), 2-up grid ----------
 var PST={slate:null,mode:"top",legs:"",kind:"",exp:false};
-try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind","exp"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){}
+try{var _ps=JSON.parse(localStorage.getItem("pst_"+SPORT)||"{}");["slate","mode","legs","kind"].forEach(function(k){if(_ps[k]!==undefined)PST[k]=_ps[k]})}catch(e){} // cards always start collapsed
 function savePST(){try{localStorage.setItem("pst_"+SPORT,JSON.stringify(PST))}catch(e){}}
 // Past-season record for a parlay type (NFL): correction factor, and Proven / Weak history flags
 function slipHist(name){
@@ -2809,7 +2809,7 @@ document.addEventListener("click",function(e){
   if(t.dataset.g){var g=GAMES.filter(function(x){return x.id===t.dataset.g})[0],L=gameLeg(g,t.dataset.t);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L.k]=L;renderSlip()}
   else if(t.dataset.p){var p=PROPS.filter(function(x){return x.id===t.dataset.p})[0],r=p.rungs.filter(function(x){return String(x.line)===t.dataset.l})[0],L2=propLeg(p,r);if(SLIP[L2.k]&&SLIP[L2.k].line===L2.line)delete SLIP[L2.k];else if(legStarted(L2)){toast(STARTED_MSG,true);return}else if(sentGuard(t))return;else SLIP[L2.k]=L2;renderSlip()}
   else if(t.dataset.gl||t.dataset.gs||t.dataset.gk||t.dataset.gt){var cx=t.dataset.cx||"par",G=GENS[cx];if(t.dataset.gl)G.legs=+t.dataset.gl;if(t.dataset.gs)G.style=t.dataset.gs;if(t.dataset.gk)G.kind=t.dataset.gk;if(t.dataset.gt)G.side=t.dataset.gt;genSave(cx,genSaved(cx));genUI(cx)}
-  else if(t.dataset.pview){PVIEW=t.dataset.pview==="table"?"table":"cards";try{localStorage.setItem("pview",PVIEW)}catch(e){}var ty=t.getBoundingClientRect().top;renderParlays();NOCENTER=true;var nb=document.querySelector('[data-pview="'+PVIEW+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-ty);setTimeout(function(){var nb2=document.querySelector('[data-pview="'+PVIEW+'"]');if(nb2)window.scrollBy(0,nb2.getBoundingClientRect().top-ty);NOCENTER=false},120)}
+  else if(t.dataset.pview){PVIEW=t.dataset.pview==="table"?"table":"cards";try{localStorage.setItem("pview",PVIEW)}catch(e){}var ty=t.getBoundingClientRect().top;PST.exp=false;savePST();renderParlays();NOCENTER=true;var nb=document.querySelector('[data-pview="'+PVIEW+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-ty);setTimeout(function(){var nb2=document.querySelector('[data-pview="'+PVIEW+'"]');if(nb2)window.scrollBy(0,nb2.getBoundingClientRect().top-ty);NOCENTER=false},120)}
   else if(t.dataset.bview){BVIEW=t.dataset.bview==='cards'?'cards':'table';try{localStorage.setItem('bview',BVIEW)}catch(e){}genUI('par')}
   else if(t.dataset.qopen){qOpen()}
   else if(t.dataset.qbundle){var oq=PLANOUT;if(oq&&oq.bets){var k0=0;oq.bets.forEach(function(b,i){if(qAdd(b.legs,"Bundle bet "+(i+1)+" of "+oq.K,oq.stake,true))k0++});oq.sent=k0;bqSave();qChip();toast(k0?k0+" bets added to your queue.":"Those bets are already in your queue.");genUI("par");if(k0)qOpen()}}
