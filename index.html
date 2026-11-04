@@ -455,6 +455,9 @@ select,input,textarea{font-size:max(16px,1em)}
 .bx{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--bg);border:1px solid var(--line);color:var(--flag)}
 .brow[aria-pressed="true"] .bx{background:var(--flag);color:var(--flag-ink);border-color:var(--flag)}
 .bslip{background:linear-gradient(135deg,color-mix(in srgb,var(--flag) 12%,var(--surface)),var(--surface) 60%);border:1px solid color-mix(in srgb,var(--flag) 45%,var(--line));border-radius:12px;padding:12px;margin:6px 0 14px}
+.bstrip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:4;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:6px 10px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
+.bstrip.on{border-color:color-mix(in srgb,var(--flag) 55%,var(--line))}
+.bstrip .bbt{display:flex;gap:6px}.bstrip .btn{min-height:34px;padding:4px 12px;font-size:13px}
 .bslip.empty2{color:var(--muted);font-size:14px;text-align:center}
 .bslip .gh{display:flex;justify-content:space-between;align-items:flex-end}
 .bslip .big{font-family:"Barlow Condensed",sans-serif;font-size:36px;font-weight:700;line-height:1}
@@ -734,7 +737,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
   <h2>Picks</h2>
-  <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
+  <p class="sub hlp">Tap picks to add them. Tap <b>Next slip</b> to save a bet and start another; place them from the bar at the bottom.</p>
   <div id="bSlip"></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters" id="bFilt">
@@ -2065,18 +2068,12 @@ function renderBuild(){
       var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
       return lstRow(L,attrs,L.a,L.p,frec,k)}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
     (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>'}
-  // live slip summary
-  var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});
-  if(!legs.length){$("bSlip").innerHTML='<div class="bslip empty2">Your parlay is empty. Tap 2 or more picks below. Every pick has to win for a parlay to pay.</div>';return}
-  var d=1,raw=1,evs={},sg=false,who={},dup=false;legs.forEach(function(l){d*=dec(l.a);raw*=(l.p||0.5);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.player){if(who[l.player])dup=true;who[l.player]=1}});
-  var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
-  var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+pctColor(ch)+'">'+pct(ch)+'<small>to hit · '+pctWord(ch)+'</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+(sg?"":'<div class="mt">'+verdictLine(ch,d)+'</div>')+
-    '<div class="mt"><b>Card '+(QUEUE.filter(function(q){return q.st===0}).length+1)+'</b> · '+legs.length+' pick'+(legs.length>1?"s":"")+' · '+usualWins(d,sg?"about ":"")+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
-    legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small>'+legFactLines(l).filter(Boolean).map(function(f){return'<small>'+esc(f)+'</small>'}).join("")+'</span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
-    (sg?'<p class="sg">Some picks are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
-    (dup?'<p class="sg">Two picks on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
-    '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn" data-bnew="1">+ New card</button><button class="btn flag" id="bOpen">Open slip ›</button></div><p class="sub hlp" style="margin:6px 0 0"><b>+ New card</b> saves these picks as one bet in your bets, then starts an empty slip so you can build another.</p><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
-  $("bSlip").innerHTML=whyWrap(front,legs,"");
+  // slip strip: the full slip lives in the bar at the bottom; here just the count and "Next slip"
+  var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),nq=QUEUE.filter(function(q){return q.st===0}).length+1;
+  if(!legs.length){$("bSlip").innerHTML='<div class="bstrip"><span><b>Slip '+nq+'</b> · tap picks to add them</span></div>';return}
+  var d=1,sg=false,evs={};legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});
+  var ch=null;try{ch=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),"").ch}catch(x){}
+  $("bSlip").innerHTML='<div class="bstrip on"><span><b>Slip '+nq+'</b> · '+legs.length+' pick'+(legs.length>1?"s":"")+' · '+(ch!=null?'<b style="color:'+pctColor(ch)+'">'+pct(ch)+'</b> · ':"")+(sg?"~":"")+am(d)+'</span><span class="bbt"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" data-bnew="1">Next slip</button></span></div>';
 }
 // ---------- closing line value ----------
 // Every pick leg we posted (slips and report cards) whose game has started, with its first price and its closing price
@@ -2926,7 +2923,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.bnew){var nl=Object.keys(SLIP).map(function(k){return SLIP[k]}).filter(function(l){return!legStarted(l)});
     if(!nl.length){toast("Add a pick first.",true);return}
     var nq=QUEUE.filter(function(q){return q.st===0}).length+1;
-    if(qAdd(nl,nl.length>1?nl.length+"-pick card":"Single pick",0,true)){SLIP={};SENT=null;sentSave();renderSlip();renderBuild();toast("Card "+nq+" saved to your bets. Slip is empty: pick your next one.")}
+    if(qAdd(nl,nl.length>1?nl.length+"-pick slip":"Single pick",0,true)){SLIP={};SENT=null;sentSave();renderSlip();renderBuild();toast("Slip "+nq+" saved to your bets. Pick your next one.")}
     else toast("That card is already in your bets.",true)}
   else if(t.id==="bOpen"){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=10;renderProps();renderSlip()}
