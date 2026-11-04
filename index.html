@@ -2789,7 +2789,7 @@ document.addEventListener("click",function(e){
     var a=myLoad().filter(function(b){return b.id!==t.dataset.mydel});mySave(a);renderMyBets();toast("Bet removed from My bets.")}
   else if(t.dataset.id&&t.dataset.myset!==undefined){var a2=myLoad();a2.forEach(function(b){if(b.id===t.dataset.id)b.manual=t.dataset.myset||null});mySave(a2);renderMyBets()}
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
-  else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y)}
+  else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;NOCENTER=true;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y);NOCENTER=false},250)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;TGAME=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
   else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
@@ -2872,7 +2872,8 @@ function route(){
 }
 $("scBtn").addEventListener("click",function(){checkScores(false)});
 // Opening a parlay card: bring it to the middle of the screen (top of the screen if it's taller than the screen)
-document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open||d.closest(".qrow"))return;
+var NOCENTER=false; // Expand all opens every card at once: don't scroll to each one
+document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches||!d.matches("details.pc")||!d.open||d.closest(".qrow")||NOCENTER)return;
   setTimeout(function(){var r=d.getBoundingClientRect(),vh=window.innerHeight,bar=($("sum")&&$("sum").offsetHeight)||60,room=vh-bar;
     var y=r.height<room-40?window.scrollY+r.top-(room-r.height)/2:window.scrollY+r.top-12;window.scrollTo({top:Math.max(0,y),behavior:"smooth"})},60)},true);
 // "New here?" card: first few visits until hidden or a bet is saved
