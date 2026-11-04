@@ -1971,9 +1971,22 @@ function bothSlips(g){
 }
 var TSIDE="team";
 // Games tab: the same ranked picks as the Picks tab, scoped to this game (and to the chosen team's players)
-var TPK={g:"",t:""};
-function renderTeamPicks(gid,tm){if(gid!==undefined){TPK.g=gid;TPK.t=tm||""}
-  $("teamProps").innerHTML=TPK.g?topListHTML(TPK.g,TPK.t):'<p class="empty">No game this week.</p>'}
+var TPK={g:"",t:"",k:"",m:"top",n:20};
+function renderTeamPicks(gid,tm){if(gid!==undefined){if(gid!==TPK.g||(tm||"")!==TPK.t)TPK.n=20;TPK.g=gid;TPK.t=tm||""}
+  var el=$("teamProps");if(!TPK.g){el.innerHTML='<p class="empty">No game this week.</p>';return}
+  var kinds=NOPROPS?"":'<div class="seg bkind" id="tKind">'+[["","All"],["p","Players"],["td","TDs"],["g","Game lines"]].filter(function(x){return!(SPORT==="nba"&&x[0]==="td")}).map(function(x){return'<button data-tk="'+x[0]+'" aria-pressed="'+(TPK.k===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>',
+    modes='<div class="seg bmode" id="tMode"><button data-tmode="top" aria-pressed="'+(TPK.m==="top")+'">Top picks</button><button data-tmode="full" aria-pressed="'+(TPK.m==="full")+'">All picks</button></div>',body;
+  if(TPK.m==="top")body=topListHTML(TPK.g,TPK.t,TPK.k);
+  else{var sv={g:BLD.game,k:BLD.kind,w:BLD.win,m:BLD.multi,s:BLD.sort};
+    BLD.game=TPK.g;BLD.kind=TPK.k;BLD.win="";BLD.multi=[];BLD.sort="p";
+    var rows;try{rows=buildRows()}finally{BLD.game=sv.g;BLD.kind=sv.k;BLD.win=sv.w;BLD.multi=sv.m;BLD.sort=sv.s}
+    if(TPK.t)rows=rows.filter(function(x){return!x.p||x.p.team===TPK.t});
+    var shown=rows.slice(0,TPK.n),frec=shown.some(function(x){return!!legRec(x.leg)});
+    body=shown.length?'<div class="tl'+(frec?" rec":"")+'">'+lstHead(frec)+shown.map(function(x){var L=x.leg,k=L.k+"|"+(L.t||"")+"|"+(L.line||"");
+      var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
+      return lstRow(L,attrs,L.a,L.p,frec,k)}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
+      (rows.length>TPK.n?'<button class="more" data-tmore="1">Show more ('+(rows.length-TPK.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>'}
+  el.innerHTML=kinds+modes+body}
 function renderTeamLower(){
   try{genUI("tm")}catch(e){}
   var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
@@ -2026,7 +2039,7 @@ function lstRow(L,attrs,a,P,rec,info){
     '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
     '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
 function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
-function topListHTML(gid,tm){
+function topListHTML(gid,tm,kind){
   var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(gid?g.id===gid:bGameOk(g.id))},upG=function(g){return g&&+new Date(g.t)>now};
   var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
   PROPS.forEach(function(p){if(!okG(p.g)||!upG(p.g)||!p.healthy)return;if(tm&&p.team!==tm)return;
@@ -2047,7 +2060,7 @@ function topListHTML(gid,tm){
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?15:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'">'+lstHead(rec)+''+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
       (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
-  var K=gid?"":BLD.kind,out=(!K||K==="p"?sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30):"")+
+  var K=gid?(kind||""):BLD.kind,out=(!K||K==="p"?sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30):"")+
     (!K||K==="p"?sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10):"")+
     (!K||K==="td"?sec("Anytime TD","Players most likely to score a touchdown.",T,10):"")+
     (!K||K==="g"?sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10):"")+
@@ -3074,7 +3087,12 @@ function pickTap(e){var r=e.target.closest(".b2r");if(!r)return false;var L;  if
   renderSlip();renderBuild();if($("teamProps")&&TPK.g)renderTeamPicks();return true}
 $("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
   if(e.target.closest("button"))return;pickTap(e)});
-$("teamProps").addEventListener("click",function(e){var b=e.target.closest("[data-topx]");if(b){var k=b.dataset.topx;TOPX[k]=!TOPX[k];renderTeamPicks();return}
+$("teamProps").addEventListener("click",function(e){var b;
+  if(b=e.target.closest("[data-topx]")){var k=b.dataset.topx;TOPX[k]=!TOPX[k];renderTeamPicks();return}
+  if(b=e.target.closest("[data-tk]")){TPK.k=b.dataset.tk;TPK.n=20;renderTeamPicks();return}
+  if(b=e.target.closest("[data-tmode]")){TPK.m=b.dataset.tmode;TPK.n=20;renderTeamPicks();return}
+  if(e.target.closest("[data-tmore]")){TPK.n+=20;renderTeamPicks();return}
+  if(b=e.target.closest("button[data-bopen]")){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderTeamPicks();return}
   if(e.target.closest("button"))return;pickTap(e)});
 $("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-topx]");if(!b)return;e.stopPropagation();var k=b.dataset.topx;TOPX[k]=!TOPX[k];var y=b.getBoundingClientRect().top;renderBuild();
   if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);
