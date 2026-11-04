@@ -635,6 +635,9 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 .ptshow{display:block;margin:2px 0 4px;font-size:12px}
 .ptmk{display:flex;align-items:baseline;gap:8px;padding:8px 0 2px}.ptmk b{font-size:13px;color:var(--flag)}.ptmk small{font-size:11px;color:var(--muted)}
 .pvw{display:flex;margin:0 0 10px}
+.tl .tinfo{display:block;font-size:11px;padding:2px 0 0}
+.tl .bwhy{grid-column:1/-1;padding:4px 0 8px}
+.tl .b2.open .b2r{background:none}
 </style>
 </head>
 <body>
@@ -698,7 +701,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
   <div class="start1" id="start1" hidden><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>New here? Start in 3 taps</b><button class="lnk" id="start1x" aria-label="Hide this">✕</button></div>
-    <ol><li><b>Pick a parlay below</b> and tap <b>Load slip</b>, or open <b>Build → Top list</b> and tap the picks you like.</li>
+    <ol><li><b>Pick a parlay below</b> and tap <b>Load slip</b>, or open <b>Build → Top picks</b> and tap the picks you like.</li>
     <li><b>Tap the bar at the bottom</b> to see your slip: the chance it hits, what your usual bet pays, and whether the price is fair.</li>
     <li><b>Tap Open in FanDuel</b> (or your app). Your picks land on its slip and you place the bet there. We never take money.</li></ol>
     <small class="sub">Words like ML, spread or −138? Tap <b>ⓘ</b> at the top, slide 2.</small></div>
@@ -725,7 +728,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <h2>Build your own</h2>
   <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
-  <div class="seg bmode" id="bMode"><button data-bmode="top">Top list</button><button data-bmode="full">Full board</button></div>
+  <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">Full table</button></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters" id="bFilt">
     <select id="bGame" aria-label="Game"></select>
@@ -1997,6 +2000,15 @@ function inSlip(L){var s=SLIP[L.k];return!!(s&&(L.kind==="g"?s.t===L.t:s.line===
 // Most likely player picks (best line per player that still pays), best single bets (main lines, either side),
 // anytime TDs, and teams to win. All games or one kickoff window (the chips above). Tap a row to add it to the slip.
 var TOPX={};
+// One pick row, the same in Build's Top picks and Full table (and laid out like the Parlays table rows)
+function lstRow(L,attrs,a,P,rec,info){
+  var on=inSlip(L),tm2=L.kind==="g"?"":legTeam(L),rc=legRec(L),S=L.live?{recent:[],matchup:[]}:legStory(L),
+    nl=L.kind==="g"&&legL5(L)?'<small class="ptl5">'+esc(legL5(L))+'</small>':"",lv=L.live?'<small class="pts">🔴 '+esc(livePrice(L))+'</small>':"",
+    open=info&&BLD.open===info,ib=info?'<button class="lnk tinfo" data-bopen="'+esc(info)+'" aria-expanded="'+!!open+'">ⓘ '+(open?"Hide":"Data and history")+'</button>':"";
+  return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'>'+
+    '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
+    '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
+function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
 function topListHTML(){
   var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(!BLD.win||kickWin(g)===BLD.win)},upG=function(g){return g&&+new Date(g.t)>now};
   var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
@@ -2013,20 +2025,17 @@ function topListHTML(){
   function legOf(x){return x.g?gameLeg(x.g,x.t):(x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r))}
   function row(x,i,rec){var L=legOf(x),attrs;if(!L)return"";
     if(x.g)attrs='data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"';else attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");
-    var on=inSlip(L),tm2=x.g?"":legTeam(L),rc=legRec(L),S=L.live?{recent:[],matchup:[]}:legStory(L),nl=x.g&&legL5(L)?'<small class="ptl5">'+esc(legL5(L))+'</small>':"";
-    return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'>'+
-      '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+ptSub(L,S,legRole(L))+'</span><span class="tpr">'+fmt(x.a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
-      '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div></div>'}
+    return lstRow(L,attrs,x.a,x.P,rec,"")}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
-    return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'"><div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
+    return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'">'+lstHead(rec)+''+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
       (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
   var out=sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30)+
     sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10)+
     sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
     sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10)+
     (NOPROPS?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
-  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full board has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
+  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). Full table has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
@@ -2042,15 +2051,11 @@ function renderBuild(){
   if(top)$("bList").innerHTML=topListHTML();
   var rows=top?[]:buildRows(),shown=rows.slice(0,BLD.n);
   var why=function(x){return'<div class="bwhy">'+storyHTML(legStory(x.leg))+'</div>'};
-  if(!top)$("bList").innerHTML=shown.length?'<div class="blist2">'+shown.map(function(x,i){var L=x.leg,tm=legTeam(L),m=DATA.games[x.g?x.g.id:x.p.ev]||{},on=inSlip(L),k=L.k+"|"+(L.t||"")+"|"+(L.line||""),open=BLD.open===k;
-    var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
-    var nm=x.p?x.p.player:L.n,line=(x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:""))+(L.live?" · 🔴 "+livePrice(L):"");
-    return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small>'+legFactLines(L).filter(Boolean).map(function(f){return'<small>'+esc(f)+'</small>'}).join("")+'</span>'+
-      '<span class="bpc" style="color:'+hitColor(L.p)+'">'+Math.round((L.p||0)*100)+'%</span>'+
-      '<button class="bx binfo" data-bopen="'+esc(k)+'" aria-expanded="'+open+'" aria-label="Data and history">ⓘ</button></div>'+
-      (open?why(x):"")+'</div>'}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
-    (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>';
+  if(!top){var frec=shown.some(function(x){return!!legRec(x.leg)});
+    $("bList").innerHTML=shown.length?'<div class="tl'+(frec?" rec":"")+'">'+lstHead(frec)+shown.map(function(x){var L=x.leg,k=L.k+"|"+(L.t||"")+"|"+(L.line||"");
+      var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
+      return lstRow(L,attrs,L.a,L.p,frec,k)}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
+    (rows.length>BLD.n?'<button class="more" id="bMore">Show more ('+(rows.length-BLD.n)+' left)</button>':""):'<p class="empty">Nothing for this filter yet.</p>'}
   // live slip summary
   var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});
   if(!legs.length){$("bSlip").innerHTML='<div class="bslip empty2">Your parlay is empty. Tap 2 or more picks below. Every pick has to win for a parlay to pay.</div>';return}
