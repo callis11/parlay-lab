@@ -521,6 +521,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 </head>
 <body>
 <div class="tour" id="sentBox" hidden role="dialog" aria-modal="true" aria-label="Your slip"><div class="tbox" id="sentIn"></div></div>
+<div class="tour" id="recBox" hidden role="dialog" aria-modal="true" aria-label="Record your bet"><div class="tbox" id="recIn"></div></div>
 <div class="tour" id="swapBox" hidden role="dialog" aria-modal="true" aria-label="Change a pick"><div class="tbox" id="swapIn"></div></div>
 <div class="tour" id="favs" hidden role="dialog" aria-modal="true" aria-label="My teams"><div class="tbox">
   <div class="ticon">★</div><h2 class="fh" id="favH" hidden>Set up ParlayLabs</h2>
@@ -696,9 +697,9 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 <div class="bar"><div class="in">
   <div class="panel" id="panel">
     <div id="qPanel"></div>
-    <details id="slipMore" class="hw"><summary class="whyb hwl">ⓘ Prices, boost &amp; save this bet</summary>
+    <details id="slipMore" class="hw"><summary class="whyb hwl">ⓘ Prices &amp; save this bet</summary>
     <div id="legs"></div>
-    <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><label for="boost" style="margin-left:6px">Boost</label><select id="boost" title="Profit boost token from your app"><option value="0">none</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="33">33%</option><option value="50">50%</option><option value="100">100%</option></select><button class="btn" id="clear">Clear slip</button></div>
+    <div class="stake"><label for="stake">Stake $</label><input id="stake" type="number" inputmode="decimal" min="0" value="10"><label for="boost" style="margin-left:6px" hidden>Boost</label><select id="boost" hidden title="Profit boost token from your app"><option value="0">none</option><option value="20">20%</option><option value="25">25%</option><option value="30">30%</option><option value="33">33%</option><option value="50">50%</option><option value="100">100%</option></select><button class="btn" id="clear">Clear slip</button></div>
     <button class="btn flag" id="placeOpen" style="width:100%;margin:10px 0 0">✓ Save my bet</button>
     <div class="placed" id="placeBox" hidden><b>Save my bet</b>
       <p class="sub hlp" style="margin:4px 0 6px">Placed it in your app? Paste or pick your bet receipt (or the bet in My Bets) and we fill in the app, odds and wager. Or type them.</p>
@@ -860,7 +861,7 @@ function shopHTML(legs,stake){var d=1,bd=1,by={};legs.forEach(function(l){d*=dec
   if(bd<=d*1.005)return"";var apps=Object.keys(by);stake=stake||10;
   return'<div class="shop"><b>Shop the prices:</b> $'+stake.toFixed(0)+' wins <b>$'+(stake*(bd-1)).toFixed(2)+'</b> at the best app for each pick, vs $'+(stake*(d-1)).toFixed(2)+' all at '+esc(Engine.BOOK_NAMES[BOOK]||BOOK)+'.'+(apps.length>1?' '+apps.map(function(k){return'<br>· <b>'+esc(k)+':</b> '+esc(by[k].join(", "))}).join(""):' All picks are best at <b>'+esc(apps[0])+'</b>.')+'</div>'}
 // Profit boost (the token your app gives you): boosts the profit, not the stake. Saved per phone. Apps cap the boosted winnings.
-var BOOST=0;try{BOOST=+(localStorage.getItem("boost")||0)||0}catch(e){}
+var BOOST=0;try{localStorage.removeItem("boost")}catch(e){} // boost removed from the UI (FanDuel has no such control); math stays at 0%
 // My usual bet (set on the ★ page, saved per phone): every "$X wins $Y" on the site uses it. Results still grades our picks at $10.
 var USUAL=10;try{var uu=parseFloat(localStorage.getItem("usual"));if(uu>=1&&uu<=10000)USUAL=uu}catch(e){}
 function usd(x){return x>=100||Math.abs(x-Math.round(x))<0.005?Math.round(x).toLocaleString("en-US"):x.toFixed(2)}
@@ -2396,14 +2397,14 @@ function shotSave(i){
   SHOT.bets.splice(i,1);renderShot();renderMyBets();toast("Saved to My bets ("+(Engine.BOOK_NAMES[bet.book]||bet.book)+").")}
 function shotLoadLib(){return new Promise(function(ok,no){if(window.Tesseract)return ok();var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 async function shotFiles(files,mode){
-  var slip=mode==="slip",st=$(slip?"placeStat":"shotStat"),done=slip?slipFromText:shotRead;files=[].slice.call(files||[]);if(!files.length)return;
-  if(slip)files=files.slice(0,1);SHOT.st=st;SHOT.n=files.length;
+  var slip=mode==="slip",rec=mode==="rec",st=$(rec?"recStat":slip?"placeStat":"shotStat"),done=rec?recFromText:slip?slipFromText:shotRead;files=[].slice.call(files||[]);if(!files.length)return;
+  if(slip||rec)files=files.slice(0,1);SHOT.st=st;SHOT.n=files.length;
   try{st.textContent="Getting the reader ready (first time takes a few seconds)…";await shotLoadLib();
     if(!SHOT.worker){SHOT.worker=await Tesseract.createWorker("eng",1,{logger:function(m){if(m.status==="recognizing text"&&SHOT.st)SHOT.st.textContent="Reading screenshot "+(SHOT.cur||1)+" of "+SHOT.n+"… "+Math.round(m.progress*100)+"%"}});await SHOT.worker.setParameters({tessedit_pageseg_mode:"4"})}
     for(var i=0;i<files.length;i++){SHOT.cur=i+1;st.textContent="Reading…";var r=await SHOT.worker.recognize(files[i]);st.textContent="";done(r.data.text)}
     st.textContent=""}
   catch(e){st.textContent="";toast("Couldn't read that screenshot. Check your connection and try again, or use Paste text.",true);if(window.console)console.error(e)}
-  var inp=$(slip?"placeIn":"shotIn");if(inp)inp.value=""}
+  var inp=$(rec?"recFile":slip?"placeIn":"shotIn");if(inp)inp.value=""}
 // Slip box: read the receipt you just got and fill in the app, odds and wager (the legs stay the ones on your slip)
 function slipFromText(text){
   var b=shotParse(text)[0],st=$("placeStat");
@@ -2420,7 +2421,7 @@ async function shotPasteBtn(mode){
     for(var i=0;i<items.length;i++){var ty=items[i].types.filter(function(t){return/^image\//.test(t)})[0];if(ty)imgs.push(await items[i].getType(ty))}
     if(imgs.length){shotFiles(imgs,mode);return}
     var tx=items.some(function(x){return x.types.indexOf("text/plain")>=0})?await navigator.clipboard.readText():"";
-    if(tx.trim()){(mode==="slip"?slipFromText:shotRead)(tx);return}
+    if(tx.trim()){(mode==="rec"?recFromText:mode==="slip"?slipFromText:shotRead)(tx);return}
     toast("No screenshot on the clipboard. Copy one first (tap the screenshot, Share, Copy).",true)}
   catch(e){toast("Couldn't read the clipboard here. Open \"Or paste\" below and paste into the box, or use Pick screenshots.",true)}}
 document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
@@ -2966,7 +2967,7 @@ var QPO=false;
 function qExtra(price,sing){return'<div class="qex">'+price+sing+'</div>'}
 function qPrice(legs,d,ch,stake,sg){var opts=$("boost").innerHTML.replace(/ selected(="[^"]*")?/g,"").replace('value="'+BOOST+'"','value="'+BOOST+'" selected'),sh="",bo="";
   try{if(!sg)sh=shopHTML(legs,stake)}catch(e){}try{bo=boostHTML(ch,d,stake)}catch(e){}
-  return'<details class="qpr"'+(QPO?" open":"")+' style="margin:0;border:0;padding:0"><summary class="whyb hwl" style="padding:4px 0">ⓘ Prices &amp; boost'+(BOOST?" ("+BOOST+"%)":"")+'</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px"><label class="sub" style="margin:0;display:flex;align-items:center;gap:8px">Your profit boost <select data-cboost="1" class="sel" style="font:inherit;font-size:16px">'+opts+'</select></label>'+sh+bo+(sg?'<p class="sub" style="margin:0">Same-game picks: your app sets its own price, so compare there.</p>':'')+'</div></details>'}
+  return'<details class="qpr"'+(QPO?" open":"")+' style="margin:0;border:0;padding:0"><summary class="whyb hwl" style="padding:4px 0">ⓘ Prices</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">'+sh+bo+(sg?'<p class="sub" style="margin:0">Same-game picks: your app sets its own price, so compare there.</p>':'')+'</div></details>'}
 document.addEventListener("toggle",function(e){var t=e.target;if(t.classList&&t.classList.contains("qpr"))QPO=t.open;if(t.classList&&t.classList.contains("qmini"))QMO[t.dataset.i]=t.open},true);
 document.addEventListener("change",function(e){var t=e.target;if(t.dataset&&t.dataset.cboost){$("boost").value=t.value;$("boost").dispatchEvent(new Event("change"))}});
 function qAmt(sel){return'<div class="qamt" role="group" aria-label="Bet amount">'+[1,5,10,15,20,50,100].map(function(v){return'<button data-qamt="'+v+'" data-i="'+sel+'" aria-pressed="'+(Math.abs(AMT[sel]-v)<1e-9)+'">$'+v+'</button>'}).join("")+'</div>'}
@@ -3037,13 +3038,46 @@ function qSingles(sel){var legs=sel==="s"?Object.keys(SLIP).map(function(k){retu
   legs.forEach(function(l){if(!legStarted(l)&&qAdd([l],"Single",per,true))n++});qSave();renderSlip();
   toast(n?"Added "+n+" single bet"+(n>1?"s":"")+" to your queue at $"+usd(per)+" each (your $"+usd(tot)+" split up). Swipe to see them.":"Those singles are already in your queue.")}
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-qbook]");if(a){var q=QUEUE[+a.dataset.i];if(q){q.book=a.dataset.qbook;qSave()}}});
+// ---------- "Bet added" pop-up: record the odds your app actually gave ----------
+var REC=null;
+function recOpen(kind,i){
+  var legs,book,stake;
+  if(kind==="s"){legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length)return;book=(SENT&&SENT.book)||BOOK;stake=parseFloat($("stake").value)||USUAL}
+  else{var q=QUEUE[i];if(!q)return;legs=q.legs;book=q.book||BOOK;stake=q.stake||USUAL}
+  var d=legs.reduce(function(x,l){return x*dec(l.a)},1),our=Engine.amFromDec(d);REC={kind:kind,i:i,legs:legs,d:d,our:our,meta:null};
+  $("recIn").innerHTML='<h3 style="margin:0 0 4px">Bet made? Record it</h3>'+
+    '<p class="sub" style="margin:0 0 8px">We priced it at <b>'+fmt(our)+'</b>. Type the odds your app shows, or read them from your receipt. Leave odds blank to save our price.</p>'+
+    '<p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="recPaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="recFile" accept="image/*" hidden></label></p>'+
+    '<div class="sub" id="recStat" style="margin:6px 0 0"></div>'+
+    '<div class="filters" style="margin:6px 0 0"><select id="recBook" aria-label="Betting app">'+ALL_APPS.map(function(a){return'<option value="'+a+'"'+(a===book?" selected":"")+'>'+esc(Engine.BOOK_NAMES[a]||a)+'</option>'}).join("")+'</select>'+
+    '<span class="oddsw" style="flex:1;min-width:140px"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch" title="Tap to switch + / −">'+(our<0?"−":"+")+'</button><input id="recOdds" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Odds, e.g. '+Math.abs(our)+'" aria-label="Odds your app gave you (number only)"></span></div>'+
+    '<p style="margin:8px 0 0;display:flex;align-items:center;gap:8px"><label class="sub" for="recStake" style="margin:0">Wager $</label><input id="recStake" inputmode="decimal" value="'+(Math.round(stake*100)/100)+'" style="font:inherit;width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)"></p>'+
+    '<div class="row" style="margin-top:10px"><button class="btn" id="recCancel">Cancel</button><button class="btn flag" id="recSave">Save to My bets</button></div>';
+  $("recBox").hidden=false}
+function recFromText(text){
+  var b=shotParse(text)[0],st=$("recStat");
+  if(!b||(b.odds==null&&b.stake==null)){toast("Couldn't find the odds or wager in that. Try another screenshot, or type them in.",true);return}
+  if(b.book)$("recBook").value=b.book;if(b.odds!=null)oddsSet($("recOdds"),b.odds);if(b.stake!=null)$("recStake").value=b.stake.toFixed(2);
+  REC.meta={betId:b.id||null,pay:b.pay,placed:b.placed||null};
+  st.innerHTML='<span class="gauto" style="display:block">Read: '+esc((Engine.BOOK_NAMES[b.book]||"app not found")+(b.odds!=null?" · "+fmt(b.odds):"")+(b.stake!=null?" · $"+b.stake.toFixed(2)+" wager":""))+'. Check it, then Save.</span>'}
+function recSave(){
+  if(!REC)return;var odds=oddsRead($("recOdds")),stake=parseFloat($("recStake").value)||USUAL,book=$("recBook").value,legs=REC.legs;
+  var bet={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),sport:SPORT,book:book,stake:stake,odds:odds||REC.our,saved:Date.now(),
+    last:Math.max.apply(null,legs.map(function(l){return+new Date(l.time)||Date.now()})),legs:legs.map(legKeep)};
+  var M=REC.meta;if(M){if(M.betId)bet.betId=M.betId;if(M.pay)bet.pay=M.pay;if(M.placed)bet.saved=M.placed}
+  var all=myLoad();if(bet.betId&&all.some(function(x){return x.betId===bet.betId})){toast("That bet is already in My bets.");return}
+  all.push(bet);if(!mySave(all)){toast("This browser won't save it (private mode?).",true);return}
+  if(REC.kind==="s"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null}else{var q=QUEUE[REC.i];if(q){q.st=1;q.book=book;QLAST=REC.i}qSave()}
+  $("recBox").hidden=true;REC=null;renderSlip();if(typeof renderMyBets==="function")renderMyBets();
+  toast("Saved to My bets"+(odds?" at "+fmt(odds):"")+". Your slip is ready for the next one.")}
+document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("#recSave,#recCancel,#recPaste");if(!t)return;
+  if(t.id==="recSave")recSave();else if(t.id==="recCancel"){$("recBox").hidden=true;REC=null}else shotPasteBtn("rec")});
+document.addEventListener("change",function(e){if(e.target&&e.target.id==="recFile")shotFiles(e.target.files,"rec")});
 function qAct(a,i){
   if(a==="c"){QUEUE=QUEUE.filter(function(q){return q.st===0});QLAST=-1}
-  else if(a==="ps"){var legs=Object.keys(SLIP).map(function(k){return SLIP[k]});if(!legs.length)return;
-    var ok=betSave(legs,SENT&&SENT.book,parseFloat($("stake").value)||USUAL);SLIP={};SENT=null;sentSave();SHOT.slipMeta=null;renderSlip();if(typeof renderMyBets==="function")renderMyBets();
-    toast(ok?"Saved to My bets. Your slip is clear for the next one.":"Marked placed, but this browser won't save it (private mode?).",!ok);return}
+  else if(a==="ps"){recOpen("s");return}
   else{var q=QUEUE[i];if(!q)return;q.st=a==="p"?1:a==="r"?2:0;QLAST=a==="u"?-1:i;
-    if(a==="p"){var ok2=betSave(q.legs,q.book,q.stake||USUAL);if(typeof renderMyBets==="function")renderMyBets();toast((ok2?"Saved to My bets. ":"Marked placed. ")+QUEUE.filter(function(z){return z.st===0}).length+" left.")}
+    if(a==="p"){q.st=0;QLAST=-1;recOpen("q",i);return}
     if(a==="r")toast("Bet deleted. Tap Undo last to bring it back.")}
   qSave();renderSlip()}
 function planMk(b,i,K,stake){var x=slipInfo({n:"Bet "+(i+1)+" of "+K,d:"One of your "+K+" bets. Each bet is separate, $"+usd(stake)+".",l:b.legs},true);x.stake=stake;x.plan=i;x.sig="";b.x=x}
