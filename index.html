@@ -1078,8 +1078,10 @@ function legL5(l){if(!l||l.kind!=="g"||!DATA||!DATA.games)return"";var m=DATA.ga
   if(t0==="ov"||t0==="un"){var key=t0==="ov"?"O":"U",parts=[m.away,m.home].map(function(tm){var L5=five(tm);return L5?tm+" "+L5.filter(function(g){return g.o===key}).length+" of "+L5.length:""}).filter(Boolean);
     return parts.length?(t0==="ov"?"Overs in last 5: ":"Unders in last 5: ")+parts.join(", "):""}
   return""}
-function legFacts(l){if(l&&l.kind==="g")return legL5(l);var R=legRole(l),rec=legRec(l);if(!R&&!rec)return"";var a=[];var t=R?roleTag(R):"";if(t)a.push(t);else if(R&&R.pos)a.push(R.pos);if(rec)a.push(rec.a+" of "+rec.n+" "+rec.lab);return a.join(" · ")}
-function factsDiv(l){var f=legFacts(l);return f?'<div class="pln pk">'+esc(f)+'</div>':""}
+// [position/snaps line, since-2023 line] for players; [last-5 line, ""] for game picks
+function legFactLines(l){if(l&&l.kind==="g")return[legL5(l),""];var R=legRole(l),rec=legRec(l),t=R?roleTag(R)||R.pos||"":"";return[t,rec?rec.a+" of "+rec.n+" "+rec.lab:""]}
+function legFacts(l){return legFactLines(l).filter(Boolean).join(" · ")}
+function factsDiv(l){return legFactLines(l).filter(Boolean).map(function(f){return'<div class="pln pk">'+esc(f)+'</div>'}).join("")}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
@@ -1089,11 +1091,11 @@ function piece(l){
   if(l.live)return'<div class="piece live" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+' '+liveTag(l)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",livePrice(l)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"Live chance "+Math.round(l.p*100)+"%"+(l.live.nv!=null?" (ESPN "+Math.round(l.live.wp*100)+"%, price "+Math.round(l.live.nv*100)+"%)":" (ESPN)"),"price moves every play, check the app"])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to win</small>":"")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
-  var rec=legRec(l),rl=[],lf=legFacts(l);
+  var rec=legRec(l),rl=[],lf=legFactLines(l);
   if(tm&&l.kind!=="g")rl.push(teamName(tm));
-  if(lf)rl.push(lf);
+  if(lf[0])rl.push(lf[0]);
   var l3=[g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",g?gTime(g.t):"","Odds "+fmt(l.a),l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",rec?"":hh].filter(Boolean);
-  return'<div class="piece" style="--c:'+c+'">'+legIcon(l,true)+'<div><div class="who">'+esc(l.n)+'</div>'+(rl.length?'<div class="pln pk">'+esc(rl.join(" · "))+'</div>':"")+'<div class="pln">'+esc(l3.join(" · "))+'</div></div>'+
+  return'<div class="piece" style="--c:'+c+'">'+legIcon(l,true)+'<div><div class="who">'+esc(l.n)+'</div>'+(rl.length?'<div class="pln pk">'+esc(rl.join(" · "))+'</div>':"")+(lf[1]?'<div class="pln pk">'+esc(lf[1])+'</div>':"")+'<div class="pln">'+esc(l3.join(" · "))+'</div></div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 var PSIDE="both";
@@ -1939,7 +1941,7 @@ function topListHTML(){
     else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
     var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(x.g&&legL5(L)?'<small class="rtg2">'+esc(legL5(L))+'</small>':"")+(!x.g&&(roleTag(x.p.role)||sinceTxt(x.r,x.u))?'<small class="rtg2">'+esc([roleTag(x.p.role),sinceTxt(x.r,x.u)].filter(Boolean).join(" · "))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
+      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(x.g&&legL5(L)?'<small class="rtg2">'+esc(legL5(L))+'</small>':"")+(!x.g&&roleTag(x.p.role)?'<small class="rtg2">'+esc(roleTag(x.p.role))+'</small>':"")+(!x.g&&sinceTxt(x.r,x.u)?'<small class="rtg2">'+esc(sinceTxt(x.r,x.u))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
       '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
@@ -1970,7 +1972,7 @@ function renderBuild(){
     var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
     var nm=x.p?x.p.player:L.n,line=(x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:""))+(L.live?" · 🔴 "+livePrice(L):"");
     return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small>'+(legFacts(L)?'<small>'+esc(legFacts(L))+'</small>':"")+'</span>'+
+      '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small>'+legFactLines(L).filter(Boolean).map(function(f){return'<small>'+esc(f)+'</small>'}).join("")+'</span>'+
       '<span class="bpc" style="color:'+hitColor(L.p)+'">'+Math.round((L.p||0)*100)+'%</span>'+
       '<button class="bx binfo" data-bopen="'+esc(k)+'" aria-expanded="'+open+'" aria-label="Data and history">ⓘ</button></div>'+
       (open?why(x):"")+'</div>'}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
@@ -1982,7 +1984,7 @@ function renderBuild(){
   var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
   var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+pctColor(ch)+'">'+pct(ch)+'<small>to hit · '+pctWord(ch)+'</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+(sg?"":'<div class="mt">'+verdictLine(ch,d)+'</div>')+
     '<div class="mt">'+legs.length+' pick'+(legs.length>1?"s":"")+' · '+usualWins(d,sg?"about ":"")+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
-    legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small>'+(legFacts(l)?'<small>'+esc(legFacts(l))+'</small>':"")+'</span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
+    legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small>'+legFactLines(l).filter(Boolean).map(function(f){return'<small>'+esc(f)+'</small>'}).join("")+'</span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
     (sg?'<p class="sg">Some picks are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
     (dup?'<p class="sg">Two picks on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
     '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" id="bOpen">Open slip to bet ›</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
