@@ -736,7 +736,6 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <h2>Picks</h2>
   <p class="sub hlp">Tap picks to add them. Your parlay updates at the top with its honest chance, payout and why.</p>
   <div id="bSlip"></div>
-  <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">All picks</button></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
   <div class="filters" id="bFilt">
     <select id="bGame" aria-label="Game"></select>
@@ -744,6 +743,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   </div>
   <div class="gmulti" id="bMulti" hidden></div>
   <div class="seg bkind" id="bKind"><button data-bk="">All</button><button data-bk="p">Players</button><button data-bk="td">TDs</button><button data-bk="g">Game lines</button></div>
+  <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">All picks</button></div>
   <div id="bList"></div>
 </section>
 
@@ -2019,7 +2019,7 @@ function lstRow(L,attrs,a,P,rec,info){
     '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
 function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
 function topListHTML(){
-  var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(!BLD.win||kickWin(g)===BLD.win)},upG=function(g){return g&&+new Date(g.t)>now};
+  var now=Date.now(),okG=function(g){return g&&gOpen(g)&&bGameOk(g.id)},upG=function(g){return g&&+new Date(g.t)>now};
   var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
   PROPS.forEach(function(p){if(!okG(p.g)||!upG(p.g)||!p.healthy)return;
     p.rungs.forEach(function(r){if(r.p==null||!(r.n>=4))return;
@@ -2029,7 +2029,7 @@ function topListHTML(){
         cand.forEach(function(c){if(c.a<-250||c.a>150)return;var k2=p.player;if(!bestB[k2]||c.P>bestB[k2].P)bestB[k2]=c})}})});
   A=Object.keys(bestA).map(function(k){return bestA[k]});B=Object.keys(bestB).map(function(k){return bestB[k]});
   GAMES.forEach(function(g){if(!okG(g))return;["ml-a","ml-h"].forEach(function(t){if(!g.legs[t])return;var L=gameLeg(g,t);if(!upG(g)&&!L.live)return;if(L&&L.p!=null&&L.a>=-1000)M.push({g:g,t:t,P:L.p,a:L.a})});
-    if(NOPROPS&&upG(g))["sp-a","sp-h"].forEach(function(t){if(!g.legs[t])return;var L=gameLeg(g,t);if(L&&L.p!=null)SP.push({g:g,t:t,P:L.p,a:L.a})})});
+    if((NOPROPS||BLD.kind==="g")&&upG(g))["sp-a","sp-h"].forEach(function(t){if(!g.legs[t])return;var L=gameLeg(g,t);if(L&&L.p!=null)SP.push({g:g,t:t,P:L.p,a:L.a})})});
   var by=function(a,b){return b.P-a.P||a.a-b.a};A.sort(by);B.sort(by);T.sort(by);M.sort(by);SP.sort(by);
   function legOf(x){return x.g?gameLeg(x.g,x.t):(x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r))}
   function row(x,i,rec){var L=legOf(x),attrs;if(!L)return"";
@@ -2039,11 +2039,11 @@ function topListHTML(){
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?15:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'">'+lstHead(rec)+''+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
       (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
-  var out=sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30)+
-    sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10)+
-    sec("Anytime TD","Players most likely to score a touchdown.",T,10)+
-    sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10)+
-    (NOPROPS?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
+  var K=BLD.kind,out=(!K||K==="p"?sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30):"")+
+    (!K||K==="p"?sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10):"")+
+    (!K||K==="td"?sec("Anytime TD","Players most likely to score a touchdown.",T,10):"")+
+    (!K||K==="g"?sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10):"")+
+    ((NOPROPS&&!K)||K==="g"?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
   return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). All picks has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try Games remaining.</p>'}
 function renderBuild(){
   if(!$("bList"))return;
@@ -2056,7 +2056,7 @@ function renderBuild(){
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   BLD.win=winChips($("bWin"),GAMES.filter(gOpen),BLD.win,"bwin");
   var top=BLD.mode==="top";document.querySelectorAll("#bMode button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bmode===BLD.mode)});
-  $("bFilt").hidden=top;$("bKind").hidden=top||NOPROPS;if(top)$("bMulti").hidden=true;
+  $("bSort").hidden=top;$("bKind").hidden=NOPROPS;
   if(top)$("bList").innerHTML=topListHTML();
   var rows=top?[]:buildRows(),shown=rows.slice(0,BLD.n);
   var why=function(x){return'<div class="bwhy">'+storyHTML(legStory(x.leg))+'</div>'};
