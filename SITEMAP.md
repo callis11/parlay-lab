@@ -131,5 +131,5 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 ## Theme color (Nov 3)
 - ★ My teams and apps has a **Theme color** section: a team picker (NFL and NBA team colors, "Default (yellow)") and a free color picker. It previews live, saves with Save (localStorage `theme`), and Cancel reverts. It only swaps the CSS accent `--flag` / `--flag-ink` (tabs, buttons, highlights); backgrounds and the green/yellow/red hit-chance colors never change. Code: `applyTheme()` / `themeUI()`.
 
-## Reset button (Nov 3)
-- The ⟲ button in the top bar (where ↻ was) asks for confirmation, then clears all localStorage (saved bets and Results history, slip, favorite teams, apps, theme, usual bet, age/location checks, tour flags) and reloads on the current sport's page as a first-time visit. Resets everything on this phone; it can't be undone.
+## Reset + refresh button (Nov 3)
+- The ⟲ button in the top bar asks for confirmation, then clears the slip, bet queue, generated parlays and builder choices (every localStorage key not in `KEEP_KEYS`), re-downloads the newest page and data (the old ↻ cache-busting fetch), and reloads. Kept: saved bets in Results (deleted there by hand), final scores, favorite teams, betting apps, theme, usual bet, age/location checks, intro/tour flags.
