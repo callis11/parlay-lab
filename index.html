@@ -3161,7 +3161,7 @@ function qPanel(barOnly){
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
     AMT.s=stake;
     cards.push('<div class="qc first"><button class="qx" data-qslipclear="1" aria-label="Clear this slip">✕</button><h4>Your slip · building</h4>'+
-      Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'+factsDiv(l)}).join("")+
+      Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'}).join("")+
       '<div class="qbig"><b>'+(sg?"~":"")+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins '+(sg?"~":"")+'$'+usd(stake*(d-1))+'</span></div>'+
       qWT("s",stake,d)+qAmt("s")+
       (started?'<p class="warn" style="margin:0">A game in this slip has started. Remove that pick.</p>':qLinks(legs,stake,'data-sendbook="{bk}"'))+
@@ -3171,7 +3171,7 @@ function qPanel(barOnly){
   left.forEach(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),d=1,stake=q.stake||USUAL,ch=null;
     q.legs.forEach(function(l){d*=dec(l.a)});try{ch=slipChance(q.legs,"").ch}catch(e){}AMT["q"+i]=stake;
     cards.push('<div class="qc'+(!nSlip&&pos===0?" first":"")+'"><button class="qx" data-qa="r" data-i="'+i+'" aria-label="Delete this bet">✕</button><h4>Bet '+(pos+1)+' of '+left.length+(q.n&&!/^Bundle bet/.test(q.n)?' · '+esc(q.n):'')+'</h4>'+
-      q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'+factsDiv(l)}).join("")+
+      q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'}).join("")+
       '<div class="qbig"><b>'+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins $'+usd(stake*(d-1))+'</span></div>'+
       qWT("q"+i,stake,d)+qAmt("q"+i)+
       (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Delete it.</p>':qLinks(q.legs,stake,'data-qbook="{bk}" data-i="'+i+'"'))+
