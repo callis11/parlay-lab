@@ -127,3 +127,6 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 
 ## Longer record under names (Nov 3)
 - Build > Top list player rows get a second gray line under the name with that pick's longer record, e.g. "26 of 40 games since 2023" (flipped for unders). Players tab cards get a chip under the name with the same record for the player's most likely line, e.g. "Rec yds 25+: 26 of 40 games since 2023". Helper: `sinceTxt()`.
+
+## Theme color (Nov 3)
+- ★ My teams and apps has a **Theme color** section: a team picker (NFL and NBA team colors, "Default (yellow)") and a free color picker. It previews live, saves with Save (localStorage `theme`), and Cancel reverts. It only swaps the CSS accent `--flag` / `--flag-ink` (tabs, buttons, highlights); backgrounds and the green/yellow/red hit-chance colors never change. Code: `applyTheme()` / `themeUI()`.

@@ -529,6 +529,10 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
   <h2 class="fh" style="margin-top:14px">My teams</h2>
   <p class="fsub" id="favSub">Your team gets its own parlay chip, comes first on the Games tab, and leads the spotlight. When they're off, you get the game of the week.</p>
   <div id="favRows"></div>
+  <h2 class="fh" style="margin-top:14px">Theme color</h2>
+  <p class="fsub">Changes only the accent color (buttons, tabs, highlights). Green, yellow and red on percentages keep their meaning.</p>
+  <div class="frow"><label for="themeSel">Team theme</label><select id="themeSel"></select></div>
+  <div class="frow"><label for="themeCustom">Or pick any color</label><input type="color" id="themeCustom" value="#F7C600" style="width:56px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--surface)"></div>
   <h2 class="fh" style="margin-top:14px">My betting apps</h2>
   <p class="fsub">Pick one or more. The slip gets an "Open in …" button for each, and the odds shown come from the one you choose below.</p>
   <div class="gmulti approw" id="appRows"></div>
@@ -773,12 +777,22 @@ var FAVNEWB=NEWB;
 function newbApply(){document.body.classList.toggle("pro",!NEWB)}newbApply();
 function newbSeg(){document.querySelectorAll("#newbSeg [data-newb]").forEach(function(b){b.setAttribute("aria-pressed",(b.dataset.newb==="yes")===FAVNEWB)})}
 document.addEventListener("click",function(e){var b=e.target.closest("[data-newb]");if(!b)return;FAVNEWB=b.dataset.newb==="yes";newbSeg()});
+// Theme color: swaps only the accent (--flag). Backgrounds and the green/yellow/red hit-chance colors are untouched.
+var THEME_SAVED="";try{THEME_SAVED=localStorage.getItem("theme")||""}catch(e){}
+function applyTheme(h){var r=document.documentElement.style;if(!/^#[0-9a-f]{6}$/i.test(h||"")){r.removeProperty("--flag");r.removeProperty("--flag-ink");return}
+  var n=parseInt(h.slice(1),16),lum=(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255;
+  r.setProperty("--flag",h);r.setProperty("--flag-ink",lum>0.55?"#14213D":"#FFFFFF")}
+applyTheme(THEME_SAVED);
+var THEME_PREV=THEME_SAVED;
+function themeUI(){var sel=$("themeSel"),o='<option value="">Default (yellow)</option>';
+  [["NFL",NFL_T,TC.nfl],["NBA",NBA_T,TC.nba]].forEach(function(g){o+='<optgroup label="'+g[0]+'">'+Object.keys(g[1]).sort(function(a,b){return g[1][a].localeCompare(g[1][b])}).filter(function(k){return g[2][k]}).map(function(k){return'<option value="'+g[2][k]+'">'+esc(g[1][k])+'</option>'}).join("")+'</optgroup>'});
+  sel.innerHTML=o;THEME_PREV=THEME_SAVED;sel.value=THEME_SAVED;if(sel.value!==THEME_SAVED)sel.value="";$("themeCustom").value=/^#[0-9a-f]{6}$/i.test(THEME_SAVED)?THEME_SAVED:"#F7C600"}
 function favOpen(first){FAVFIRST=first===true;
   $("favH").hidden=!FAVFIRST;
   $("favCancel").textContent=FAVFIRST?"Skip":"Cancel";
   $("favRows").innerHTML=FAV_SPORTS.map(function(x){return'<div class="frow"><label for="fav_'+x[0]+'">'+x[1]+'</label><select id="fav_'+x[0]+'"><option>Loading…</option></select></div>'}).join("");
   FAVAPPS=MYAPPS.slice();FAVBOOK=BOOK;favApps();FAVNEWB=NEWB;newbSeg();
-  $("favs").hidden=false;
+  $("favs").hidden=false;themeUI();
   FAV_SPORTS.forEach(function(x){var sp=x[0],cur=favGet(sp,x[2]),sel=$("fav_"+sp);
     var fill=function(map){var list=Object.keys(map).map(function(k){return[k,map[k]]});if(!map[cur.team])list.push([cur.team,cur.name]);
       list.sort(function(a,b){return a[1].localeCompare(b[1])});
@@ -803,6 +817,7 @@ function favSave(){
   FAV_SPORTS.forEach(function(x){var sel=$("fav_"+x[0]);if(!sel||!sel.value||sel.value==="Loading…")return;var nm=(sel.selectedOptions[0]||{}).textContent.replace(/ \(default\)$/,"");
     var old=favGet(x[0],x[2]);try{localStorage.setItem("fav_"+x[0],JSON.stringify({team:sel.value,name:nm}))}catch(e){}
     if(x[0]===SPORT&&old.team!==sel.value){changedHere=true;var o=Engine.OPTS[SPORT];o.featured=sel.value;o.featuredName=nm}});
+  THEME_SAVED=THEME_PREV;try{if(THEME_SAVED)localStorage.setItem("theme",THEME_SAVED);else localStorage.removeItem("theme")}catch(e){}applyTheme(THEME_SAVED);
   $("favs").hidden=true;
   if(changedHere){TEAM=Engine.OPTS[SPORT].featured;TGAME=null;renderAll()}
   toast("★ My teams and apps saved.");setupDone();
@@ -3121,7 +3136,8 @@ $("usualSeg").addEventListener("click",function(e){var b=e.target.closest("[data
 $("usualGo").addEventListener("click",function(){setUsual(parseFloat($("usualIn").value))});
 $("oddsFrom").addEventListener("click",function(e){var b=e.target.closest("[data-oddsfrom]");if(!b)return;FAVBOOK=b.dataset.oddsfrom;favApps()});
 $("swapBox").addEventListener("click",function(e){if(e.target.id==="swapBox")swapClose()});
-$("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-favapp]");if(!b)return;var a=b.dataset.favapp,i=FAVAPPS.indexOf(a);if(i>=0)FAVAPPS.splice(i,1);else FAVAPPS.push(a);favApps()});$("favCancel").onclick=function(){$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
+$("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-favapp]");if(!b)return;var a=b.dataset.favapp,i=FAVAPPS.indexOf(a);if(i>=0)FAVAPPS.splice(i,1);else FAVAPPS.push(a);favApps()});$("themeSel").addEventListener("change",function(){THEME_PREV=$("themeSel").value;if(THEME_PREV)$("themeCustom").value=THEME_PREV;applyTheme(THEME_PREV)});$("themeCustom").addEventListener("input",function(){THEME_PREV=$("themeCustom").value;$("themeSel").value=THEME_PREV;if($("themeSel").value!==THEME_PREV)$("themeSel").value="";applyTheme(THEME_PREV)});
+$("favCancel").onclick=function(){applyTheme(THEME_SAVED);$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
 renderBookSel();
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
 Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
