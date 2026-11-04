@@ -563,7 +563,7 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 <div class="wrap">
 <header>
   <div class="toprow"><nav class="sport" aria-label="Sport"><a href="./" id="s-nfl">NFL</a><a href="./?nba" id="s-nba">NBA</a><a href="./?cfb" id="s-cfb">NCAAF</a><a href="./?cbb" id="s-cbb">NCAAB</a></nav></div>
-  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><span class="tbtns"><button class="helpq star" id="favBtn" aria-label="My teams and betting apps">★</button><button class="helpq info" id="helpBtn" aria-label="How to use ParlayLabs"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="6.2" r="1.9" fill="currentColor"/><path d="M12 10.5v8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></button></span></div>
+  <div class="brand"><img src="icon.svg" alt="" width="44" height="44"><h1>ParlayLabs<sup class="beta">Beta</sup></h1><span class="tbtns"><button class="helpq" id="resetBtn" aria-label="Reset the app to a fresh start">⟲</button><button class="helpq star" id="favBtn" aria-label="My teams and betting apps">★</button><button class="helpq info" id="helpBtn" aria-label="How to use ParlayLabs"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="6.2" r="1.9" fill="currentColor"/><path d="M12 10.5v8.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg></button></span></div>
   <p id="tagline">Live NFL lines, matchup history, weather and player prop hit rates. Tap picks to build a parlay.</p>
 </header>
 
@@ -2895,6 +2895,11 @@ try{var _bm=localStorage.getItem("bmode");if(_bm)BLD.mode=_bm}catch(e){}
 $("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
 $("favBtn").onclick=function(){favOpen()};
+// Reset: wipes everything saved on this phone (bets, slip, results history, teams, apps, theme) and reloads fresh
+$("resetBtn").onclick=function(){
+  if(!window.confirm("Reset ParlayLabs to a fresh start?\n\nThis deletes your saved bets and Results history, your slip, favorite teams, betting apps, theme and settings on this phone. It can't be undone."))return;
+  try{localStorage.clear()}catch(e){}try{sessionStorage.clear()}catch(e){}
+  location.replace(location.pathname+"?r="+Date.now())};
 // ---------- Feedback: opens the phone's email app to feedback@parlaylabs.net (forwards to Andrew), with the screen's details filled in ----------
 function fbOpen(){var tab=(document.querySelector('[role="tab"][aria-selected="true"].tab')||{}).textContent||"",legs=Object.keys(SLIP).length,
     sp={nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"}[SPORT];
