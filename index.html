@@ -732,12 +732,10 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 </section>
 
 <section id="v-games" role="tabpanel" aria-labelledby="t-games" hidden>
-  <h2>Games</h2>
   <div id="games"><p class="empty">Loading lines…</p></div>
 </section>
 
 <section id="v-build" role="tabpanel" aria-labelledby="t-build" hidden>
-  <h2>Picks</h2>
   <p class="sub hlp">Tap picks to add them. Your slip is in the bar at the bottom: tap <b>Next slip</b> there to save a bet and start another.</p>
   <div id="bSlip"></div>
   <div class="chiprow" id="bWin" role="tablist" aria-label="Kickoff time"></div>
@@ -821,7 +819,6 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <p class="sub" id="teamNote"></p>
   <div class="presets" id="pr-team"></div>
   <div id="teamGame" hidden></div>
-  <h2>Players</h2>
   <div id="teamProps"></div>
   <div id="teamHist"></div>
 </section>
@@ -1973,6 +1970,10 @@ function bothSlips(g){
   return out;
 }
 var TSIDE="team";
+// Games tab: the same ranked picks as the Picks tab, scoped to this game (and to the chosen team's players)
+var TPK={g:"",t:""};
+function renderTeamPicks(gid,tm){if(gid!==undefined){TPK.g=gid;TPK.t=tm||""}
+  $("teamProps").innerHTML=TPK.g?topListHTML(TPK.g,TPK.t):'<p class="empty">No game this week.</p>'}
 function renderTeamLower(){
   try{genUI("tm")}catch(e){}
   var v=TEAM;if(!v){$("pr-team").innerHTML='<p class="empty">No games loaded yet.</p>';return}
@@ -1982,8 +1983,7 @@ function renderTeamLower(){
     $("teamParH").textContent=r.g.away+" + "+r.g.home+" parlays";
     $("teamNote").textContent=(COL?"The strongest game-line combos in ":"The best picks from each team in ")+r.g.away+" at "+r.g.home+(COL?".":", at least one from each side.")+" Same-game parlays, so your book's payout will be lower than shown.";
     renderPresetRow("pr-team",bothSlips(r.g),"b");
-    var bp=PROPS.filter(function(p){return p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
-    $("teamProps").innerHTML=bp.length?playerGroups(bp).map(playerCard).join(""):'<p class="empty">No rated props for this game yet.</p>';
+    renderTeamPicks(r.g.id,"");
     renderTeamHist(v,m.away===v?m.home:m.away);return}
   $("teamParH").textContent=teamName(v)+" parlays";
   $("teamNote").textContent=r.g?"Same-game parlays from "+r.g.away+" at "+r.g.home+", so your book's payout will be lower than shown.":"No game this week.";
@@ -1991,8 +1991,7 @@ function renderTeamLower(){
     $("teamNote").textContent="This game has started, so its pre-game parlays are gone."+(lvG?" The only live pick is the moneyline, and only while ESPN gives the team 25%+ to win.":" Live scores come from ESPN on this phone; none yet for this game.");
     $("pr-team").innerHTML=LG.live?'<div class="card islive">'+liveLine(r.g)+'<div class="line"><b>Live</b>'+gpick(r.g,LG.t)+'</div><p class="sub lvnote">Tap to add it to your slip. '+esc(teamName(v))+' at '+Math.round(LG.p*100)+'% is '+esc(liveWhy(LG))+'; the price is '+esc(livePrice(LG))+'. Prices move every play, so check the app.</p></div>':'<p class="empty">'+(lvG?esc(teamName(v))+" are under 25% to win live (ESPN or the live price), so they can't go in a parlay right now.":"Nothing to pick from this game right now.")+'</p>'}
   else renderPresetRow("pr-team",r.l,"t");
-  var tp=PROPS.filter(function(p){return p.team===v&&r.g&&p.ev===r.g.id}).sort(function(a,b){return b.top-a.top});
-  $("teamProps").innerHTML=tp.length?playerGroups(tp).map(playerCard).join(""):'<p class="empty">No rated props for this team yet.</p>';
+  renderTeamPicks(r.g?r.g.id:"",v);
   renderTeamHist(v,m.away===v?m.home:m.away);
 }
 
@@ -2027,10 +2026,10 @@ function lstRow(L,attrs,a,P,rec,info){
     '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
     '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
 function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
-function topListHTML(){
-  var now=Date.now(),okG=function(g){return g&&gOpen(g)&&bGameOk(g.id)},upG=function(g){return g&&+new Date(g.t)>now};
+function topListHTML(gid,tm){
+  var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(gid?g.id===gid:bGameOk(g.id))},upG=function(g){return g&&+new Date(g.t)>now};
   var A=[],B=[],T=[],M=[],SP=[],bestA={},bestB={};
-  PROPS.forEach(function(p){if(!okG(p.g)||!upG(p.g)||!p.healthy)return;
+  PROPS.forEach(function(p){if(!okG(p.g)||!upG(p.g)||!p.healthy)return;if(tm&&p.team!==tm)return;
     p.rungs.forEach(function(r){if(r.p==null||!(r.n>=4))return;
       if(p.td){T.push({p:p,r:r,P:r.p,a:r.a});return}
       if(r.a>=-800){var k=p.player;if(!bestA[k]||r.p>bestA[k].P)bestA[k]={p:p,r:r,P:r.p,a:r.a}}
@@ -2048,12 +2047,12 @@ function topListHTML(){
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?15:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all),shown=list.slice(0,k),rec=shown.some(function(x){if(x.g)return false;var L=legOf(x);return!!(L&&legRec(L))});
     return'<h3 class="tlh">'+title+' <small>top '+all+'</small></h3><p class="sub tls">'+sub+'</p><div class="tl'+(rec?" rec":"")+'">'+lstHead(rec)+''+shown.map(function(x,i){return row(x,i,rec)}).join("")+'</div>'+
       (all>first?'<button class="lnk tlmore" data-topx="'+esc(title)+'">'+(open?"Show top "+first+" ▴":"Show all "+all+" ▾")+'</button>':"")}
-  var K=BLD.kind,out=(!K||K==="p"?sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30):"")+
+  var K=gid?"":BLD.kind,out=(!K||K==="p"?sec("Most likely player picks","The likeliest line for each player that still pays something (-800 or better). Steady building blocks for a bigger parlay, but each one alone pays little.",A,30):"")+
     (!K||K==="p"?sec("Best single bets","Main lines, over or under, priced between -250 and +150. Good to bet alone or as a stronger pick in a parlay.",B,10):"")+
     (!K||K==="td"?sec("Anytime TD","Players most likely to score a touchdown.",T,10):"")+
     (!K||K==="g"?sec("Teams to win (ML)","Moneylines: just pick the winner. Lopsided ones (worse than -1000) are left out.",M,10):"")+
-    ((NOPROPS&&!K)||K==="g"?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
-  return out?out+'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). All picks has every line, filters and the ⓘ history.</p>':'<p class="empty">Nothing left to pick in this window. Try All games.</p>'}
+    ((NOPROPS&&!K)||K==="g"||(gid&&NOPROPS)?sec("Spreads","Each team's spread, most likely to cover first. Close to 50% is normal for spreads.",SP,10):"");
+  return out?out+(gid?"":'<p class="bfoot">% = our chance it hits · price is what the app pays. Tap a row to add it to your parlay (tap again to remove). All picks has every line, filters and the ⓘ history.</p>'):(gid?'<p class="empty">No picks left for this game.</p>':'<p class="empty">Nothing left to pick in this window. Try All games.</p>')}
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
@@ -3070,11 +3069,13 @@ $("bWin").addEventListener("click",function(e){var b=e.target.closest("[data-bwi
 $("pWin").addEventListener("click",function(e){var b=e.target.closest("[data-pwin]");if(!b)return;PWIN=b.dataset.pwin;SHOWN=10;renderProps()});
 $("winChips").addEventListener("click",function(e){var b=e.target.closest("[data-twin]");if(!b)return;TWIN=b.dataset.twin;TEAM="";TGAME=null;TPICKED=false;renderTeam();renderSlip()});
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
-$("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
-  if(e.target.closest("button"))return;var r=e.target.closest(".b2r");if(!r)return;var L;
-  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
+function pickTap(e){var r=e.target.closest(".b2r");if(!r)return false;var L;  if(r.dataset.ag){var g=GAMES.filter(function(x){return x.id===r.dataset.ag})[0];if(!g)return;L=gameLeg(g,r.dataset.at);if(SLIP[L.k]&&SLIP[L.k].t===L.t)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
   else if(r.dataset.ap){var p=PROPS.filter(function(x){return x.id===r.dataset.ap})[0],q=p&&p.rungs.filter(function(x){return String(x.line)===r.dataset.al})[0];if(!q)return;L=r.dataset.au?ENG.underLeg(p,q):propLeg(p,q);if(!L)return;if(SLIP[L.k]&&SLIP[L.k].line===L.line)delete SLIP[L.k];else if(legStarted(L)){toast(STARTED_MSG,true);return}else if(sentGuard(r))return;else SLIP[L.k]=L}
-  renderSlip();renderBuild()});
+  renderSlip();renderBuild();if($("teamProps")&&TPK.g)renderTeamPicks();return true}
+$("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
+  if(e.target.closest("button"))return;pickTap(e)});
+$("teamProps").addEventListener("click",function(e){var b=e.target.closest("[data-topx]");if(b){var k=b.dataset.topx;TOPX[k]=!TOPX[k];renderTeamPicks();return}
+  if(e.target.closest("button"))return;pickTap(e)});
 $("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-topx]");if(!b)return;e.stopPropagation();var k=b.dataset.topx;TOPX[k]=!TOPX[k];var y=b.getBoundingClientRect().top;renderBuild();
   if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);
 $("bMode").addEventListener("click",function(e){var b=e.target.closest("[data-bmode]");if(!b)return;BLD.mode=b.dataset.bmode;try{localStorage.setItem("bmode",BLD.mode)}catch(x){}renderBuild()});
