@@ -121,3 +121,6 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 - Parlay Bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
 - Parlay Bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
 - Parlay Bundle results: Table / Parlay cards toggle above the list.
+
+## Top list: role line under player names (Nov 3)
+- Each player row in Build > Top list shows a small line under the name, e.g. "TE1 starter · 70% of snaps" (same text as the role tag on parlay cards, from roles.json). Team rows have none.
