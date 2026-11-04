@@ -137,3 +137,4 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 ## "Bet added" pop-up + boost removed (Nov 3)
 - Tapping **✓ Bet added** (slip card or queued bet) opens a pop-up: app, odds with the +/− button (blank = save our price), wager (prefilled from the card), and 📋 Paste / 📷 Pick receipt to read the app's odds and wager. **Save to My bets** stores the real odds; Cancel leaves the bet where it was. Code: `recOpen / recSave / recFromText`.
 - Profit boost is gone from the slip (FanDuel has no such control): BOOST is forced to 0, the selects are hidden, the section is now "ⓘ Prices". The $1–$100 amount buttons and the Wager box stay.
+- The pop-up has three outcomes: **Save to My bets** (records real odds), **Skip** (you placed it but don't want it recorded: it leaves the slip/queue and nothing is saved), **Cancel** (tapped by mistake: nothing changes).

@@ -3046,13 +3046,13 @@ function recOpen(kind,i){
   else{var q=QUEUE[i];if(!q)return;legs=q.legs;book=q.book||BOOK;stake=q.stake||USUAL}
   var d=legs.reduce(function(x,l){return x*dec(l.a)},1),our=Engine.amFromDec(d);REC={kind:kind,i:i,legs:legs,d:d,our:our,meta:null};
   $("recIn").innerHTML='<h3 style="margin:0 0 4px">Bet made? Record it</h3>'+
-    '<p class="sub" style="margin:0 0 8px">We priced it at <b>'+fmt(our)+'</b>. Type the odds your app shows, or read them from your receipt. Leave odds blank to save our price.</p>'+
+    '<p class="sub" style="margin:0 0 8px">We priced it at <b>'+fmt(our)+'</b>. Type the odds your app shows, or read them from your receipt. Leave odds blank to save our price. <b>Skip</b> if you placed it but don\'t want it recorded; <b>Cancel</b> if you tapped by mistake.</p>'+
     '<p style="margin:0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn flag" id="recPaste">📋 Paste receipt</button><label class="btn" style="display:inline-block">📷 Pick receipt<input type="file" id="recFile" accept="image/*" hidden></label></p>'+
     '<div class="sub" id="recStat" style="margin:6px 0 0"></div>'+
     '<div class="filters" style="margin:6px 0 0"><select id="recBook" aria-label="Betting app">'+ALL_APPS.map(function(a){return'<option value="'+a+'"'+(a===book?" selected":"")+'>'+esc(Engine.BOOK_NAMES[a]||a)+'</option>'}).join("")+'</select>'+
     '<span class="oddsw" style="flex:1;min-width:140px"><button type="button" class="sgn" data-sgn="1" aria-label="Plus or minus: tap to switch" title="Tap to switch + / −">'+(our<0?"−":"+")+'</button><input id="recOdds" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Odds, e.g. '+Math.abs(our)+'" aria-label="Odds your app gave you (number only)"></span></div>'+
     '<p style="margin:8px 0 0;display:flex;align-items:center;gap:8px"><label class="sub" for="recStake" style="margin:0">Wager $</label><input id="recStake" inputmode="decimal" value="'+(Math.round(stake*100)/100)+'" style="font:inherit;width:90px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)"></p>'+
-    '<div class="row" style="margin-top:10px"><button class="btn" id="recCancel">Cancel</button><button class="btn flag" id="recSave">Save to My bets</button></div>';
+    '<button class="btn flag" id="recSave" style="width:100%;margin-top:10px">Save to My bets</button><div class="row" style="margin-top:8px"><button class="btn" id="recCancel">Cancel</button><button class="btn" id="recSkip">Skip</button></div>';
   $("recBox").hidden=false}
 function recFromText(text){
   var b=shotParse(text)[0],st=$("recStat");
@@ -3060,6 +3060,10 @@ function recFromText(text){
   if(b.book)$("recBook").value=b.book;if(b.odds!=null)oddsSet($("recOdds"),b.odds);if(b.stake!=null)$("recStake").value=b.stake.toFixed(2);
   REC.meta={betId:b.id||null,pay:b.pay,placed:b.placed||null};
   st.innerHTML='<span class="gauto" style="display:block">Read: '+esc((Engine.BOOK_NAMES[b.book]||"app not found")+(b.odds!=null?" · "+fmt(b.odds):"")+(b.stake!=null?" · $"+b.stake.toFixed(2)+" wager":""))+'. Check it, then Save.</span>'}
+// Placed it but don't want it in My bets: the bet leaves the slip/queue and nothing is saved
+function recSkip(){
+  if(!REC)return;if(REC.kind==="s"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null}else{var q=QUEUE[REC.i];if(q){q.st=1;QLAST=REC.i}qSave()}
+  $("recBox").hidden=true;REC=null;renderSlip();toast("Skipped. Not recorded in My bets.")}
 function recSave(){
   if(!REC)return;var odds=oddsRead($("recOdds")),stake=parseFloat($("recStake").value)||USUAL,book=$("recBook").value,legs=REC.legs;
   var bet={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),sport:SPORT,book:book,stake:stake,odds:odds||REC.our,saved:Date.now(),
@@ -3070,8 +3074,8 @@ function recSave(){
   if(REC.kind==="s"){SLIP={};SENT=null;sentSave();SHOT.slipMeta=null}else{var q=QUEUE[REC.i];if(q){q.st=1;q.book=book;QLAST=REC.i}qSave()}
   $("recBox").hidden=true;REC=null;renderSlip();if(typeof renderMyBets==="function")renderMyBets();
   toast("Saved to My bets"+(odds?" at "+fmt(odds):"")+". Your slip is ready for the next one.")}
-document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("#recSave,#recCancel,#recPaste");if(!t)return;
-  if(t.id==="recSave")recSave();else if(t.id==="recCancel"){$("recBox").hidden=true;REC=null}else shotPasteBtn("rec")});
+document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("#recSave,#recCancel,#recSkip,#recPaste");if(!t)return;
+  if(t.id==="recSave")recSave();else if(t.id==="recSkip")recSkip();else if(t.id==="recCancel"){$("recBox").hidden=true;REC=null}else shotPasteBtn("rec")});
 document.addEventListener("change",function(e){if(e.target&&e.target.id==="recFile")shotFiles(e.target.files,"rec")});
 function qAct(a,i){
   if(a==="c"){QUEUE=QUEUE.filter(function(q){return q.st===0});QLAST=-1}
