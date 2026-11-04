@@ -669,8 +669,8 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
   <div class="chiprow" id="slateChips" role="tablist" aria-label="Slate"></div>
   <div class="ptools">
     <div class="seg" role="group" aria-label="How many"><button data-pm="top" aria-pressed="true">Top 3</button><button data-pm="all" aria-pressed="false">Show all</button></div>
-    <div class="ptpair"><div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div>
-    <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px">Expand all</button></div>
+    <div class="ptpair"><div class="seg" role="group" aria-label="Show as"><button data-pview="cards" aria-pressed="true">Cards</button><button data-pview="table" aria-pressed="false">Table</button></div></div>
+    <button class="btn" id="expAll" aria-pressed="false" style="min-height:40px;flex:1 1 100%">Expand all</button>
     <select id="fLegs" aria-label="Legs"><option value="">Any picks</option><option value="s">2–3 picks</option><option value="l">4+ picks</option></select>
     <select id="fKind" aria-label="Type"><option value="">All types</option><option value="p">Player props</option><option value="g">Game lines</option><option value="m">Mixed</option></select>
   </div>
@@ -1747,7 +1747,7 @@ function renderParlays(){
   $("slateChips").innerHTML=chips.map(function(c){return'<button role="tab" data-slate="'+esc(c.id)+'" aria-selected="'+(c.id===PST.slate)+'">'+esc(c.label)+(c.count>1?"<small>"+c.count+"</small>":"")+'</button>'}).join("");
   document.querySelectorAll("[data-pm]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pm===PST.mode)});
   $("fLegs").value=PST.legs;$("fKind").value=PST.kind;
-  $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);$("expAll").hidden=PVIEW==="table";document.querySelectorAll("[data-pview]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pview===PVIEW)});
+  $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);document.querySelectorAll("[data-pview]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pview===PVIEW)});
   var html="",n=0;
   function block(sl,showHead){
     var L=rankSlips(sl.list()),tv=PVIEW==="table",cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
@@ -2895,7 +2895,7 @@ document.addEventListener("click",function(e){
     var a=myLoad().filter(function(b){return b.id!==t.dataset.mydel});mySave(a);renderMyBets();toast("Bet removed from My bets.")}
   else if(t.dataset.id&&t.dataset.myset!==undefined){var a2=myLoad();a2.forEach(function(b){if(b.id===t.dataset.id)b.manual=t.dataset.myset||null});mySave(a2);renderMyBets()}
   else if(t.dataset.slate){PST.slate=t.dataset.slate;savePST();renderParlays()}
-  else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;NOCENTER=true;document.querySelectorAll("#pList .pc").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y);NOCENTER=false},250)}
+  else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;NOCENTER=true;document.querySelectorAll("#pList .pc,#pList .ptmore").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y);NOCENTER=false},250)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;TGAME=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
   else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
@@ -3283,7 +3283,7 @@ function ptBlock(x,key,i){
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
     '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+
     '<div class="ptr pthd"><span class="ptn">Pick</span><span>Pos</span><span>Snaps</span><span>Since \'23</span><span>Hit %</span></div>'+rows+
-    '<details class="ptmore"><summary>Full card: why, stats, change picks</summary>'+card+'</details></div>'}
+    '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>Full card: why, stats, change picks</summary>'+card+'</details></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
 var BVIEW="table";try{BVIEW=localStorage.getItem("bview")==="cards"?"cards":"table"}catch(e){}
 function bqHTML(o){
