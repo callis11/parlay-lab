@@ -2071,11 +2071,11 @@ function renderBuild(){
   var d=1,raw=1,evs={},sg=false,who={},dup=false;legs.forEach(function(l){d*=dec(l.a);raw*=(l.p||0.5);if(evs[l.ev])sg=true;evs[l.ev]=1;if(l.player){if(who[l.player])dup=true;who[l.player]=1}});
   var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
   var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+pctColor(ch)+'">'+pct(ch)+'<small>to hit · '+pctWord(ch)+'</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+(sg?"":'<div class="mt">'+verdictLine(ch,d)+'</div>')+
-    '<div class="mt">'+legs.length+' pick'+(legs.length>1?"s":"")+' · '+usualWins(d,sg?"about ":"")+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
+    '<div class="mt"><b>Card '+(QUEUE.filter(function(q){return q.st===0}).length+1)+'</b> · '+legs.length+' pick'+(legs.length>1?"s":"")+' · '+usualWins(d,sg?"about ":"")+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
     legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small>'+legFactLines(l).filter(Boolean).map(function(f){return'<small>'+esc(f)+'</small>'}).join("")+'</span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
     (sg?'<p class="sg">Some picks are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
     (dup?'<p class="sg">Two picks on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
-    '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" id="bOpen">Open slip to bet ›</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
+    '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn" data-bnew="1">+ New card</button><button class="btn flag" id="bOpen">Open slip ›</button></div><p class="sub hlp" style="margin:6px 0 0"><b>+ New card</b> saves these picks as one bet in your bets, then starts an empty slip so you can build another.</p><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
   $("bSlip").innerHTML=whyWrap(front,legs,"");
 }
 // ---------- closing line value ----------
@@ -2923,6 +2923,11 @@ document.addEventListener("click",function(e){
   else if(t.id==="bMore"){BLD.n+=20;renderBuild()}
   else if(t.dataset.bgm){var ix=BLD.multi.indexOf(t.dataset.bgm);if(ix>=0)BLD.multi.splice(ix,1);else BLD.multi.push(t.dataset.bgm);BLD.n=20;renderBuild()}
   else if(t.dataset.bclear){SLIP={};renderSlip();renderBuild()}
+  else if(t.dataset.bnew){var nl=Object.keys(SLIP).map(function(k){return SLIP[k]}).filter(function(l){return!legStarted(l)});
+    if(!nl.length){toast("Add a pick first.",true);return}
+    var nq=QUEUE.filter(function(q){return q.st===0}).length+1;
+    if(qAdd(nl,nl.length>1?nl.length+"-pick card":"Single pick",0,true)){SLIP={};SENT=null;sentSave();renderSlip();renderBuild();toast("Card "+nq+" saved to your bets. Slip is empty: pick your next one.")}
+    else toast("That card is already in your bets.",true)}
   else if(t.id==="bOpen"){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
   else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=10;renderProps();renderSlip()}
   else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
