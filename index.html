@@ -164,6 +164,12 @@ html,body{overflow-anchor:none}.qtrack{display:flex;gap:10px;overflow-x:auto;scr
 .pc .bd ul{margin:8px 0;padding-left:18px;font-size:14px}
 .pc .bd .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
 .pgroup{margin:18px 0 6px;font-size:20px}
+details.slateD>summary{cursor:pointer;list-style:none;margin:10px 0 4px;padding:8px 0;border-bottom:1px solid var(--line)}
+details.slateD>summary::-webkit-details-marker{display:none}
+details.slateD>summary::after{content:"\25BE";float:right;opacity:.6}
+details.slateD:not([open])>summary::after{content:"\25B8"}
+#toTop{position:fixed;right:14px;bottom:78px;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--green);font-size:20px;display:none;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#toTop.on{display:block}
 .brand{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
 .brand img{border-radius:10px;flex:0 0 auto}
 .brand h1{margin:0;flex:1;min-width:0;font-size:clamp(20px,6.1vw,44px);white-space:nowrap;overflow:visible;position:relative}
@@ -804,7 +810,7 @@ var STNAME={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",
 var CPR={st:null,at:0,on:false,all:[]};try{var _geo=JSON.parse(localStorage.getItem("geo")||"null");if(_geo&&Date.now()-_geo.at<12*36e5){CPR.st=_geo.st;CPR.at=_geo.at}}catch(e){}
 CPR.on=SPORT==="cfb"&&!!CPR.st&&CPR.st!=="XX"&&!CFB_NO[CPR.st];
 var NOPROPS=COL&&!CPR.on;
-var BUILT=0,FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=30,TEAM="";
+var BUILT=0,FINALS=null,BT=null,BTR=null,SCHED=null,CARDS=null,CALIB=null,PICKS=null,ODDS=null,DATA=null,BOOK="fanduel",GAMES=[],PROPS=[],SLIP={},SHOWN=10,TEAM="",SLATE_OPEN={},first=false;
 try{BOOK=localStorage.getItem("book")||"fanduel"}catch(e){}
 // Betting apps you use (★ page): the odds picker and "send to app" buttons only show these
 var ALL_APPS=["fanduel","draftkings","betmgm","betrivers"],MYAPPS=ALL_APPS.slice();
@@ -1746,10 +1752,12 @@ function renderParlays(){
   function block(sl,showHead){
     var L=rankSlips(sl.list()),tv=PVIEW==="table",cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
     var note=sl.team?teamNote():sl.note;
-    return(showHead?'<h2 class="pgroup">'+esc(sl.label)+'</h2>':"")+'<p class="sub">'+esc(note)+'</p>'+
+    var inner='<p class="sub">'+esc(note)+'</p>'+
       (L.length?'<div class="'+(tv?"ptlist":"pgrid")+'">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
+    if(!showHead)return inner;
+    return '<details class="slateD" data-sl="'+esc(sl.label)+'"'+(SLATE_OPEN[sl.label]===undefined?(first?" open":""):(SLATE_OPEN[sl.label]?" open":""))+'><summary class="pgroup">'+esc(sl.label)+'</summary>'+inner+'</details>';
   }
-  if(PST.slate==="all")html=S.map(function(sl){return block(sl,true)}).join("");
+  if(PST.slate==="all")html=S.map(function(sl,ix){first=ix===0;return block(sl,true)}).join("");
   else html=block(S.filter(function(x){return x.id===PST.slate})[0],false);
   if(PST.mode==="top")html+='<p class="sub" style="margin-top:12px">Showing the top 3 per slate. <button class="more" data-pm="all">Show all parlays</button></p>';
   html+=legendHTML();
@@ -1915,7 +1923,7 @@ function renderTeamLower(){
 // College is game lines only (no type filters); NBA has no TDs
 if(NOPROPS){var _bk=$("bKind");if(_bk)_bk.hidden=true;var _fk=$("fKind");if(_fk){_fk.hidden=true;_fk.value=""}}
 else if(SPORT==="nba"){var _td=document.querySelector('#bKind [data-bk="td"]');if(_td)_td.hidden=true}
-var BLD={win:"",kind:"",game:"",sort:"p",n:50,multi:[],mode:"top"};
+var BLD={win:"",kind:"",game:"",sort:"p",n:20,multi:[],mode:"top"};
 function bGameOk(id){if(BLD.win){var gw=GAMES.filter(function(x){return x.id===id})[0];if(!gw||kickWin(gw)!==BLD.win)return false}return!BLD.game||(BLD.game==="multi"?(!BLD.multi.length||BLD.multi.indexOf(id)>=0):id===BLD.game)}
 function buildRows(){
   var now=Date.now(),rows=[];
@@ -2841,12 +2849,12 @@ document.addEventListener("click",function(e){
   else if(t.dataset.gou){GENS.ply.ou=t.dataset.gou;genSave("ply",genSaved("ply"));genUI("ply")}
   else if(t.dataset.gmall){var G5=GENS[t.dataset.gmall];G5.multi=[];G5.games="all";G5.side="both";genSave(t.dataset.gmall,genSaved(t.dataset.gmall));genUI(t.dataset.gmall)}
   else if(t.dataset.gm){var G3=GENS[t.dataset.cx||"par"],ml=G3.multi=G3.multi||[],ix=ml.indexOf(t.dataset.gm);if(ix>=0)ml.splice(ix,1);else ml.push(t.dataset.gm);genSave(t.dataset.cx||"par",genSaved(t.dataset.cx||"par"));genUI(t.dataset.cx||"par")}
-  else if(t.dataset.bk!==undefined&&t.closest("#bKind")){BLD.kind=t.dataset.bk;BLD.n=50;renderBuild()}
-  else if(t.id==="bMore"){BLD.n+=50;renderBuild()}
-  else if(t.dataset.bgm){var ix=BLD.multi.indexOf(t.dataset.bgm);if(ix>=0)BLD.multi.splice(ix,1);else BLD.multi.push(t.dataset.bgm);BLD.n=50;renderBuild()}
+  else if(t.dataset.bk!==undefined&&t.closest("#bKind")){BLD.kind=t.dataset.bk;BLD.n=20;renderBuild()}
+  else if(t.id==="bMore"){BLD.n+=20;renderBuild()}
+  else if(t.dataset.bgm){var ix=BLD.multi.indexOf(t.dataset.bgm);if(ix>=0)BLD.multi.splice(ix,1);else BLD.multi.push(t.dataset.bgm);BLD.n=20;renderBuild()}
   else if(t.dataset.bclear){SLIP={};renderSlip();renderBuild()}
   else if(t.id==="bOpen"){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true")}
-  else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=30;renderProps();renderSlip()}
+  else if(t.dataset.pside){PSIDE=t.dataset.pside;SHOWN=10;renderProps();renderSlip()}
   else if(t.dataset.genclose){var gcx=t.dataset.genclose,gd=$("gen_"+gcx);if(gd){gd.open=false;
     // Teams tab: go back up to the game cards; elsewhere: back to the generator's header
     var tgt=gcx==="tm"?$("teamCar"):gd,r=tgt.getBoundingClientRect();if(gcx==="tm"||r.top<70)window.scrollTo({top:r.top+window.scrollY-120,behavior:"smooth"})}}
@@ -2897,7 +2905,7 @@ document.addEventListener("click",function(e){
   else if(t.dataset.wk!==undefined){var ks=weekKeys(),j=+t.dataset.wk;if(ks[j]){WKSEL=ks[j];renderWeek()}}
   else if(t.dataset.wkshare){shareWeek()}
   else if(t.id==="moreCards"){CARDSHOW+=8;renderCards()}
-  else if(t.id==="more"){SHOWN+=30;renderProps();renderSlip()}
+  else if(t.id==="more"){SHOWN+=10;renderProps();renderSlip()}
   else if(t.dataset.openp){OPENP[t.dataset.openp]=!OPENP[t.dataset.openp];var y=window.scrollY;renderProps();if($("teamProps"))renderTeam();window.scrollTo(0,y)}
   else if(t.id==="sum"){var o=$("panel").classList.toggle("open");t.setAttribute("aria-expanded",o);renderSlip()}
   else if(t.classList.contains("tab")){location.hash=t.dataset.v==="team"?"team-"+TEAM:t.dataset.v}
@@ -2906,7 +2914,7 @@ $("fRes").addEventListener("change",renderResults);
 $("fLegs").addEventListener("change",function(){PST.legs=$("fLegs").value;savePST();renderParlays()});
 $("fKind").addEventListener("change",function(){PST.kind=$("fKind").value;savePST();renderParlays()});
 
-["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=30;renderProps();renderSlip()})});
+["fGame","fMkt","fSort"].forEach(function(id){$(id).addEventListener("change",function(){SHOWN=10;renderProps();renderSlip()})});
 $("stake").addEventListener("input",renderSlip);
 $("boost").value=String(BOOST);$("boost").addEventListener("change",function(){BOOST=+$("boost").value||0;try{localStorage.setItem("boost",String(BOOST))}catch(e){}renderSlip();try{renderParlays()}catch(e){}});
 // Refresh: grabs the newest version of the site and its data, skipping anything the phone saved earlier.
@@ -2980,8 +2988,8 @@ document.addEventListener("toggle",function(e){var d=e.target;if(!d||!d.matches|
 window.addEventListener("hashchange",function(){$("panel").classList.remove("open");$("sum").setAttribute("aria-expanded","false");renderSlip();route()});route();
 $("fTeam").addEventListener("change",function(){TEAM=$("fTeam").value;TPICKED=true;history.replaceState(null,"","#team-"+TEAM);renderTeam();renderSlip()});
 $("fDiv").addEventListener("change",function(){TEAM="";TPICKED=false;renderTeam();renderSlip()});
-$("bWin").addEventListener("click",function(e){var b=e.target.closest("[data-bwin]");if(!b)return;BLD.win=b.dataset.bwin;BLD.n=50;renderBuild()});
-$("pWin").addEventListener("click",function(e){var b=e.target.closest("[data-pwin]");if(!b)return;PWIN=b.dataset.pwin;SHOWN=30;renderProps()});
+$("bWin").addEventListener("click",function(e){var b=e.target.closest("[data-bwin]");if(!b)return;BLD.win=b.dataset.bwin;BLD.n=20;renderBuild()});
+$("pWin").addEventListener("click",function(e){var b=e.target.closest("[data-pwin]");if(!b)return;PWIN=b.dataset.pwin;SHOWN=10;renderProps()});
 $("winChips").addEventListener("click",function(e){var b=e.target.closest("[data-twin]");if(!b)return;TWIN=b.dataset.twin;TEAM="";TGAME=null;TPICKED=false;renderTeam();renderSlip()});
 $("teamCar").addEventListener("click",function(e){if(e.target.closest("button,a,summary,select,input"))return;var fc=e.target.closest(".flip");if(fc)flipCard(fc)});
 $("bList").addEventListener("click",function(e){var b=e.target.closest("button[data-bopen]");if(b){BLD.open=BLD.open===b.dataset.bopen?null:b.dataset.bopen;renderBuild();return}
@@ -2993,7 +3001,7 @@ $("bList").addEventListener("click",function(e){var b=e.target.closest&&e.target
   if(!TOPX[k]){var nb=document.querySelector('[data-topx="'+k.replace(/"/g,'\\"')+'"]');if(nb)window.scrollBy(0,nb.getBoundingClientRect().top-y)}},true);
 $("bMode").addEventListener("click",function(e){var b=e.target.closest("[data-bmode]");if(!b)return;BLD.mode=b.dataset.bmode;try{localStorage.setItem("bmode",BLD.mode)}catch(x){}renderBuild()});
 try{var _bm=localStorage.getItem("bmode");if(_bm)BLD.mode=_bm}catch(e){}
-$("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=50;renderBuild()});
+$("bGame").addEventListener("change",function(){BLD.game=$("bGame").value;BLD.n=20;renderBuild()});
 $("bSort").addEventListener("change",function(){BLD.sort=$("bSort").value;renderBuild()});
 $("favBtn").onclick=function(){favOpen()};
 // Reset + refresh: clears the slip, bet queue, generated parlays and builder choices, then re-downloads the newest page and data.
@@ -3302,5 +3310,14 @@ function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok
 Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "238bd7d7dd4a49e083e09efb8d2bf06f"}'></script><!-- End Cloudflare Web Analytics -->
+<button id="toTop" aria-label="Back to top">&#8593;</button>
+<script>
+(function(){var b=document.getElementById("toTop");
+function chk(){b.classList.toggle("on",window.scrollY>700)}
+window.addEventListener("scroll",chk,{passive:true});chk();
+b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})};
+document.addEventListener("toggle",function(e){var d=e.target;if(d&&d.classList&&d.classList.contains("slateD"))SLATE_OPEN[d.dataset.sl]=d.open},true);
+})();
+</script>
 </body>
 </html>

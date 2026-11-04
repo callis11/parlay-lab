@@ -322,3 +322,13 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Bottom bar (#sum): centered bold yellow text, 15px, e.g. "1 bet in your queue · tap to place them".
 - Still open: which other "All/Any" filters to rename (Andrew hasn't picked); unbuilt FanDuel-slip ideas (market subtitle/kickoff/same-game tag, "prices pulled N min ago" warning); ask how Open-in links behave with a real bet.
 - Reminder: tested at 390x650 in a browser, not on his phone; tell him to tap ↻.
+
+## Session 2026-11-04 (what changed since the notes above; this supersedes older mentions)
+- **↻ refresh button is gone**; the header ⟲ **reset** replaces it. Reset clears slip, queue, bets-in-progress and ALL filters (every tab back to "Games remaining", opens on Parlays) and reloads fresh data. It KEEPS Results/saved bets, favorites, betting apps, theme color, usual bet amount, and the age / location / intro flags (`KEEP_KEYS`). If Andrew sees old wording, close and reopen the home-screen app.
+- **Theme color picker** (accent color only) in the ★ panel (`applyTheme`, `themeUI`).
+- **Boost removed** from the slip (the $ amount chips stay). Tapping ✓ Bet added opens a **"Bet added" pop-up** (`recOpen`): +/− odds entry, receipt reading, buttons **Save Bet / Skip / Cancel**.
+- **Parlays tab has a Cards / Table toggle** (left of Expand all). Table shows Pos, Snaps, Since '23, Hit %. Cards start collapsed; Expand all and the toggle do not scroll the page. Same table data in Parlay Bundle; tighter cards and "Full card".
+- **Pick facts line everywhere** (`legFactLines`): players = position/snap %, then since-2023 record on its own line; ML/spread/over-under picks = last-5 record (`legL5`).
+- Wording: "Parlay Bundle", "One Parlay".
+- **Less scrolling**: Games remaining slates are collapsible (first open); Players list 10 at a time; Build Full board 20 at a time; floating ↑ back-to-top button.
+- Not built: yellow "How we got this %" link on slip cards.
