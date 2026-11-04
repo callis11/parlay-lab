@@ -2929,7 +2929,7 @@ function qAdd(legs,name,stake,quiet){
   legs=legs.map(function(l){return Object.assign({},l)});var sg=qSig(legs);
   if(QUEUE.some(function(q){return q.st===0&&qSig(q.legs)===sg})){if(!quiet)toast("That bet is already in your queue.",true);return false}
   QUEUE.push({n:name||"Bet",legs:legs,st:0,at:Date.now(),stake:stake||0});qSave();qChip();if(quiet)return true;
-  toast("Added to your bet queue ("+QUEUE.filter(function(q){return q.st===0}).length+"). Tap Bet queue to place them.");return true}
+  toast("Added to your bet queue ("+QUEUE.filter(function(q){return q.st===0}).length+"). Tap Bet to place them.");return true}
 function qChip(){renderSlip()}
 var QLAST=-1;
 function qOpen(){$("panel").classList.add("open");$("sum").setAttribute("aria-expanded","true");renderSlip();setTimeout(function(){var e=$("qPanel");if(e&&e.scrollIntoView)e.scrollIntoView({block:"nearest"});$("panel").scrollTop=0},0)}
@@ -2955,7 +2955,7 @@ function qPanel(barOnly){
   var left=[],placed=QUEUE.filter(function(q){return q.st===1}).length,nSlip=Object.keys(SLIP).length,more=$("slipMore");
   QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});
   var total=left.length+(nSlip?1:0),chip=$("qChip");
-  if(chip){chip.hidden=!left.length||$("panel").classList.contains("open");chip.textContent="Bet queue ("+left.length+")"}
+  if(chip){chip.hidden=!left.length||$("panel").classList.contains("open");chip.textContent="Bet"}
   if(more){more.hidden=!nSlip&&left.length>0;var none=!nSlip&&!left.length;more.classList.toggle("nosum",none);if(none)more.open=true;else if(more.dataset.was==="none")more.open=false;more.dataset.was=none?"none":"some"}
   if(left.length&&!nSlip){$("sumL").textContent=left.length+" bet"+(left.length>1?"s":"")+" in your queue"+($("panel").classList.contains("open")?" · tap to close":" · tap to place them");$("sumR").textContent=""}
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
