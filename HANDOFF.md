@@ -253,9 +253,9 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 
 ## My usual bet (Nov 3)
 - ★ page › **My usual bet**: $1/5/10/25/50/100 buttons or a custom amount ($1 to $10,000), saved per phone in `localStorage.usual` (default 10; included in "Move my data"). `USUAL`, `usd()`, `usualWins(d, prefix)`, `usualUI()`, `setUsual()` in index.html. Every "wins $X" (generator cards, named slips, Build, price rows via `winsOn10`, boost line) and the slip's Stake box use it. Results, track records and calibration stay at $10 on purpose. Tour and legend examples still say $10.
-- Double-up planner: DONE, see "Bet bundle mode" below.
+- Double-up planner: DONE, see "Parlay Bundle mode" below.
 
-## Bet bundle mode = the double-up planner (button: One parlay / Bet bundle) (Nov 3)
+## Parlay Bundle mode = the double-up planner (button: One parlay / Parlay Bundle) (Nov 3)
 - Lives inside the Parlays generator (`GENS.par.mode` "one" | "many", plus `budget`, `nbets`; saved with the generator). Code in index.html: `STYLE.plans/pland/planl` (payout ranges 1.45-1.8, 1.92-2.3, 3.6-6), `GENS.plan`, `planTry()` (greedy per bet: `genRank` over the pool minus used picks and games over a per-game cap, best slip chance with a 0.9 penalty per already-used game), `planBuild()` (tries picks-per-bet k..2 with unique picks, then k..2 allowing repeats, then 1; keeps most bets, fewest repeats, most picks), `planSim()` (Monte Carlo when picks repeat across bets), `planDist()` (exact 2^K enumeration, K up to 15, independent bets), `planHTML()`, `planGo()`. The old standalone planner card was removed the same day.
 - Not done yet: Players generator several-bets, a saved/shared plan, grading a plan on Results as one unit, same-game correlation across bets (ignored; said on screen). The long-shot "average back" can read above 100% from our own estimates; the card warns that replays say that's too generous.
 
@@ -275,8 +275,8 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - **Phone reminders (Andrew's Reminders app):** Jan 4 college basketball props · Feb 16 drop to $30 (yearly) · Feb 22 March Madness mode · Mar 10 baseball decision · Jun 22 summer plan check (yearly) · Aug 25 back to $59 (yearly).
 
 
-## Bet bundle results + shared Bet queue (Nov 3, evening) — CURRENT STATE
-**Bundle results** (Parlays > generator > Make: Bet bundle > Build my bundle), top to bottom:
+## Parlay Bundle results + shared Bet queue (Nov 3, evening) — CURRENT STATE
+**Bundle results** (Parlays > generator > Make: Parlay Bundle > Build my Parlay Bundle), top to bottom:
 1. Heading ("10 bets of $10 · Medium risk…") and the two warnings that stay visible: "Can't fill all N bets" box and the "Heads up: only 1-2 games" note.
 2. **Table | Parlay cards** toggle (`data-bview`, saved in `localStorage.bview`). Table = `qtab/qrow/qth/qp/qo` classes (NOT `.brow/.bp`, they already exist for another feature); tap a row to open the full slip card (`x.open=true`). Cards = 2-up closed `slipCardW` cards.
 3. Yellow **ⓘ How this works** link (`details.hw`): outcome table, "100 times" line, $100 comparison, explainers, honesty note. Andrew confirmed this layout ("that's perfect").

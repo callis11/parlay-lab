@@ -109,15 +109,15 @@ Prices: The Odds API (FanDuel by default). Player history: nflverse (NFL), ESPN 
 ## Asking another AI to review
 Give it this file plus the site link, ask it to use the site on a phone-size screen, and tell it the page's text glues badges together (see the top section). Andrew can attach screenshots of any screen.
 
-## Bet bundle mode (Parlays tab generator, Nov 3)
-- The Parlays generator has **Make: One parlay / Bet bundle**. Bet bundle adds **Budget $ in N bets** (N 2 to 15) and reuses Picks (2 to 5 used), Style, Bets (kind) and Game. Button: Build my bundle.
-- Risk (Low / Medium / High, the same buttons in both modes) sets each bet's payout in a Bet bundle: about +60, +100, +400. Each bet's stake = budget / bets. It tries to fill every bet you ask for: first your picks per bet with no pick used twice, then fewer picks per bet, then letting a pick appear in more than one bet (the header says so, and the odds are simulated because those bets win or lose together), then single-pick bets. It keeps the attempt with the most bets, then the fewest repeated picks. If it still can't fill them all it says how many fit.
+## Parlay Bundle mode (Parlays tab generator, Nov 3)
+- The Parlays generator has **Make: One parlay / Parlay Bundle**. Parlay Bundle adds **Budget $ in N bets** (N 2 to 15) and reuses Picks (2 to 5 used), Style, Bets (kind) and Game. Button: Build my Parlay Bundle.
+- Risk (Low / Medium / High, the same buttons in both modes) sets each bet's payout in a Parlay Bundle: about +60, +100, +400. Each bet's stake = budget / bets. It tries to fill every bet you ask for: first your picks per bet with no pick used twice, then fewer picks per bet, then letting a pick appear in more than one bet (the header says so, and the odds are simulated because those bets win or lose together), then single-pick bets. It keeps the attempt with the most bets, then the fewest repeated picks. If it still can't fill them all it says how many fit.
 - Picks are spread over as many different games as the slate allows; no pick repeats.
 - Shows the plan's odds (exact, each bet its own coin flip): ahead (back more than 105% of budget), about break even (95 to 105%), lose some (60 to 95%), lose most (60% or less), average back (our estimate, with a warning when it reads 97%+ because past replays say estimates like that run too high), and one bet of the full budget for comparison. Each slip is the same card as the other Parlays-tab slips (tap to open: pick cards, why, Load slip); the ⇄ Change button is off inside a plan.
 - **One slip results (all generators, Nov 3):** each result is the same slip card as the Parlays tab (tap to open: pick cards with badges, why, Load slip); all results start closed (tap to open), two per row, up to 3 kept. ⇄ Change works inside it. Moneyline, spread and over/under picks no longer repeat the team name under the title.
 
-- Bet bundle: "+ Add all N bets to my queue" button (top of the results, always visible) feeds the shared Bet queue.
+- Parlay Bundle: "+ Add all N bets to my queue" button (top of the results, always visible) feeds the shared Bet queue.
 - Bet queue: "+ Queue" on parlay cards and slip panel; queue shows at the top of the bottom slip panel as a swipe carousel (Open in app / Bet added / corner delete).
-- Bet bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
-- Bet bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
-- Bet bundle results: Table / Parlay cards toggle above the list.
+- Parlay Bundle results are a table (# / picks / pays / hit %); tap a row to open that bet's full parlay card.
+- Parlay Bundle: table, then "ⓘ How this works" link, then + Add all button at the bottom; ⇄ Change works inside each opened bet.
+- Parlay Bundle results: Table / Parlay cards toggle above the list.
