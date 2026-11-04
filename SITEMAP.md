@@ -142,3 +142,7 @@ Give it this file plus the site link, ask it to use the site on a phone-size scr
 ## Parlay table view + compact cards (Nov 3)
 - Parlays tab has **Cards / Table** (saved as `pview`). Table = one block per parlay: odds, % to hit, "$10 wins", Load slip, then one line per pick with **Pos** (depth chart like WR1), **Snaps** (snap share), **Since '23** (times it hit, e.g. 50/54) and **Hit %**; "Full card" under each block opens the normal card (why, stats, ⇄ Change). Parlay Bundle's table uses the same block (`ptBlock`). Game lines show dashes for pos/snaps/since.
 - Every pick row (`piece()`) is now compact: name, a line with team · position · snap % · "50 of 54 since 2023", a line with matchup · time · odds; Change sits beside the %. Open cards use a tighter header grid and smaller notes.
+
+## One wording for pick facts everywhere (Nov 3)
+- Every pick shows the same line: **position/depth chart · snap share · record since 2023**, e.g. "TE1 starter · 59% snaps · 34 of 47 since 2023" (helper `legFacts()`; Top list builds it from its own row data). Used on: parlay cards, Top list, Full board rows, the Build parlay card, slip and queued-bet cards, Players tab chips. Table views use the same data as columns.
+- Spacing tightened on Players line cards, Build ⓘ panels and slip legs.

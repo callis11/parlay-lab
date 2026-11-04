@@ -498,9 +498,9 @@ select,input,textarea{font-size:max(16px,1em)}
 .tl .b2{border-bottom:1px solid var(--line)}.tl .b2:last-child{border-bottom:0}
 .tl .b2r{display:grid;grid-template-columns:18px minmax(0,1fr) auto 36px 38px;align-items:center;gap:6px;padding:5px 8px;min-height:38px;cursor:pointer;font-size:13.5px}
 .tl .b2.on .b2r{background:rgba(54,211,153,.12)}
-.tl .rtg2{display:block;font-size:11px;font-weight:500;color:var(--muted);line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl .rtg2{display:block;font-size:11px;font-weight:500;color:var(--muted);line-height:1.25;margin-top:1px;white-space:normal}
 .tl .bi{font-size:11px;color:var(--muted);text-align:right}
-.tl .tn2{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tl .tn2 .tag2{font-size:9.5px;padding:0 3px;border:0;color:var(--muted);font-weight:600}
+.tl .tn2{font-weight:700;overflow:hidden}.tl .tn2>:not(small){white-space:nowrap}.tl .tn2 .tag2{font-size:9.5px;padding:0 3px;border:0;color:var(--muted);font-weight:600}
 .tl .tln{font-size:12px;color:var(--flag);white-space:nowrap;text-align:right}
 .tl .tpr{font-size:11.5px;color:var(--muted);text-align:right}
 .tl .tpc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:18px;text-align:right}
@@ -551,6 +551,20 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 .piece .meter{grid-row:3}
 .pc .sg,.pc .bd .gauto{font-size:12px;margin:4px 0;color:var(--muted)}
 .pc .bd .row .mt{display:none}
+
+/* consistency + tighter spacing on Players / Build / slip cards */
+.rung{padding:6px 10px;margin-top:4px}
+.rung .hit{font-size:20px;margin-right:6px}
+.rung .s{line-height:1.25}
+.l5w{margin-top:1px}
+.pm{margin-top:8px;padding-top:6px}
+.card.pl .meta{margin:2px 0}
+.bwhy{padding:2px 10px 8px 34px;font-size:12.5px}
+.story{gap:6px;margin-top:4px}.sty ul{line-height:1.3}
+.bleg .bm small,.qc .qlf{display:block}
+.qc .pln{margin:0 0 3px}
+.qc .ql{align-items:baseline}
+.bleg{padding:5px 0}
 /* table view */
 .ptlist{display:flex;flex-direction:column;gap:10px;margin-top:8px}
 .ptb{border:1px solid var(--line);border-top:3px solid var(--flag);border-radius:8px;background:var(--surface);padding:6px 8px}
@@ -1028,7 +1042,7 @@ function icoKey(l){
 var PMAP=null;function pmap(){if(!PMAP||PMAP._n!==PROPS){PMAP={_n:PROPS};PROPS.forEach(function(p){PMAP["P|"+p.id]=p;PMAP["P|"+p.id+"|u"]=p})}return PMAP}
 // A rung's record from the leg's side: unders flip the counts (no pushes on .5 lines)
 // "26 of 40 games since 2023" for one line (flipped for unders); "" when there is no longer record
-function sinceTxt(r,u){if(!r||!r.since||!(r.since[1]>(r.n||0)))return"";var a=u?r.since[1]-r.since[0]:r.since[0];return a+" of "+r.since[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons")}
+function sinceTxt(r,u){if(!r||!r.since||!(r.since[1]>(r.n||0)))return"";var a=u?r.since[1]-r.since[0]:r.since[0];return a+" of "+r.since[1]+" "+(SINCE_LABEL[SPORT]||"in past seasons")}
 function sideRec(l,r){var u=l.side==="under";return{hits:u?r.n-r.hits:r.hits,n:r.n,since:r.since?(u?[r.since[1]-r.since[0],r.since[1]]:r.since):null,word:u?"Stayed under in ":(l.td?"Scored in ":"Hit it in ")}}
 function vsRec(l,v){return l.side==="under"?[v[1],v[0]]:v}
 function legTeam(l){
@@ -1054,6 +1068,8 @@ function legRole(l){return l.kind==="p"&&pmap()[l.k]&&pmap()[l.k].role||null}
 function legRec(l){if(l.kind!=="p"||!DATA)return null;var S=legStory(l),h=(S.past||[]).filter(function(x){return/^\d+ of \d+ games/.test(x)})[0];if(!h)return null;var m=h.match(/^(\d+) of (\d+) games (.*)$/);return m?{a:+m[1],n:+m[2],lab:m[3],txt:h}:null}
 function legPos(R){return!R?"":R.dc?R.dc:(R.pos||"")}
 function legSnap(R){return!R?"":R.gp===0?"0%":R.s3!=null?Math.round(R.s3*100)+"%":""}
+function legFacts(l){var R=legRole(l),rec=legRec(l);if(!R&&!rec)return"";var a=[];var t=R?roleTag(R):"";if(t)a.push(t);else if(R&&R.pos)a.push(R.pos);if(rec)a.push(rec.a+" of "+rec.n+" "+rec.lab);return a.join(" · ")}
+function factsDiv(l){var f=legFacts(l);return f?'<div class="pln pk">'+esc(f)+'</div>':""}
 function piece(l){
   var c=legColor(l),tm=legTeam(l),g=null,hh=legHist(l);GAMES.forEach(function(x){if(x.id===l.ev)g=x});
   var pr=l.p!==undefined&&l.p!==null?Math.round(l.p*100):null;
@@ -1063,10 +1079,9 @@ function piece(l){
   if(l.live)return'<div class="piece live" style="--c:'+c+'">'+legIcon(l)+'<div><div class="who">'+esc(l.n)+' '+liveTag(l)+'</div>'+(tm?'<div class="gtm">'+esc(teamName(tm))+'</div>':"")+
     factGrid([g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",livePrice(l)],["🔴 "+(l.live.detail||"live")+" · "+liveScore(l.live),"Live chance "+Math.round(l.p*100)+"%"+(l.live.nv!=null?" (ESPN "+Math.round(l.live.wp*100)+"%, price "+Math.round(l.live.nv*100)+"%)":" (ESPN)"),"price moves every play, check the app"])+'</div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to win</small>":"")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
-  var rec=legRec(l),rl=[];
+  var rec=legRec(l),rl=[],lf=legFacts(l);
   if(tm&&l.kind!=="g")rl.push(teamName(tm));
-  if(RL){var pp=legPos(RL);if(pp)rl.push(pp+(RL.dc?(RL.st?" starter":" backup"):""));if(RL.gp===0)rl.push("no snaps this season");else if(RL.s3!=null)rl.push(Math.round(RL.s3*100)+"% snaps")}
-  if(rec)rl.push(rec.a+" of "+rec.n+" "+rec.lab.replace(/^since /,"since "));
+  if(lf)rl.push(lf);
   var l3=[g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",g?gTime(g.t):"","Odds "+fmt(l.a),l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",rec?"":hh].filter(Boolean);
   return'<div class="piece" style="--c:'+c+'">'+legIcon(l,true)+'<div><div class="who">'+esc(l.n)+'</div>'+(rl.length?'<div class="pln pk">'+esc(rl.join(" · "))+'</div>':"")+'<div class="pln">'+esc(l3.join(" · "))+'</div></div>'+
     '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
@@ -1495,7 +1510,7 @@ function linesNote(x){var a=x&&(x.ats||x.ou);if(!a||!x.n)return"";var k=a[0]+a[1
 function thTeam(t){return DATA&&DATA.th&&DATA.th.teams&&DATA.th.teams[t]||null}
 function thLabel(k){return DATA&&DATA.th?DATA.th[k]:k==="cur"?"this season":"last season"}
 // ---------- Player role (NFL): depth chart spot (ESPN), snap share and 50%+-snap games (Pro Football Reference), from roles.js ----------
-function roleTag(R,sep){if(!R)return"";var a=[];if(R.dc)a.push(R.dc+" "+(R.st?"starter":"backup"));if(R.gp===0)a.push("no snaps this season");else if(R.s3!=null)a.push(Math.round(R.s3*100)+"% of snaps");return a.join(sep||" · ")}
+function roleTag(R,sep){if(!R)return"";var a=[];if(R.dc)a.push(R.dc+" "+(R.st?"starter":"backup"));if(R.gp===0)a.push("no snaps this season");else if(R.s3!=null)a.push(Math.round(R.s3*100)+"% snaps");return a.join(sep||" · ")}
 function roleLines(R){var a=[];
   if(R.dc)a.push("Depth chart: "+R.dc+" ("+(R.st?"starter":"backup")+")");
   if(R.gp===0)a.push("Hasn't played a snap this season, so his recent numbers are from last season");
@@ -1914,7 +1929,7 @@ function topListHTML(){
     else{L=x.u?ENG.underLeg(x.p,x.r):propLeg(x.p,x.r);if(!L)return"";attrs='data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"'+(x.u?' data-au="1"':"");nm=x.p.player;line=x.p.td?"anytime TD":L.n.slice(x.p.player.length).trim().replace(/receiving yds/,"rec yds").replace(/rushing yds/,"rush yds").replace(/passing yds/,"pass yds").replace(/receptions?/,"catches").replace(/passing TDs?/,"pass TDs")}
     var tm2=x.g?"":legTeam(L),on=inSlip(L);
     return'<div class="b2'+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(!x.g&&x.p.role&&roleTag(x.p.role)?'<small class="rtg2">'+esc(roleTag(x.p.role))+'</small>':"")+(!x.g&&sinceTxt(x.r,x.u)?'<small class="rtg2">'+esc(sinceTxt(x.r,x.u))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
+      '<span class="tn2">'+esc(nm)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+(!x.g&&(roleTag(x.p.role)||sinceTxt(x.r,x.u))?'<small class="rtg2">'+esc([roleTag(x.p.role),sinceTxt(x.r,x.u)].filter(Boolean).join(" · "))+'</small>':"")+'</span><span class="tln">'+esc(line)+'</span><span class="tpr">'+fmt(x.a)+'</span>'+
       '<span class="tpc" style="color:'+hitColor(x.P)+'">'+Math.round(x.P*100)+'%'+esgBadge(L)+'</span></div></div>'}
   // Most likely player picks shows its top 12, the other sections their top 5; "Show all" opens the rest (remembered while the page is open)
   function sec(title,sub,list,n){if(!list.length)return"";var first=/^Most likely/.test(title)?12:5,all=Math.min(n,list.length),open=TOPX[title],k=open?all:Math.min(first,all);
@@ -1945,7 +1960,7 @@ function renderBuild(){
     var attrs=L.kind==="g"?'data-ag="'+esc(x.g.id)+'" data-at="'+x.t+'"':'data-ap="'+esc(x.p.id)+'" data-al="'+x.r.line+'"';
     var nm=x.p?x.p.player:L.n,line=(x.p?L.n.slice(x.p.player.length).trim():(m.away?m.away+" @ "+m.home:""))+(L.live?" · 🔴 "+livePrice(L):"");
     return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'><span class="bi">'+(on?"✓":i+1)+'</span>'+
-      '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small></span>'+
+      '<span class="bm"><b>'+esc(nm)+(tm?' <span class="tag2">'+esc(tm)+'</span>':"")+'</b><small>'+esc(line)+' · '+fmt(L.a)+'</small>'+(legFacts(L)?'<small>'+esc(legFacts(L))+'</small>':"")+'</span>'+
       '<span class="bpc" style="color:'+hitColor(L.p)+'">'+Math.round((L.p||0)*100)+'%</span>'+
       '<button class="bx binfo" data-bopen="'+esc(k)+'" aria-expanded="'+open+'" aria-label="Data and history">ⓘ</button></div>'+
       (open?why(x):"")+'</div>'}).join("")+'</div><p class="bfoot">Tap a row to add it to your parlay (tap again to remove) · tap ⓘ for its data and history</p>'+
@@ -1957,7 +1972,7 @@ function renderBuild(){
   var C=slipChance(legs.map(function(l){return l.p==null?Object.assign({},l,{p:0.5}):l}),""),ch=C.ch,F=slipFlags(legs),key="bld";raw=C.raw;PRE[key]=legs;
   var front='<div class="bslip"><div class="gh"><span class="big" style="color:'+pctColor(ch)+'">'+pct(ch)+'<small>to hit · '+pctWord(ch)+'</small></span><span class="od">'+(sg?"~":"")+am(d)+'</span></div>'+(sg?"":'<div class="mt">'+verdictLine(ch,d)+'</div>')+
     '<div class="mt">'+legs.length+' pick'+(legs.length>1?"s":"")+' · '+usualWins(d,sg?"about ":"")+(legs.length>1&&Math.round(raw*100)!==Math.round(ch*100)?' · adj. from '+Math.round(raw*100)+'%'+(C.cf.pairs.length?" for same-game pairs and":" for")+' how '+legs.length+'-pick parlays really hit':"")+'</div>'+(flagBadges(F)?'<div class="mt">'+flagBadges(F)+'</div>':"")+
-    legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small></span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
+    legs.map(function(l){var tm=legTeam(l);return'<div class="bleg">'+icon(icoKey(l),hitColor(l.p),true)+'<span class="bm"><b>'+esc(l.n)+'</b><small>'+(tm?esc(teamName(tm))+" · ":"")+fmt(l.a)+'</small>'+(legFacts(l)?'<small>'+esc(legFacts(l))+'</small>':"")+'</span><b style="color:'+hitColor(l.p)+'">'+Math.round((l.p||0)*100)+'%</b><button class="bdel" data-r="'+esc(l.k)+'" aria-label="Remove">✕</button></div>'}).join("")+
     (sg?'<p class="sg">Some picks are from the same game: they tend to win or lose together, and your book will pay less than shown.</p>':"")+
     (dup?'<p class="sg">Two picks on the same player can move together. Books may not allow some combos.</p>':"")+flagNote(F)+
     '<div class="row" style="margin-top:8px"><button class="btn" data-bclear="1">Clear</button><button class="btn flag" id="bOpen">Open slip to bet ›</button></div><button class="whyb" data-flip="1">ⓘ How we got this %</button></div>';
@@ -3054,7 +3069,7 @@ function qPanel(barOnly){
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
     AMT.s=stake;
     cards.push('<div class="qc first"><button class="qx" data-qslipclear="1" aria-label="Clear this slip">✕</button><h4>Your slip · building</h4>'+
-      Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'}).join("")+
+      Object.keys(SLIP).map(function(k){var l=SLIP[k];return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'<span class="qbt"><button class="qic" data-swap="slip" data-k="'+esc(k)+'" aria-label="Change this pick">⇄</button><button class="qic d" data-r="'+esc(k)+'" aria-label="Remove this pick">✕</button></span></span></div>'+factsDiv(l)}).join("")+
       '<div class="qbig"><b>'+(sg?"~":"")+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins '+(sg?"~":"")+'$'+usd(stake*(d-1))+'</span></div>'+
       qWT("s",stake,d)+qAmt("s")+
       (started?'<p class="warn" style="margin:0">A game in this slip has started. Remove that pick.</p>':qLinks(legs,stake,'data-sendbook="{bk}"'))+
@@ -3064,7 +3079,7 @@ function qPanel(barOnly){
   left.forEach(function(i,pos){var q=QUEUE[i],started=q.legs.some(function(l){return legStarted(l)}),d=1,stake=q.stake||USUAL,ch=null;
     q.legs.forEach(function(l){d*=dec(l.a)});try{ch=slipChance(q.legs,"").ch}catch(e){}AMT["q"+i]=stake;
     cards.push('<div class="qc'+(!nSlip&&pos===0?" first":"")+'"><button class="qx" data-qa="r" data-i="'+i+'" aria-label="Delete this bet">✕</button><h4>Bet '+(pos+1)+' of '+left.length+(q.n&&!/^Bundle bet/.test(q.n)?' · '+esc(q.n):'')+'</h4>'+
-      q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'}).join("")+
+      q.legs.map(function(l){return'<div class="ql"><span>'+esc(l.n)+'</span><span>'+fmt(l.a)+(l.p!=null?' · <span style="color:'+hitColor(l.p)+'">'+Math.round(l.p*100)+'%</span>':'')+'</span></div>'+factsDiv(l)}).join("")+
       '<div class="qbig"><b>'+am(d)+'</b><span class="sub" style="margin:0">$'+usd(stake)+' wins $'+usd(stake*(d-1))+'</span></div>'+
       qWT("q"+i,stake,d)+qAmt("q"+i)+
       (started?'<p class="warn" style="margin:0">A game in this bet has started, so it can\'t be placed. Delete it.</p>':qLinks(q.legs,stake,'data-qbook="{bk}" data-i="'+i+'"'))+
