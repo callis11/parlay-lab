@@ -315,3 +315,10 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 - Andrew's phone can keep an old copy of the site: if a screenshot shows old wording, have him tap ↻ (or close and reopen the home-screen app).
 
 - Parlay cards (all tabs) have a small yellow "+" at the top-right: tap = add that bet to the slip carousel (✓ flash) without opening the card. Class .qplus; handler is the data-pre loader (qAdd then qOpen).
+
+## Session 2026-11-03 evening (slip/queue UI)
+- Parlay cards: small yellow circular "+" sits on the same line as the "$X wins" amount (right end). Tap = add to slip carousel (flashes ✓), card does not open. Class .qplus (drawn with CSS bars so it stays centered).
+- Floating yellow "Bet queue" chip removed (element #qChip kept hidden because code references it). Open the queue from the bottom bar.
+- Bottom bar (#sum): centered bold yellow text, 15px, e.g. "1 bet in your queue · tap to place them".
+- Still open: which other "All/Any" filters to rename (Andrew hasn't picked); unbuilt FanDuel-slip ideas (market subtitle/kickoff/same-game tag, "prices pulled N min ago" warning); ask how Open-in links behave with a real bet.
+- Reminder: tested at 390x650 in a browser, not on his phone; tell him to tap ↻.
