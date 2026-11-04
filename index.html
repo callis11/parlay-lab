@@ -592,16 +592,23 @@ details.pc>summary{position:relative}.preset{position:relative}.qplus{position:a
 .ptr.pthd{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);border-top:0}
 .ptr.pthd>span{color:var(--muted);font-weight:700;line-height:1.1}
 .ptmore{margin-top:4px}.ptmore>summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--flag);padding:6px 0 2px}
-/* "Full card" inside a table block: the header above already shows odds, %, payout and Load slip, so show only picks, notes and the why link */
-.ptmore .pc{border:0;background:none;border-radius:0}
-.ptmore .pc summary{padding:0}
-.ptmore .pc summary>*:not(.whyb){display:none}
-.ptmore .pc .whyb{margin:2px 0 4px;padding:2px 0}
-.ptmore .pc .bd{padding:0;border-top:0}
-.ptmore .pc .bd>.mt:first-child{display:none}
-.ptmore .pc .bd .row{display:none}
-.ptmore .pc .gnote,.ptmore .pc .fnote{margin:4px 0}
-
+/* table block: columns, per-row change button, flags, place-the-bet row, reasoning */
+.ptr.pt4{grid-template-columns:minmax(0,1fr) 42px 36px 28px}
+.ptr.pt5{grid-template-columns:minmax(0,1fr) 42px 48px 36px 28px}
+.ptr>span.pto2{font-weight:700;color:var(--ink)}
+.ptr .pts{display:block;font-size:10.5px;font-weight:500;color:var(--muted);margin-top:1px;line-height:1.25}
+.ptsw{min-width:28px;min-height:28px;padding:0;border-radius:8px;border:1px solid var(--line);background:none;color:var(--flag);font-size:15px;line-height:1;cursor:pointer}
+.ptfl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:2px 0 6px}
+.ptflb{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;background:none;border:0;padding:0;font:inherit;color:inherit}
+button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--muted)}
+.ptchg{font-size:11.5px;color:var(--muted)}
+.ptfn{margin:0 0 6px}
+.ptact{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ptact .btn{min-height:34px;padding:4px 10px;font-size:13px;text-decoration:none}
+.ptmore .why{border:0;background:none;padding:0}
+.ptmore .why .fbh{display:none}
+.ptmore .wnote{margin-bottom:0}
+.ptmore>.mt,.ptmore>.sg{font-size:12px;margin:6px 0}
 </style>
 </head>
 <body>
@@ -2904,6 +2911,7 @@ document.addEventListener("click",function(e){
   else if(t.id==="expAll"){PST.exp=!PST.exp;savePST();var y=window.scrollY;NOCENTER=true;document.querySelectorAll("#pList .pc,#pList .ptmore").forEach(function(d){d.open=PST.exp});t.textContent=PST.exp?"Collapse all":"Expand all";t.setAttribute("aria-pressed",PST.exp);window.scrollTo(0,y);setTimeout(function(){window.scrollTo(0,y);NOCENTER=false},250)}
   else if(t.dataset.pm){PST.mode=t.dataset.pm;savePST();renderParlays()}
   else if(t.dataset.goto){var id=t.dataset.goto,m=DATA&&DATA.games[id]||{},o=Engine.OPTS[SPORT]||{};TEAM=m.home===o.featured||m.away===o.featured?o.featured:m.home;FLIPTO=id;TGAME=id;if($("fDiv"))$("fDiv").value="";location.hash="team-"+TEAM}
+  else if(t.closest&&t.closest("[data-ptfl]")){var fb=t.closest("[data-ptfl]"),fnn=fb.parentNode.nextElementSibling;if(fnn&&fnn.classList.contains("ptfn")){fnn.hidden=!fnn.hidden;fb.setAttribute("aria-expanded",!fnn.hidden);var q=fb.querySelector(".ptflq");if(q)q.textContent=fnn.hidden?"details ▾":"hide ▴"}}
   else if(t.dataset.flip){e.preventDefault();var fc=t.closest(".flip");if(fc)flipCard(fc)}
   else if(t.dataset.side==="BOTH"){TSIDE="both";renderTeamLower();renderSlip()}
   else if(t.dataset.side){TSIDE="team";TEAM=t.dataset.side;$("fTeam").value=TEAM;history.replaceState(null,"","#team-"+TEAM);renderTeamLower();renderSlip()}
@@ -3280,16 +3288,35 @@ function bqBar(o){
   return'<div class="bqbar"><button class="btn flag" data-qbundle="1" style="width:100%">+ Add all '+o.bets.length+' bets to my queue ($'+usd(o.stake)+' each)</button><p class="sub" style="margin:6px 0 0">'+(o.sent?'<b>✓ Added '+o.sent+' to your queue.</b> ':'')+'An app holds only one bet on its slip, so you place them one at a time from your queue: open each in your app, place it, tap Placed.</p><div class="row2"><button class="btn" data-qopen="1">Open my bet queue'+(q?' ('+q+')':'')+'</button></div></div>'}
 // ---------- Table view: one block per parlay, one line per pick (position, snap share, record since 2023) ----------
 var PVIEW="cards";try{PVIEW=localStorage.getItem("pview")==="table"?"table":"cards"}catch(e){}
+function ptSub(l,S,R){
+  var b=[];
+  if(l.kind==="p"){var ps=[legPos(R),legSnap(R)&&legSnap(R)+" of snaps"].filter(Boolean).join(" · ");if(ps)b.push(ps);
+    var r0=S.recent[0];if(r0&&!/^Not enough/.test(r0))b.push(r0);
+    var inj=S.matchup.filter(function(m){return/^(Injury|Missed)/.test(m)})[0];if(inj)b.push(inj)}
+  var bb=bestFor(l);if(bb&&dec(bb.a)>dec(l.a)+1e-9)b.push("Best: "+bb.name+" "+fmt(bb.a));
+  return b.length?'<small class="pts">'+esc(b.join(" · "))+'</small>':""}
 function ptBlock(x,key,i){
-  var L=x.s.l,ch=x.ch;
-  var rows=L.map(function(l){var R=legRole(l),rec=legRec(l),pr=l.p!=null?Math.round(l.p*100):null,tm=legTeam(l),
+  var L=x.s.l,ch=x.ch;PRE[key]=L;PCUR[x.sig]=L;
+  var anyRec=false,legs=L.map(function(l){var r=legRec(l);if(r)anyRec=true;return{l:l,rec:r,R:legRole(l),S:l.live?{recent:[],matchup:[]}:legStory(l)}});
+  var cls=anyRec?"pt5":"pt4";
+  var rows=legs.map(function(o,j){var l=o.l,pr=l.p!=null?Math.round(l.p*100):null,tm=legTeam(l),
     nm=esc(l.n)+(l.kind==="g"&&legL5(l)?'<small class="ptl5">'+esc(legL5(l))+'</small>':"");
-    return'<div class="ptr"><span class="ptn">'+nm+(tm&&l.kind!=="g"?' <small>'+esc(tm)+'</small>':"")+'</span><span>'+esc(legPos(R)||"–")+'</span><span>'+esc(legSnap(R)||"–")+'</span><span>'+(rec?rec.a+"/"+rec.n:"–")+'</span><span class="ptp"'+(pr!==null?' style="color:'+hitColor(l.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span></div>'}).join("");
-  var wasOpen=x.open;x.open=true;var card=slipCardW(x,key);x.open=wasOpen;
+    var sw=legStarted(l)||x.noSwap?'<span></span>':'<button class="ptsw" aria-label="Change this pick" title="Change this pick" '+(x.plan!=null?'data-swap="plan" data-i="'+x.plan+'"':x.gen?'data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'"':'data-swap="card" data-sig="'+escA(x.sig)+'"')+' data-j="'+j+'">⇄</button>';
+    return'<div class="ptr '+cls+'"><span class="ptn">'+nm+(tm&&l.kind!=="g"?' <small>'+esc(tm)+'</small>':"")+ptSub(l,o.S,o.R)+'</span><span class="pto2">'+fmt(l.a)+'</span>'+(anyRec?'<span>'+(o.rec?o.rec.a+"/"+o.rec.n:"–")+'</span>':"")+'<span class="ptp"'+(pr!==null?' style="color:'+hitColor(l.p)+'"':"")+'>'+(pr!==null?pr+"%":"–")+'</span>'+sw+'</div>'}).join("");
+  // flags: badges up top, tap for the detail (it is not repeated further down)
+  var fn=flagNote(x.F),badges=(x.tag?'<span class="hb so">'+TAGS[x.tag]+'</span>':"")+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F),
+    chg=x.chg?'<span class="ptchg">⇄ '+x.chg+' changed · <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo</button></span>':"";
+  var fl=(badges||chg)?'<div class="ptfl">'+(badges?(fn?'<button class="ptflb" data-ptfl="1" aria-expanded="false">'+badges+'<span class="ptflq">details ▾</span></button>':'<span class="ptflb">'+badges+'</span>'):"")+chg+'</div>'+(fn?'<div class="ptfn" hidden>'+fn+'</div>':""):"";
+  // place the bet: open the app with these picks, or add to My bets
+  var live=L.filter(function(l){return!legStarted(l)}),apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),links="";
+  if(live.length)apps.forEach(function(bk){if(links)return;var nm=Engine.BOOK_NAMES[bk]||bk,K=null;try{K=Engine.betslipLink(live,bk)}catch(e){}if(K&&K.combined)links+='<a class="btn'+(bk===BOOK?" flag":"")+' ptopen" href="'+esc(K.url)+'" target="_blank" rel="noopener">Open in '+esc(nm)+(K.n<live.length?" ("+K.n+" of "+live.length+")":"")+'</a>'});
+  var act='<div class="ptact">'+links+'<button class="btn ptq" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">+ My bets</button></div>';
+  var shop=0,bd=1;L.forEach(function(l){bd*=bestDec(l)});if(bd>x.d*1.02)shop=bd;
+  var notes=(shop?'<p class="mt">Shop each pick for the best price: up to '+am(shop)+'</p>':"")+(x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"");
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
-    '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+
-    '<div class="ptr pthd"><span class="ptn">Pick</span><span>Pos</span><span>Snaps</span><span>Since \'23</span><span>Hit %</span></div>'+rows+
-    '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>Full card: why, stats, change picks</summary>'+card+'</details></div>'}
+    '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+fl+
+    '<div class="ptr pthd '+cls+'"><span class="ptn">Pick</span><span>Odds</span>'+(anyRec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'+rows+act+
+    '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>Full reasoning</summary>'+notes+slipWhy(L,x.s.n)+'</details></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
 var BVIEW="table";try{BVIEW=localStorage.getItem("bview")==="cards"?"cards":"table"}catch(e){}
 function bqHTML(o){
