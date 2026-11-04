@@ -634,7 +634,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
 .ptpl{font-size:11.5px;color:var(--muted);padding:0 0 6px}.ptal{color:var(--red);font-weight:700}
 .ptshow{display:block;margin:2px 0 4px;font-size:12px}
 .ptmk{display:flex;align-items:baseline;gap:8px;padding:8px 0 2px}.ptmk b{font-size:13px;color:var(--flag)}.ptmk small{font-size:11px;color:var(--muted)}
-.pfx{flex:1 1 auto}.pfx[open]{flex:1 1 100%}
+.pfx{flex:0 0 auto;min-width:0;margin:0;padding:0;border-top:0}.pfx[open]{flex:1 1 100%}.pfx:not([open])>.pfxb{display:none}
 .pfx>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:700;color:var(--muted)}
 .pfx>summary::-webkit-details-marker{display:none}
 .pfx[open]>summary{color:var(--ink)}
