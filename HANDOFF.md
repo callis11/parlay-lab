@@ -336,7 +336,7 @@ Andrew wants in-progress games back in later parlays at live prices ("use credit
 ## Session 2026-11-04 (site review: consistency pass, Andrew's picks)
 - **Tabs are now Parlays · Picks · Games · Results.** Build and Players merged into **Picks** (`#v-build`; modes **Top picks** / **All picks**; All picks type filter All / Players / TDs / Game lines). The old Players tab (`#t-props`, `#v-props`, `playerCard`, `playersTable`) is hidden and unreachable (route `#props` goes to Picks); Teams tab still uses `propCard`. The Players-only generator is no longer shown (Parlays generator has Bets: Players).
 - **One row format** for pick lists: `lstRow` / `lstHead` (Picks) and `ptBlock` rows (Parlays table): name + team, grey fact lines (`ptSub`), Odds, Since '23 (only when present), Hit %, then + (adds) or ⇄ (changes).
-- **Parlays tab order:** slate chips, Filter row (Top 3 / Show all, More filters ▾ = Any picks / All types), View row (Cards / Table, Expand all), list, then the ParlayLabs Generator, then the legend. Cards/Table toggle kept (Andrew's pick).
+- **Parlays tab order (changed Nov 4):** ParlayLabs Generator first, then slate chips, Filter row (Top 3 / Show all, More filters), View row (Cards / Table, Expand all), list, then the legend. Cards/Table toggle kept (Andrew's pick).
 - **"Load slip" is now "Add bet"** (it adds the parlay to the bet queue without opening the bottom bar). Table expansion is "How we got this %".
 - **Row tips (beginner help):** `legWhat(l)` adds one plain-English line under each pick ("Chiefs must win the game (any score)", "Needs 25 or more receiving yds"). Class `hlp tip`, so New to parlays? = No hides them.
 - Build's Most likely player picks shows 15 before Show all. Bet queue cards no longer show role/history lines.
