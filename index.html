@@ -2052,10 +2052,11 @@ function topListHTML(){
 function renderBuild(){
   if(!$("bList"))return;
   var bg=$("bGame"),v=BLD.game,now=Date.now();
-  bg.innerHTML='<option value="">Games remaining</option>'+GAMES.filter(gOpen).slice().sort(byTimeRank).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+gWhen(g)+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
+  var inWin=function(g){return gOpen(g)&&(!BLD.win||kickWin(g)===BLD.win)};
+  bg.innerHTML='<option value="">All games</option>'+GAMES.filter(inWin).slice().sort(byTimeRank).map(function(g){return'<option value="'+esc(g.id)+'">'+esc(g.away+" @ "+g.home)+" · "+gWhen(g)+'</option>'}).join("")+'<option value="multi">Pick several games…</option>';bg.value=v;if(bg.value!==v){BLD.game="";bg.value=""}
   var bm=$("bMulti");bm.hidden=BLD.game!=="multi";
-  if(BLD.game==="multi"){BLD.multi=BLD.multi.filter(function(id){return GAMES.some(function(g){return g.id===id&&gOpen(g)})});
-    bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(gOpen).slice().sort(byTimeRank).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+gWhen(g)+'</small></button>'}).join("")}
+  if(BLD.game==="multi"){BLD.multi=BLD.multi.filter(function(id){return GAMES.some(function(g){return g.id===id&&inWin(g)})});
+    bm.innerHTML='<p class="gm-h">Tap the games to show · '+(BLD.multi.length?BLD.multi.length+" picked":"none picked yet, showing all")+'</p>'+GAMES.filter(inWin).slice().sort(byTimeRank).map(function(g){return'<button data-bgm="'+esc(g.id)+'" aria-pressed="'+(BLD.multi.indexOf(g.id)>=0)+'">'+esc(g.away+" @ "+g.home)+'<small>'+gWhen(g)+'</small></button>'}).join("")}
   $("bSort").value=BLD.sort;
   document.querySelectorAll("#bKind button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.bk===BLD.kind)});
   BLD.win=winChips($("bWin"),GAMES.filter(gOpen),BLD.win,"bwin");
