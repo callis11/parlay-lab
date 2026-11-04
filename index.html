@@ -3364,7 +3364,7 @@ function ptBlock(x,key,i){
   return'<div class="ptb"><div class="pth"><span class="ptn0">'+(i+1)+'</span><b class="pto">'+(x.sg?"~":"")+am(x.d)+'</b>'+(ch!=null?'<span class="ptc" style="color:'+pctColor(ch)+'">'+Math.round(ch*100)+'% to hit</span>':"")+
     '<span class="ptw">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+'</span><button class="btn flag ptadd" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Load slip</button></div>'+fl+
     '<div class="ptr pthd '+cls+'"><span class="ptn">Pick</span><span>Odds</span>'+(anyRec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'+rows+act+
-    '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>Full reasoning</summary>'+notes+slipWhy(L,x.s.n)+'</details></div>'}
+    '<details class="ptmore"'+(PST.exp?" open":"")+'><summary>How we got this %</summary>'+notes+slipWhy(L,x.s.n)+'</details></div>'}
 // table of the bets: tap a row to open its full parlay card (stats, why, change picks)
 var BVIEW="table";try{BVIEW=localStorage.getItem("bview")==="cards"?"cards":"table"}catch(e){}
 function bqHTML(o){
