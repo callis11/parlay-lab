@@ -2903,6 +2903,7 @@ $("resetBtn").onclick=function(){
   if(!window.confirm("Reset and refresh?\n\nThis clears your slip, queued bets, generated parlays and every tab's filters (back to Games remaining, starting on Parlays), then loads the newest odds and picks. Your saved bets in Results, favorite teams, betting apps, theme and settings stay."))return;
   var b=$("resetBtn");b.disabled=true;b.classList.add("spin");toast("Resetting…");
   try{Object.keys(localStorage).forEach(function(k){if(!KEEP_KEYS.test(k))localStorage.removeItem(k)})}catch(e){}try{sessionStorage.clear()}catch(e){}
+  try{["nfl","nba","cfb","cbb"].forEach(function(sp){localStorage.setItem("pst_"+sp,JSON.stringify({slate:"all"}))})}catch(e){}
   var files=[location.pathname,location.pathname+"?nba",location.pathname+"?cfb",location.pathname+"?cbb","engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json",DIR+"finals.json"];
   Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
     location.replace(location.pathname+location.search.replace(/[?&]r=\d+/,"")+(location.search.replace(/[?&]r=\d+/,"").indexOf("?")<0?"?":"&")+"r="+Date.now())})};
