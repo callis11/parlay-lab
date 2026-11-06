@@ -1717,6 +1717,16 @@ function slipWhy(legs,name){
   return'<div class="why"><div class="fbh"><b>How we got '+pct(ch)+'</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+legs.map(legBreakdown).join("")+'<ol class="wst">'+steps.join("")+'</ol><p class="wnote">Estimates, not guarantees. One game is a coin toss; these numbers only hold up over many bets.</p></div>';
 }
 function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
+// Honest math inside every parlay card (Andrew, Nov 5): what 10 bets like this usually do, what it costs over time,
+// and an expert panel with each pick's value (chance x payout). Value = p*d-1: 0 is a fair bet, below 0 is the app's cut.
+function valueBox(x){if(x.ch==null||!x.d)return"";
+  var n=10,m=n*x.ch,sd=Math.sqrt(n*x.ch*(1-x.ch)),lo=Math.max(0,Math.round(m-sd)),hi=Math.min(n,Math.round(m+sd)),ev=10*(x.ch*x.d-1),win=10*(x.d-1),tl=x.sg?"~":"";
+  var tens=x.ch<0.1?"Most of the time it loses: about 1 in "+Math.round(1/x.ch).toLocaleString()+" hits, so 10 bets like this usually win none":"10 bets like this usually win "+(lo===hi?lo:lo+" to "+hi)+" of them";
+  var h='<p class="mt"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
+  var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"";
+    return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1</small></li>'}).join("");
+  h+='<details class="xp" style="margin:6px 0"><summary class="mt" style="cursor:pointer">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="mt" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
+  return h}
 function slipCard(x,key){
   PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
@@ -1725,7 +1735,7 @@ function slipCard(x,key){
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
     '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+(x.plan!=null?"":'<button class="qplus" data-pre="'+key+'" data-ico="1" data-qn="'+escA(slipName(p.n))+'" aria-label="Add this bet to my slip" title="Add to my bets">+</button>')+'</div>'+(x.chg||x.noSwap||x.gen||x.plan!=null?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button>'+'</summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+valueBox(x)+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(p.n))+'">Add bet</button></div></div></details>';
 }
@@ -1820,7 +1830,7 @@ function payLadder(raw){
   if(L.length<2)return"";
   L.sort(function(a,b){return a.d-b.d});
   var rows=L.map(function(x,i){var key="pl"+(payLadder.n=(payLadder.n||0)+1);PRE[key]=x.s.l;
-    return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+(x.n===1?"🔒 1 pick · "+am(x.d)+(lockHist(x.ch)?"<br>"+lockHist(x.ch):""):x.n+' picks · '+(x.sg?"~":"")+am(x.d))+'</span></td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
+    return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+(x.n===1?"🔒 1 pick · "+am(x.d)+(function(){var l=x.s.l[0],R=l&&l.kind==="p"&&typeof legRole==="function"?legRole(l):null,t=R?roleTag(R):"";return t?"<br>"+esc(t):""})()+(lockHist(x.ch)?"<br>"+lockHist(x.ch):""):x.n+' picks · '+(x.sg?"~":"")+am(x.d))+'</span></td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
   return'<details class="ladder" open><summary class="pgroup" style="font-size:15px">💵 Pick your payout</summary><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout. Win less, win more often. The % never changes with how much you bet; a bigger bet only makes the win (and the loss) bigger.</p><table class="ltab" style="width:100%;border-collapse:collapse">'+rows+'</table><p class="mt" style="font-size:12px;margin-top:6px">Every row loses a little to the book over time, safe ones the least. Change your usual bet on the ★ page.</p></details>';
 }
 function renderParlays(){
