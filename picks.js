@@ -347,7 +347,10 @@ function gradeLeg(l, games, stats) {
   const K = 40, MIN_LEGS = 15, byCat = {}, byStrategy = {};
   // Learn from every graded leg in the gradebook; if there are none yet, use the slip legs
   const useBook = graded.legs.length > 0;
-  if (useBook) for (const x of graded.legs) { const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n++; c.exp += x[1]; c.hits += x[2]; }
+  // Only legs rated by the current model (Nov 3 change: book is the backbone, HIST_K=120). Older live legs carry the old,
+  // too-optimistic estimates and would push today's corrections the wrong way (Nov 5 finding). They stay in the file.
+  const MODEL_T = Date.parse("2026-11-03T16:00:00Z");
+  if (useBook) for (const x of graded.legs) { if (x[3] < MODEL_T) continue; const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n++; c.exp += x[1]; c.hits += x[2]; }
   // NFL: past seasons from the backtest count too, at half weight so this season's results can still move things
   const past = SPORT === "nfl" ? readJSON("backtest/graded-legs.json", { legs: [] }).legs : [];
   for (const x of past) { const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n += 0.5; c.exp += 0.5 * x[1]; c.hits += 0.5 * x[2]; }
