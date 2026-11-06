@@ -133,6 +133,7 @@ th{color:var(--muted);font-weight:600}
 .gplan{display:flex;align-items:center;gap:6px;flex:1}.gplan input{font:inherit;font-size:15px;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);width:70px;min-width:0}.plan.nb{border:0;background:none;margin:8px 0}.plan.nb .pb{padding:0}.plan .prow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}.plan .prow label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}.plan .prow input,.plan .prow select{font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);min-width:0}
 .plan table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.plan td{padding:6px 4px;border-bottom:1px solid var(--line)}.plan td.r{text-align:right;font-weight:700}
 .plan .pbet{border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:8px 10px}.plan .pbet b.big{font-size:17px}.plan .pl{font-size:13px;margin:3px 0;display:flex;justify-content:space-between;gap:8px}
+.vbx{display:block;font-size:13px;line-height:1.45;color:var(--muted);margin:6px 0 0}
 .ltab td{padding:8px 4px;border-top:1px solid var(--line);vertical-align:middle}.ltab td:nth-child(2){text-align:center;width:64px}.ltab td:last-child{text-align:right;width:64px}.ladder{margin:6px 0 12px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
@@ -1727,10 +1728,10 @@ function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><d
 function valueBox(x){if(x.ch==null||!x.d)return"";
   var n=10,m=n*x.ch,sd=Math.sqrt(n*x.ch*(1-x.ch)),lo=Math.max(0,Math.round(m-sd)),hi=Math.min(n,Math.round(m+sd)),ev=10*(x.ch*x.d-1),win=10*(x.d-1),tl=x.sg?"~":"";
   var tens=x.ch<0.1?"Most of the time it loses: about 1 in "+Math.round(1/x.ch).toLocaleString()+" hits, so 10 bets like this usually win none":"10 bets like this usually win "+(lo===hi?lo:lo+" to "+hi)+" of them";
-  var h=(x.n===1&&lockHist(x.ch)?'<p class="mt">'+lockHist(x.ch)+'.</p>':'')+'<p class="mt"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
+  var h=(x.n===1&&lockHist(x.ch)?'<p class="vbx">'+lockHist(x.ch)+'.</p>':'')+'<p class="vbx"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
   var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"";
     return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1</small></li>'}).join("");
-  h+='<details class="xp" style="margin:6px 0"><summary class="mt" style="cursor:pointer">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="mt" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
+  h+='<details class="xp" style="margin:6px 0"><summary class="vbx" style="cursor:pointer;font-weight:700">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="vbx" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
   return h}
 function slipCard(x,key){
   PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
@@ -1833,14 +1834,14 @@ function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*2
 // payLadder()'s table. To go back to the table box everywhere: block() used payLadder(sl.list()) and nothing was filtered.
 function isPay(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")}
 function payCards(raw){
-  var L=dedupe((raw||[]).filter(function(s){return isPay(s)&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
+  var L=dedupe((raw||[]).filter(function(s){return isPay(s)&&!(s.l||[]).some(legStarted)})).map(slipInfo).map(pApplyEdit).filter(function(x){return x.ch!==null});
   if(L.length<2)return"";
   L.sort(function(a,b){return a.d-b.d});
   return'<div class="ladder"><h3 class="pgroup" style="font-size:15px;margin:0">💵 Pick your payout</h3><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout, safest first. Win less, win more often. A bigger bet makes the win (and the loss) bigger, never the %. Switch to Table to see them side by side.</p><div class="pgrid">'+L.map(function(x){if(x.s.n==="Closest to a Lock"&&x.F)x.F.safest=1;return slipCardW(x,"pc"+(payCards.n=(payCards.n||0)+1))}).join("")+'</div></div>';
 }
 // "Pick your payout" (Andrew, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
 function payLadder(raw){
-  var L=dedupe((raw||[]).filter(function(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
+  var L=dedupe((raw||[]).filter(function(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")&&!(s.l||[]).some(legStarted)})).map(slipInfo).map(pApplyEdit).filter(function(x){return x.ch!==null});
   if(L.length<2)return"";
   L.sort(function(a,b){return a.d-b.d});
   var rows=L.map(function(x,i){var key="pl"+(payLadder.n=(payLadder.n||0)+1);PRE[key]=x.s.l;

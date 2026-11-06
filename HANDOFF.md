@@ -38,6 +38,7 @@ Andrew asked for a "make $5 on $10" mode, kept alongside the other odds. Generat
   2. Picks rated 3+ pts above the book: if n >= 40 and hits fall below the book's own % (1/dec/1.045), make the ONE change: cap our % at book + edge signs. If n < 40, wait a week.
   3. Payout card types and Best value: report only (too few slips to judge; need about 30+ each).
   4. Never judge by profit (too noisy); judge by said vs hit and closing-line value. No other model changes in the same week.
+- **Fix (Nov 6): ⇄ Change on Pick your payout cards.** `payCards()`/`payLadder()` built cards with `slipInfo` only, so saved swaps (`PEDIT`) were ignored and the card couldn't reopen (no `sig`). Both now `.map(pApplyEdit)`. Any new card list must go through `pApplyEdit` too. Also the card-body value lines use their own `.vbx` class (`.mt` is flex in cards and squeezed the text).
 
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
