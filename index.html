@@ -1255,7 +1255,7 @@ function genBox(cx){
   return'<details class="gen" id="'+x("gen")+'"><summary><span class="gen-t">'+C.title+'<span class="gen-c" aria-hidden="true"></span></span><span class="gen-s">'+C.sub+'</span></summary><div class="gen-b">'+
     (cx==="par"?'<div class="gen-row"><label>Make</label><div class="seg" id="gMode_par"><button data-cx="par" data-gmode="one">One Parlay</button><button data-cx="par" data-gmode="many">Parlay Bundle</button></div></div><div class="gen-row" id="gPlanRow_par" hidden><label>Budget</label><span class="gplan">$<input id="plB_par" type="number" inputmode="decimal" min="2" aria-label="Total budget in dollars"> in <input id="plN_par" type="number" inputmode="numeric" min="2" max="15" aria-label="Number of bets"> bets</span></div>':"")+
     '<div class="gen-row"><label>Picks</label><div class="seg" id="'+x("gLegs")+'">'+[2,3,4,5,10,15].map(function(n){return'<button data-cx="'+cx+'" data-gl="'+n+'">'+n+'</button>'}).join("")+'<select class="glmore" id="'+x("gLegMore")+'" data-cx="'+cx+'" aria-label="Other number of picks"><option value="">More</option>'+[6,7,8,9,11,12,13,14].map(function(n){return'<option value="'+n+'">'+n+' picks</option>'}).join("")+'</select></div></div>'+
-    '<div class="gen-row"><label>Risk</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="safe">Low</button><button data-cx="'+cx+'" data-gs="bal">Medium</button><button data-cx="'+cx+'" data-gs="long">High</button></div></div>'+
+    '<div class="gen-row"><label>Risk</label><div class="seg" id="'+x("gStyle")+'"><button data-cx="'+cx+'" data-gs="ultra">Safest</button><button data-cx="'+cx+'" data-gs="safe">Low</button><button data-cx="'+cx+'" data-gs="bal">Medium</button><button data-cx="'+cx+'" data-gs="long">High</button></div></div>'+
     (cx==="ply"||NOPROPS?"":'<div class="gen-row"><label>Bets</label><div class="seg" id="'+x("gKind")+'"><button data-cx="'+cx+'" data-gk="mix">Both</button><button data-cx="'+cx+'" data-gk="p">Players</button><button data-cx="'+cx+'" data-gk="g">Game lines</button></div></div>')+
     (cx==="tm"?'<div class="gen-row"><label>Team</label><div class="seg" id="'+x("gSide")+'"></div></div><div class="gen-row"><label>More</label><button class="btn gadd" data-cx="tm" data-gadd="1" id="gAdd_tm">+ Add other games</button></div><div class="gmulti" id="gMulti_tm" hidden></div>'
       :cx==="ply"?'<div class="gen-row"><label>Markets</label><button class="mksel" id="gMktBtn_ply" data-gmkopen="1" aria-expanded="false"><span id="gMktTxt_ply">All markets</span><svg viewBox="0 0 12 18" width="11" height="17" aria-hidden="true"><path d="M2 7l4-4 4 4M2 11l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div class="mkpanel" id="gMkt_ply" hidden></div>'+
@@ -1287,7 +1287,7 @@ function genUI(cx){
   var many=cx==="par"&&G.mode==="many";
   if(cx==="par"){document.querySelectorAll("#gMode_par button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.gmode===(many?"many":"one")))});
     var pr=$("gPlanRow_par");if(pr){pr.hidden=!many;if(many){if(document.activeElement!==$("plB_par"))$("plB_par").value=G.budget||100;if(document.activeElement!==$("plN_par"))$("plN_par").value=G.nbets||10}}
-    var sg=$("gStyle_par");if(sg){sg.previousSibling.textContent="Risk";var nm=["Low","Medium","High"];sg.querySelectorAll("button").forEach(function(bt,i){bt.textContent=nm[i]})}
+    var sg=$("gStyle_par");if(sg){sg.previousSibling.textContent="Risk";var nm={ultra:"Safest",safe:"Low",bal:"Medium",long:"High"};sg.querySelectorAll("button").forEach(function(bt){bt.textContent=nm[bt.dataset.gs]||bt.textContent})}
     var pn=$("gPlanNote_par");if(pn){pn.hidden=!many;if(many)pn.textContent="Each bet pays "+PLANWORD[G.style]+" if it wins. Up to 5 picks per bet"+(G.legs>5?" (using 5)":"")+"."}}
   if($(x("genGo")))$(x("genGo")).textContent=many?(PLANOUT?"Build another Parlay Bundle":"Build my Parlay Bundle"):genSaved(cx).length?"Generate another":"Generate a parlay";
   if(cx==="tm"){var rg0=ENG.teamSlips(TEAM,TGAME).g,now2=Date.now(),mt=$("gMulti_tm");G.multi=(G.multi||[]).filter(function(id){return(!rg0||id!==rg0.id)&&GAMES.some(function(g){return g.id===id&&+new Date(g.t)>now2})});
@@ -1314,10 +1314,11 @@ function plyMarkets(G){
 }
 // Each style targets a payout range and only uses legs with a real chance
 var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Low risk"},bal:{lo:0.45,amin:-500,amax:200,dmin:2.0,dmax:4.2,name:"Medium risk"},long:{lo:0.25,amin:-400,amax:450,dmin:5,dmax:12,name:"High risk"}};
+STYLE.ultra={lo:0.7,amin:-1000,amax:-150,dmin:1.4,dmax:1.65,name:"Safest (win $5 on $10)"};
 STYLE.plans={lo:0.6,amin:-700,amax:-110,dmin:1.45,dmax:1.8,name:"Safe"};
 STYLE.pland={lo:0.5,amin:-700,amax:200,dmin:1.92,dmax:2.3,name:"Balanced"};
 STYLE.planl={lo:0.3,amin:-400,amax:450,dmin:3.6,dmax:6,name:"Long shot"};
-var PLANWORD={safe:"about +60",bal:"about +100",long:"about +400"};
+var PLANWORD={ultra:"about +50",safe:"about +60",bal:"about +100",long:"about +400"};
 GENS.plan={legs:2,style:"pland",kind:"mix",games:"all",side:"both"};
 var PLANOUT=null;
 function genPool(cx){
@@ -1418,7 +1419,7 @@ function genRun(cx){
   var avoid=last.map(function(x){return x.key}),got=genPick(P.pool,n,avoid,cx),useSt=G.style,useN=n,auto="";
   if(!got){
     // Can't build what was asked: try the other styles at the same legs, then fewer legs, and say what changed and why
-    var st0=STYLE[G.style],np=P.pool.length,order={safe:["bal","long"],bal:["long","safe"],long:["bal","safe"]}[G.style]||[],tries=[];
+    var st0=STYLE[G.style],np=P.pool.length,order={ultra:["safe","bal"],safe:["bal","long"],bal:["long","safe"],long:["bal","safe"]}[G.style]||[],tries=[];
     order.forEach(function(s2){tries.push([s2,n])});
     var grp={};P.pool.forEach(function(x){grp[x.who]=1});var most=Object.keys(grp).length,sizes=[];
     for(var m=n-1;m>=2;m--)if(n<=5||m<=Math.min(most,n-1)&&(sizes.length<4||m<=5))sizes.push(m);

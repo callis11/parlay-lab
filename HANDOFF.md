@@ -21,6 +21,9 @@ Priorities, in order:
 
 **Site address (Nov 2): https://parlaylabs.net** (custom domain via `CNAME`; old callis11.github.io/parlay-lab forwards there). Updates work exactly as before: push to main → GitHub Pages rebuilds. The Claude container can't open parlaylabs.net or the Pages settings API (proxy), so test locally with Playwright and have Andrew tap ↻.
 
+## Safest +50 option (built Nov 5, 2026)
+Andrew asked for a "make $5 on $10" mode, kept alongside the other odds. Generators: new **Safest** button in Risk (`STYLE.ultra`: legs 70%+, payout about +40 to +65; falls back to Low then Medium if it can't build; bundle note says "about +50"). Parlays page: new auto slip **Safest Shot at +50** (`bestCombo(c,1.5,3)` in engine.js `likelySlips`) at the top of each group. Risk labels in the Parlays generator are now set by `data-gs`, not by button position (it used to relabel by index). Tested at 390px with Playwright. Honest note kept: safe picks still lose about 5 cents per $1 over time; this only makes results steadier.
+
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
 - Wants plain-English explanations, honest odds, and lots of "why" behind every %. Likes iterating fast on look and feel; push small changes and tell him to tap the ↻ button.
