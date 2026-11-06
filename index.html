@@ -2638,6 +2638,15 @@ async function shotPasteBtn(mode){
 document.addEventListener("paste",function(e){if(!e.target||e.target.id!=="shotTxt"||!e.clipboardData)return;
   var f=[].slice.call(e.clipboardData.files||[]).filter(function(x){return/^image\//.test(x.type)});if(f.length){e.preventDefault();shotFiles(f)}});
 document.addEventListener("change",function(e){if(e.target&&e.target.classList&&e.target.classList.contains("glmore")){var cx=e.target.dataset.cx,G=GENS[cx];if(e.target.value){G.legs=+e.target.value;genSave(cx,genSaved(cx));genUI(cx)}return}if(e.target&&e.target.id==="cardTeam"){CARDTEAM=e.target.value;CARDSHOW=8;renderCards();return}if(e.target&&e.target.id==="shotIn")shotFiles(e.target.files);if(e.target&&e.target.id==="placeIn")shotFiles(e.target.files,"slip")});
+// Results by model version (Nov 5): slips saved before the Nov 3 model change (history weight n/(n+15)) are graded but
+// reported apart, so the current model's record isn't mixed with the old one. Expected wins = sum of each slip's chance.
+var MODEL_T=1793721600000;
+function modelSplit(done){var nw=done.filter(function(s){return(s.saved||s.lock)>=MODEL_T}),od=done.length-nw.length;
+  function line(a,lab){if(!a.length)return"";var w=a.filter(function(s){return s.status==="won"}).length,e=0,u={},uh=0,ue=0;
+    a.forEach(function(s){var q=1;s.legs.forEach(function(l){if(l.p!=null)q*=l.p;if(l.result==="won"||l.result==="lost"){var k=(l.player||l.n)+"|"+l.line+"|"+(l.t||"")+"|"+(l.side||"");if(!u[k]){u[k]=1;uh+=l.result==="won"?1:0;ue+=l.p||0}}});e+=q});
+    var nu=Object.keys(u).length;
+    return'<li><b>'+lab+':</b> '+a.length+' slips, won '+w+' (we expected about '+Math.round(e)+'). '+nu+' different picks hit '+uh+' (we said about '+Math.round(ue)+').</li>'}
+  return'<ul class="rl" style="margin:10px 0 0">'+line(nw,"Current model (since Nov 3)")+(od?line(done.filter(function(s){return(s.saved||s.lock)<MODEL_T}),"Old model (before Nov 3, history counted too much)"):"")+'</ul>'+(nw.length?"":'<p class="sub" style="margin:6px 0 0">The current model\'s first slips grade after this week\'s games.</p>')}
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();renderEdges();renderBooks();
   if($("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},500);
@@ -2653,6 +2662,7 @@ function renderResults(){
       '<div class="stat"><span class="num '+(pr>=0?"pos":"neg")+'">'+money(pr)+'</span><span>Profit betting $10 on each</span></div>'+
       '<div class="stat"><span class="num">'+(risk?Math.round(100*pr/risk)+"%":"–")+'</span><span>Return on money risked</span></div>'+
       '<div class="stat"><span class="num">'+(w+l?Math.round(100*w/(w+l)):0)+'%</span><span>Slips that won</span></div></div>'+
+      modelSplit(done)+
       '<p class="sub" style="margin-top:10px">Individual picks: game lines hit '+rate(function(x){return x.kind==="g"})+', player props hit '+rate(function(x){return x.kind==="p"})+'. Same-game slips use multiplied prices, so their profit is an estimate.</p>';
   }
   var groups={};done.forEach(function(s){var g=groups[s.group]=groups[s.group]||{w:0,l:0,p:0,pr:0};g[s.status==="won"?"w":s.status==="lost"?"l":"p"]++;g.pr+=profit(s)});
