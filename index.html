@@ -133,6 +133,7 @@ th{color:var(--muted);font-weight:600}
 .gplan{display:flex;align-items:center;gap:6px;flex:1}.gplan input{font:inherit;font-size:15px;padding:7px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);width:70px;min-width:0}.plan.nb{border:0;background:none;margin:8px 0}.plan.nb .pb{padding:0}.plan .prow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}.plan .prow label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}.plan .prow input,.plan .prow select{font:inherit;font-size:15px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);min-width:0}
 .plan table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.plan td{padding:6px 4px;border-bottom:1px solid var(--line)}.plan td.r{text-align:right;font-weight:700}
 .plan .pbet{border:1px solid var(--line);border-radius:6px;margin:6px 0;padding:8px 10px}.plan .pbet b.big{font-size:17px}.plan .pl{font-size:13px;margin:3px 0;display:flex;justify-content:space-between;gap:8px}
+.ltab td{padding:8px 4px;border-top:1px solid var(--line);vertical-align:middle}.ltab td:nth-child(2){text-align:center;width:64px}.ltab td:last-child{text-align:right;width:64px}.ladder{margin:6px 0 12px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:8px 12px;cursor:pointer;min-height:40px}#usualSeg button{flex:1;padding:8px 2px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -1810,6 +1811,15 @@ function heroCarousel(list){
   return'<div class="hcar"><div class="htrack">'+list.map(heroCard).join("")+'</div>'+dots+'<p class="hhint">Swipe for '+(n-1)+' more game'+(n>2?"s":"")+' ›</p></div>';
 }
 function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=cardIdx(tr),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
+// "Pick your payout" (Andrew, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
+function payLadder(raw){
+  var L=dedupe((raw||[]).filter(function(s){return s&&/Shot at \+\d+$/.test(s.n)&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
+  if(L.length<2)return"";
+  L.sort(function(a,b){return a.d-b.d});
+  var rows=L.map(function(x,i){var key="pl"+(payLadder.n=(payLadder.n||0)+1);PRE[key]=x.s.l;
+    return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+x.n+' picks · '+(x.sg?"~":"")+am(x.d)+'</span></td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
+  return'<details class="ladder" open><summary class="pgroup" style="font-size:15px">💵 Pick your payout</summary><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout. Win less, win more often. The % never changes with how much you bet; a bigger bet only makes the win (and the loss) bigger.</p><table class="ltab" style="width:100%;border-collapse:collapse">'+rows+'</table><p class="mt" style="font-size:12px;margin-top:6px">Every row loses a little to the book over time, safe ones the least. Change your usual bet on the ★ page.</p></details>';
+}
 function renderParlays(){
   try{genUI()}catch(e){}
   var S=slateList(),now=Date.now();
@@ -1826,7 +1836,7 @@ function renderParlays(){
   function block(sl,showHead){
     var L=rankSlips(sl.list()),tv=PVIEW==="table",cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
     var note=sl.team?teamNote():sl.note;
-    var inner='<p class="sub">'+esc(note)+'</p>'+
+    var inner='<p class="sub">'+esc(note)+'</p>'+(sl.team?"":payLadder(sl.list()))+
       (L.length?'<div class="'+(tv?"ptlist":"pgrid")+'">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
     if(!showHead)return inner;
     return '<details class="slateD" data-sl="'+esc(sl.label)+'"'+(SLATE_OPEN[sl.label]===undefined?(first?" open":""):(SLATE_OPEN[sl.label]?" open":""))+'><summary class="pgroup">'+esc(sl.label)+'</summary>'+inner+'</details>';
