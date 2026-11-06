@@ -1314,7 +1314,7 @@ function plyMarkets(G){
 }
 // Each style targets a payout range and only uses legs with a real chance
 var STYLE={safe:{lo:0.6,amin:-700,amax:-110,dmin:1.4,dmax:2.25,name:"Low risk"},bal:{lo:0.45,amin:-500,amax:200,dmin:2.0,dmax:4.2,name:"Medium risk"},long:{lo:0.25,amin:-400,amax:450,dmin:5,dmax:12,name:"High risk"}};
-STYLE.ultra={lo:0.7,amin:-1000,amax:-150,dmin:1.4,dmax:1.65,name:"Safest (win $5 on $10)"};
+STYLE.ultra={lo:0.7,amin:-1000,amax:-150,dmin:1.475,dmax:1.65,name:"Safest (about $5 on $10)"};
 STYLE.plans={lo:0.6,amin:-700,amax:-110,dmin:1.45,dmax:1.8,name:"Safe"};
 STYLE.pland={lo:0.5,amin:-700,amax:200,dmin:1.92,dmax:2.3,name:"Balanced"};
 STYLE.planl={lo:0.3,amin:-400,amax:450,dmin:3.6,dmax:6,name:"Long shot"};

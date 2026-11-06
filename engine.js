@@ -447,7 +447,7 @@
       var c = likelyPool().filter(function (x) { return set[x.ev]; }), out = [], sg = ids.length === 1;
       var seen = {};
       function add(n, d, l) { if (!l) return; var k = l.map(function (x) { return x.k + x.line; }).sort().join(); if (seen[k]) return; seen[k] = 1; out.push({ n: n, d: d, l: l }); }
-      add("Safest Shot at +50", "Highest chance to win $5 on a $10 bet", bestCombo(c, 1.5, 3, sg));
+      add("Safest Shot at +50", "Highest chance to win about $5 (at least $4.75) on a $10 bet", bestCombo(c, 1.475, 3, sg));
       add("Best 2-Leg", "The two legs we rate most likely to hit", topN(c, 2, sg));
       add("Best 3-Leg", "The three legs we rate most likely to hit", topN(c, 3, sg));
       add("Best Shot at +100", "Highest chance to double your money", bestCombo(c, 2, 4, sg));
