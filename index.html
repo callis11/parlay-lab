@@ -1722,7 +1722,7 @@ function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><d
 function valueBox(x){if(x.ch==null||!x.d)return"";
   var n=10,m=n*x.ch,sd=Math.sqrt(n*x.ch*(1-x.ch)),lo=Math.max(0,Math.round(m-sd)),hi=Math.min(n,Math.round(m+sd)),ev=10*(x.ch*x.d-1),win=10*(x.d-1),tl=x.sg?"~":"";
   var tens=x.ch<0.1?"Most of the time it loses: about 1 in "+Math.round(1/x.ch).toLocaleString()+" hits, so 10 bets like this usually win none":"10 bets like this usually win "+(lo===hi?lo:lo+" to "+hi)+" of them";
-  var h='<p class="mt"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
+  var h=(x.n===1&&lockHist(x.ch)?'<p class="mt">'+lockHist(x.ch)+'.</p>':'')+'<p class="mt"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
   var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"";
     return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1</small></li>'}).join("");
   h+='<details class="xp" style="margin:6px 0"><summary class="mt" style="cursor:pointer">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="mt" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
@@ -1730,7 +1730,7 @@ function valueBox(x){if(x.ch==null||!x.d)return"";
 function slipCard(x,key){
   PRE[key]=x.s.l;PCUR[x.sig]=x.s.l;var p=x.s,bd=1;p.l.forEach(function(l){bd*=bestDec(l)});
   var shop=bd>x.d*1.02?'<p class="mt">Shop each pick for the best price: up to '+am(bd)+'</p>':"";
-  return'<details class="pc"'+(PST.exp||POPEN===x.sig||x.open?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+" picks"+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
+  return'<details class="pc"'+(PST.exp||POPEN===x.sig||x.open?" open":"")+' data-sig="'+escA(x.sig||"")+'"'+(x.tag?' data-tag="'+x.tag+'"':"")+'><summary><div class="tg"><span class="hbrow">'+(x.proven?'<span class="hb pr">Proven</span>':x.weak?'<span class="hb wk">Weak history</span>':"")+flagBadges(x.F)+'</span>'+(x.tag?TAGS[x.tag]+" · ":"")+x.n+(x.n===1?" pick":" picks")+(x.kind==="p"?" · props":x.kind==="g"?" · game lines":"")+'</div>'+
     (x.ch!==null?'<div class="big" style="color:'+pctColor(x.ch)+'">'+pct(x.ch)+'</div><div class="pw"><span class="hlp">'+pctWord(x.ch)+'<br></span>'+verdictLine(x.ch,x.d)+'</div>':"")+'<div class="nm">'+esc(slipName(p.n))+'</div>'+(x.proven&&x.F.red.length?'<div class="mt" style="font-size:12px">Proven = this kind of parlay made money in past seasons. Red flag = something about these exact picks to check first: '+esc(x.F.red[0])+'.</div>':"")+
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
@@ -1824,6 +1824,15 @@ function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr
 // How our single-pick %s really hit in the 2023–25 replay (backtest/graded-legs.json, 182K picks, Nov 5): said vs hit by 5-pt bucket
 var LOCKH={60:[5984,61.7],65:[5063,66.8],70:[5140,71.9],75:[5272,78.1],80:[5317,83.2],85:[4356,86.5],90:[1114,89.9]};
 function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*20)*5),h=LOCKH[k];return h?"Picks we rated "+k+"%+ hit "+Math.round(h[1])+" of 100 in 2023–25 ("+h[0].toLocaleString()+" picks)":""}
+// Pick your payout as the page's own cards (Nov 6, Andrew's idea): safest first, biggest payout last. Table view keeps
+// payLadder()'s table. To go back to the table box everywhere: block() used payLadder(sl.list()) and nothing was filtered.
+function isPay(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")}
+function payCards(raw){
+  var L=dedupe((raw||[]).filter(function(s){return isPay(s)&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
+  if(L.length<2)return"";
+  L.sort(function(a,b){return a.d-b.d});
+  return'<details class="ladder" open><summary class="pgroup" style="font-size:15px">💵 Pick your payout</summary><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout, safest first. Win less, win more often. A bigger bet makes the win (and the loss) bigger, never the %. Switch to Table to see them side by side.</p><div class="pgrid">'+L.map(function(x){return slipCardW(x,"pc"+(payCards.n=(payCards.n||0)+1))}).join("")+'</div></details>';
+}
 // "Pick your payout" (Andrew, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
 function payLadder(raw){
   var L=dedupe((raw||[]).filter(function(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
@@ -1847,9 +1856,10 @@ function renderParlays(){
   $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);document.querySelectorAll("[data-pview]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pview===PVIEW)});
   var html="",n=0;
   function block(sl,showHead){
-    var L=rankSlips(sl.list()),tv=PVIEW==="table",cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
+    var raw=sl.list(),tv=PVIEW==="table",pay=sl.team?"":(tv?payLadder(raw):payCards(raw)),rest=pay?raw.filter(function(s){return!isPay(s)}):raw;
+    var L=rankSlips(rest),cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
     var note=sl.team?teamNote():sl.note;
-    var inner='<p class="sub">'+esc(note)+'</p>'+(sl.team?"":payLadder(sl.list()))+
+    var inner='<p class="sub">'+esc(note)+'</p>'+pay+
       (L.length?'<div class="'+(tv?"ptlist":"pgrid")+'">'+cards+'</div>':'<p class="empty">'+(sl.team?"":"No parlays match these filters.")+'</p>');
     if(!showHead)return inner;
     return '<details class="slateD" data-sl="'+esc(sl.label)+'"'+(SLATE_OPEN[sl.label]===undefined?(first?" open":""):(SLATE_OPEN[sl.label]?" open":""))+'><summary class="pgroup">'+esc(sl.label)+'</summary>'+inner+'</details>';
