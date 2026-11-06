@@ -1537,13 +1537,18 @@ function teamNote(){
   return nx?"The "+nm+" play next "+(nx.tbd?new Date(nx.day+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+" (time TBD)":when(nx.t))+(nx.home?" vs ":" at ")+nx.opp+". Their parlays show up here once the books post lines, usually the day of the game.":"No "+nm+" game in the current lines yet. Their parlays show up here once the books post lines.";
 }
 // Tag the three standouts: Safest (highest chance), Best value (estimate beats price most), Big payout (biggest odds that still has a real chance)
+function evBook(x){var q=1,r=1;(x.s.l||[]).forEach(function(l){var d=dec(l.a),b=Math.min(0.97,1/d/1.045+(+l.es||0)/100);q*=b;r*=(l.p!=null?l.p:b)});
+  // same-game: the app reprices the parlay for correlation and we can't see that price, so no correlation credit here
+  var corr=!x.sg&&x.ch!=null&&r>0?x.ch/r:1;return q*corr*x.d-1}
 function rankSlips(raw){
   raw=(raw||[]).filter(function(s){return s&&!(s.l||[]).some(legStarted)}); // never show a parlay with a started game, however old the page is
   var L=dedupe(raw).map(slipInfo).filter(function(x){return(!PST.legs||(PST.legs==="s"?x.n<=3:x.n>=4))&&(!PST.kind||NOPROPS||x.kind===PST.kind)});
   var used={},top=[];
   function pick(tag,score,ok){var b=null;L.forEach(function(x){if(used[x.s.n+x.d]||x.weak||!ok(x))return;if(!b||score(x)>score(b))b=x});if(b){used[b.s.n+b.d]=1;b.tag=tag;top.push(b)}}
   pick("safe",function(x){return x.ch||0},function(x){return x.ch!==null&&!x.F.red.length});
-  pick("value",function(x){return x.ev},function(x){return x.ev!==null&&x.ch>=0.15});
+  // Best value is judged against the book's own price (cut removed) plus the proven edge signs, never our history blend:
+  // ranking by our own % picks the spots where we're most optimistic, which lost in week 8 (MIT review, Nov 6).
+  pick("value",evBook,function(x){return x.ev!==null&&x.ch>=0.15});
   pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
   var rest=L.filter(function(x){return!x.tag}).sort(function(a,b){return(b.ch||0)-(a.ch||0)});
   // The weekly 10- and 15-pick parlays always show (Andrew, Nov 1), tagged Big parlay
