@@ -39,6 +39,7 @@ Andrew asked for a "make $5 on $10" mode, kept alongside the other odds. Generat
   3. Payout card types and Best value: report only (too few slips to judge; need about 30+ each).
   4. Never judge by profit (too noisy); judge by said vs hit and closing-line value. No other model changes in the same week.
 - **Fix (Nov 6): ⇄ Change on Pick your payout cards.** `payCards()`/`payLadder()` built cards with `slipInfo` only, so saved swaps (`PEDIT`) were ignored and the card couldn't reopen (no `sig`). Both now `.map(pApplyEdit)`. Any new card list must go through `pApplyEdit` too. Also the card-body value lines use their own `.vbx` class (`.mt` is flex in cards and squeezed the text).
+- **TNF JAX @ BAL (Nov 5) graded:** our 8 Thursday slips 0-8; Andrew's 4 bets all lost by one pick. Ravens started 3rd-string rookie QB Joe Fagnano (60 pass yds) in heavy rain. Shared lines with LadderUp: Brier 0.265 vs ours 0.269 (tie). **Bug to check:** High Floor leg "Brian Thomas Jr 5+ receiving yds" still pending though finals has "Brian Thomas Jr|Receiving yards": 0 (Jr/Jr. name match, or was he inactive?). **Candidate edge signs for the replay after the freeze:** backup/3rd-string QB starting -> that team's receiving unders; heavy rain -> passing/receiving unders. Private comparison: project doc "LadderUp vs ParlayLabs 2026-11-05 TNF".
 
 ## Owner and how he likes to work
 - Andrew (GitHub `callis11`), Detroit, America/Detroit time. Uses the site as an iPhone home-screen app; tests on his phone and sends screenshots.
