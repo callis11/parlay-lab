@@ -1492,7 +1492,7 @@ function slipFlags(legs){
   var seen={};red=red.filter(function(x){if(seen[x])return false;seen[x]=1;return true});soft=soft.filter(function(x){if(seen[x])return false;seen[x]=1;return true});
   return{soft:soft,green:n>=2&&legs.every(function(l){return l.p!=null&&l.p>=0.7}),spread:n>=3&&Object.keys(evs).length===n,red:red,live:legs.filter(function(l){return l.live}).length};
 }
-function flagBadges(F){return(F.live?'<span class="hb lv">🔴 Live pick'+(F.live>1?"s":"")+'</span>':"")+(F.green?'<span class="hb gr">All green</span>':"")+(F.spread?'<span class="hb so">Spread out</span>':"")+(F.red.length?'<span class="hb rf">⚑ Red flag</span>':"")}
+function flagBadges(F){return(F.live?'<span class="hb lv">🔴 Live pick'+(F.live>1?"s":"")+'</span>':"")+(F.safest?'<span class="hb gr">🔒 Safest pick</span>':"")+(F.green?'<span class="hb gr">All green</span>':"")+(F.spread?'<span class="hb so">Spread out</span>':"")+(F.red.length?'<span class="hb rf">⚑ Red flag</span>':"")}
 function flagNote(F){var li=function(x){return"<li>"+esc(x.charAt(0).toUpperCase()+x.slice(1))+"</li>"};return(F.soft&&F.soft.length?'<div class="hun"><b>ⓘ Heads up</b><ul>'+F.soft.map(li).join("")+'</ul><small>Worth knowing, not a deal-breaker. Red flags are for bigger problems.</small></div>':"")+(F.red.length?'<div class="rfn"><b>⚑ Red flag</b><ul>'+F.red.map(li).join("")+'</ul></div>':"")}
 function slipInfo(p,noHist){
   var d=1,evs={},sg=false,props=0,games=0;
@@ -1831,7 +1831,7 @@ function payCards(raw){
   var L=dedupe((raw||[]).filter(function(s){return isPay(s)&&!(s.l||[]).some(legStarted)})).map(slipInfo).filter(function(x){return x.ch!==null});
   if(L.length<2)return"";
   L.sort(function(a,b){return a.d-b.d});
-  return'<details class="ladder" open><summary class="pgroup" style="font-size:15px">💵 Pick your payout</summary><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout, safest first. Win less, win more often. A bigger bet makes the win (and the loss) bigger, never the %. Switch to Table to see them side by side.</p><div class="pgrid">'+L.map(function(x){return slipCardW(x,"pc"+(payCards.n=(payCards.n||0)+1))}).join("")+'</div></details>';
+  return'<div class="ladder"><h3 class="pgroup" style="font-size:15px;margin:0">💵 Pick your payout</h3><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout, safest first. Win less, win more often. A bigger bet makes the win (and the loss) bigger, never the %. Switch to Table to see them side by side.</p><div class="pgrid">'+L.map(function(x){if(x.s.n==="Closest to a Lock"&&x.F)x.F.safest=1;return slipCardW(x,"pc"+(payCards.n=(payCards.n||0)+1))}).join("")+'</div></div>';
 }
 // "Pick your payout" (Andrew, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
 function payLadder(raw){
@@ -1840,7 +1840,7 @@ function payLadder(raw){
   L.sort(function(a,b){return a.d-b.d});
   var rows=L.map(function(x,i){var key="pl"+(payLadder.n=(payLadder.n||0)+1);PRE[key]=x.s.l;
     return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+(x.n===1?"🔒 1 pick · "+am(x.d)+(function(){var l=x.s.l[0],R=l&&l.kind==="p"&&typeof legRole==="function"?legRole(l):null,t=R?roleTag(R):"";return t?"<br>"+esc(t):""})()+(lockHist(x.ch)?"<br>"+lockHist(x.ch):""):x.n+' picks · '+(x.sg?"~":"")+am(x.d))+'</span></td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
-  return'<details class="ladder" open><summary class="pgroup" style="font-size:15px">💵 Pick your payout</summary><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout. Win less, win more often. The % never changes with how much you bet; a bigger bet only makes the win (and the loss) bigger.</p><table class="ltab" style="width:100%;border-collapse:collapse">'+rows+'</table><p class="mt" style="font-size:12px;margin-top:6px">Every row loses a little to the book over time, safe ones the least. Change your usual bet on the ★ page.</p></details>';
+  return'<div class="ladder"><h3 class="pgroup" style="font-size:15px;margin:0">💵 Pick your payout</h3><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout. Win less, win more often. The % never changes with how much you bet; a bigger bet only makes the win (and the loss) bigger.</p><table class="ltab" style="width:100%;border-collapse:collapse">'+rows+'</table><p class="mt" style="font-size:12px;margin-top:6px">Every row loses a little to the book over time, safe ones the least. Change your usual bet on the ★ page.</p></div>';
 }
 function renderParlays(){
   try{genUI()}catch(e){}
