@@ -1,4 +1,4 @@
-name: Refresh College
+name: Refresh College 
 on:
   # Main timer is Cloudflare (schedule.json). This daily run is a backup. Each odds pull costs about 3 credits.
   schedule:
