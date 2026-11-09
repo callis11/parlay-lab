@@ -4,7 +4,7 @@ What every screen, button, word and number on ParlayLabs is, so an AI can review
 
 **Site:** https://callis11.github.io/parlay-lab/ (NFL). Other sports: add `?nba`, `?cfb` (college football), `?cbb` (men's college basketball).
 **Used as:** an iPhone home-screen app. One page (`index.html`). Nothing is bet or paid on the site.
-**Owner can send screenshots:** if something here doesn't match the phone, ask Andrew for a screenshot instead of guessing.
+**Owner can send screenshots:** if something here doesn't match the phone, ask the owner for a screenshot instead of guessing.
 
 ## Reading the page as text (important for AIs)
 Pages read as text glue small pieces together, which can make numbers look wrong. On the phone they are separate badges:
@@ -17,7 +17,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 ## Words and numbers used on the site
 | On screen | Means |
 |---|---|
-| **ML** (moneyline) | Pick who wins the game, by any score. Kept as "ML" on purpose (Andrew's call); explained in the tour and card guide. |
+| **ML** (moneyline) | Pick who wins the game, by any score. Kept as "ML" on purpose (the owner's call); explained in the tour and card guide. |
 | **Spread** (−3.5 / +3.5) | Favorite must win by more than the number; underdog can lose by less and still win the bet. |
 | **Over / Under (O/U)** | Total points scored by both teams vs the number. |
 | **−138** | Favorite price: risk more than you win ($10 wins $7.25). |
@@ -50,7 +50,7 @@ Pages read as text glue small pieces together, which can make numbers look wrong
 
 ## Header (every sport)
 - **Sport tabs:** NFL · NBA · NCAAF · NCAAB.
-- **↻** reloads the newest version and odds (tell Andrew to tap it after a change).
+- **↻** reloads the newest version and odds (tell the owner to tap it after a change).
 - **★ My teams:** favorite team per sport (defaults Lions, Pistons, Michigan State), **My betting apps** (FanDuel, DraftKings, BetMGM, BetRivers) and **Show odds from** (which app's prices the site uses). Saved on the phone only.
 - **ⓘ** opens the 9-slide tour: Welcome · Reading the odds · Parlays tab · Why trust the %? · Players tab · Games tab · Build tab · Your slip and Results · Your teams and apps.
 - First open: 21+ check → "Set up ParlayLabs" (teams + apps) → tour.
@@ -107,7 +107,7 @@ Filters: kickoff window chips, division/conference, team (★ team's game first)
 Prices: The Odds API (FanDuel by default). Player history: nflverse (NFL), ESPN (NBA, college). Per pick: recent hit rate blended with the book's no-vig price, adjusted for opponent and weather, calibrated from graded picks (live + about 154,000 replayed 2023–25 NFL picks). Parlay % = picks multiplied, corrected for same-game pairs and for how parlays of that size really hit. Full detail in HANDOFF.md ("Model in one paragraph").
 
 ## Asking another AI to review
-Give it this file plus the site link, ask it to use the site on a phone-size screen, and tell it the page's text glues badges together (see the top section). Andrew can attach screenshots of any screen.
+Give it this file plus the site link, ask it to use the site on a phone-size screen, and tell it the page's text glues badges together (see the top section). the owner can attach screenshots of any screen.
 
 ## Parlay Bundle mode (Parlays tab generator, Nov 3)
 - The Parlays generator has **Make: One Parlay / Parlay Bundle**. Parlay Bundle adds **Budget $ in N bets** (N 2 to 15) and reuses Picks (2 to 5 used), Style, Bets (kind) and Game. Button: Build my Parlay Bundle.

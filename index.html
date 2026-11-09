@@ -1552,7 +1552,7 @@ function rankSlips(raw){
   pick("value",evBook,function(x){return x.ev!==null&&x.ch>=0.15});
   pick("big",function(x){return x.d},function(x){return x.ch===null||x.ch>=0.05});
   var rest=L.filter(function(x){return!x.tag}).sort(function(a,b){return(b.ch||0)-(a.ch||0)});
-  // The weekly 10- and 15-pick parlays always show (Andrew, Nov 1), tagged Big parlay
+  // The weekly 10- and 15-pick parlays always show (owner, Nov 1), tagged Big parlay
   var bigW=rest.filter(function(x){return/-Leg of the Week$/.test(x.s.n)});bigW.forEach(function(x){x.tag="wk"});
   if(PST.legs==="s")bigW=[];
   var outL=PST.mode==="top"?top.concat(bigW):top.concat(bigW).concat(rest.filter(function(x){return bigW.indexOf(x)<0}));
@@ -1723,7 +1723,7 @@ function slipWhy(legs,name){
   return'<div class="why"><div class="fbh"><b>How we got '+pct(ch)+'</b><button class="lnk" data-flip="1">⟲ Flip back</button></div>'+legs.map(legBreakdown).join("")+'<ol class="wst">'+steps.join("")+'</ol><p class="wnote">Estimates, not guarantees. One game is a coin toss; these numbers only hold up over many bets.</p></div>';
 }
 function whyWrap(front,legs,name){return'<div class="flip pf"><div class="fi"><div class="ff">'+front+'</div><div class="fb">'+slipWhy(legs,name)+'</div></div></div>'}
-// Honest math inside every parlay card (Andrew, Nov 5): what 10 bets like this usually do, what it costs over time,
+// Honest math inside every parlay card (owner, Nov 5): what 10 bets like this usually do, what it costs over time,
 // and an expert panel with each pick's value (chance x payout). Value = p*d-1: 0 is a fair bet, below 0 is the app's cut.
 function valueBox(x){if(x.ch==null||!x.d)return"";
   var n=10,m=n*x.ch,sd=Math.sqrt(n*x.ch*(1-x.ch)),lo=Math.max(0,Math.round(m-sd)),hi=Math.min(n,Math.round(m+sd)),ev=10*(x.ch*x.d-1),win=10*(x.d-1),tl=x.sg?"~":"";
@@ -1830,7 +1830,7 @@ function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr
 // How our single-pick %s really hit in the 2023–25 replay (backtest/graded-legs.json, 182K picks, Nov 5): said vs hit by 5-pt bucket
 var LOCKH={60:[5984,61.7],65:[5063,66.8],70:[5140,71.9],75:[5272,78.1],80:[5317,83.2],85:[4356,86.5],90:[1114,89.9]};
 function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*20)*5),h=LOCKH[k];return h?"Picks we rated "+k+"%+ hit "+Math.round(h[1])+" of 100 in 2023–25 ("+h[0].toLocaleString()+" picks)":""}
-// Pick your payout as the page's own cards (Nov 6, Andrew's idea): safest first, biggest payout last. Table view keeps
+// Pick your payout as the page's own cards (Nov 6, the owner's idea): safest first, biggest payout last. Table view keeps
 // payLadder()'s table. To go back to the table box everywhere: block() used payLadder(sl.list()) and nothing was filtered.
 function isPay(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")}
 function payCards(raw){
@@ -1843,7 +1843,7 @@ function payCards(raw){
 function ladPicks(x){var L=(x.s.l||[]).map(function(l){var R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"",G=gmeta(l.ev),g=G.away&&G.home?(G.aa||G.away)+" @ "+(G.ha||G.home):"",tm=l.time?new Date(l.time).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"";g=g+(tm?" · "+tm:"");
     return'<li><b>'+esc(l.n)+'</b><br><small>'+(l.p!=null?Math.round(l.p*100)+'% to hit':'')+(l.a?' · '+fmt(l.a):'')+(rt?' · '+esc(rt):'')+(g?' · '+esc(g):'')+'</small></li>'}).join("");
   return'<details class="lpk"><summary>See the picks ▾</summary><ul>'+L+'</ul></details>'}
-// "Pick your payout" (Andrew, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
+// "Pick your payout" (owner, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
 function payLadder(raw){
   var L=dedupe((raw||[]).filter(function(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")&&!(s.l||[]).some(legStarted)})).map(slipInfo).map(pApplyEdit).filter(function(x){return x.ch!==null});
   if(L.length<2)return"";
@@ -3167,7 +3167,7 @@ $("resetBtn").onclick=function(){
   var files=[location.pathname,location.pathname+"?nba",location.pathname+"?cfb",location.pathname+"?cbb","engine.js","schedule.json","backtest/corr.json",DIR+"odds.json",DIR+"data.json",DIR+"picks.json",DIR+"cards.json",DIR+"calibration.json",DIR+"finals.json"];
   Promise.all(files.map(function(f){return fetch(f,{cache:"reload"}).catch(function(){})})).then(function(){
     location.replace(location.pathname+location.search.replace(/[?&]r=\d+/,"")+(location.search.replace(/[?&]r=\d+/,"").indexOf("?")<0?"?":"&")+"r="+Date.now())})};
-// ---------- Feedback: opens the phone's email app to feedback@parlaylabs.net (forwards to Andrew), with the screen's details filled in ----------
+// ---------- Feedback: opens the phone's email app to feedback@parlaylabs.net (forwards to the owner), with the screen's details filled in ----------
 function fbOpen(){var tab=(document.querySelector('[role="tab"][aria-selected="true"].tab')||{}).textContent||"",legs=Object.keys(SLIP).length,
     sp={nfl:"NFL",nba:"NBA",cfb:"NCAAF",cbb:"NCAAB"}[SPORT];
   var body="What was confusing or wrong?\n\n\n\n---\nScreen: "+sp+" · "+tab.trim()+"\nPicks on slip: "+legs+"\nTime: "+new Date().toLocaleString("en-US")+"\nPhone: "+navigator.userAgent.replace(/\(KHTML.*$/,"").slice(0,120);

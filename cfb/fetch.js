@@ -53,7 +53,7 @@ function readOld() { try { return JSON.parse(fs.readFileSync(SP + "/odds.json", 
       for (const hb of x.bookmakers) { const b = e.bookmakers.find(y => y.key === hb.key); if (b) b.markets = b.markets.concat(hb.markets.filter(m => /_h1$/.test(m.key))); } }
   }
   // ---------- College football player props (Nov 1, 2026) ----------
-  // Michigan State, ranked teams and every Big Ten / SEC / Big 12 / ACC team's game in the next 60 hours (Andrew, Nov 2), at most PROPS_MAX games, once every PROPS_HOURS (10), only above
+  // Michigan State, ranked teams and every Big Ten / SEC / Big 12 / ACC team's game in the next 60 hours (owner, Nov 2), at most PROPS_MAX games, once every PROPS_HOURS (10), only above
   // PROPS_MIN credits (4,000). About 5 credits a game (only markets that come back with prices are charged).
   // Turn off with CFB_PROPS=false, force with CFB_PROPS=true. Started games keep their last pre-game pull.
   let props = (old0 && old0.props) || [], propsAt = (old0 && old0.propsAt) || null;

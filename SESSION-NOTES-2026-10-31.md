@@ -5,7 +5,7 @@ Give this file to a new chat along with HANDOFF.md in github.com/callis11/parlay
 ## What ParlayLabs is for
 - For people who **don't follow sports closely** but still want to make good parlay decisions and build their own. It replaces "knowing the games" with **data, history and plain-English reasons**.
 - Also for people who **do** follow sports: the best results possible, deep stats, and room to go big on small-stake long shots (like a friend who loves 15-leg parlays).
-- Open, honest, understandable. More stats and more "here's why" is better. Andrew will spend money on data to get there.
+- Open, honest, understandable. More stats and more "here's why" is better. the owner will spend money on data to get there.
 - LadderUp (a buddy's site) is for people who already know the games. Never copy its name, wording or branding.
 
 ## Top rule (every sport)
@@ -25,7 +25,7 @@ A parlay for a later game must **never include an earlier game that has started 
 ## Decisions
 - **College football player props:** wait until Odds API credits reset, then build them (Michigan State + ranked games, about 1K credits for the rest of the season).
 - **Share links (FanDuel "addToBetslip?shareCode=")** can't be read from outside FanDuel's app. Use screenshots instead.
-- **Credits:** Andrew would rather spend credits to get the best, most up-to-date options, and also wants free sources used wherever they help.
+- **Credits:** the owner would rather spend credits to get the best, most up-to-date options, and also wants free sources used wherever they help.
 
 ## Next steps, in order
 1. **History pull** when credits reset (Nov 1). A reminder was set for 9 AM in the earlier Oct 30–31 chat; if it doesn't fire, ask the new chat to "run the history pull".
@@ -47,7 +47,7 @@ A parlay for a later game must **never include an earlier game that has started 
 - Site: https://callis11.github.io/parlay-lab/ (add `?nba`, `?cfb`, `?cbb` for the other sports)
 - Repo: https://github.com/callis11/parlay-lab (HANDOFF.md has the technical details)
 
-## Question set for other AIs (Andrew is sending this out)
+## Question set for other AIs (the owner is sending this out)
 "Please review my sports betting parlay website as if you were a complete beginner who doesn't understand parlays, odds, or spreads: https://callis11.github.io/parlay-lab/ (also ?nba, ?cfb, ?cbb). It's used mainly as an iPhone home-screen app. Tell me: 1) what confused you in the first 2 minutes, and which words or numbers you didn't understand; 2) whether it's clear what to tap first and how to go from picking a parlay to placing it; 3) what a beginner needs explained, and where; 4) whether the odds and percentages feel honest and easy to trust; 5) your top 10 changes ranked by impact for beginners, with a reason for each. Be blunt and specific. Don't suggest copying other betting sites."
 
 ## Message to start the new chat
