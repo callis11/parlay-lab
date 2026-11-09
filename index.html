@@ -1484,6 +1484,10 @@ function slipFlags(legs){
         if(RR&&RR.gp>0&&l.side!=="under"&&RR.s3!=null&&RR.s3<0.4)soft.push(pp.player+" plays only "+Math.round(RR.s3*100)+"% of snaps lately"+(RR.dc&&!RR.st?" ("+RR.dc+", a backup)":"")+", so he gets few chances to hit the over");
         if(RR&&RR.gp>=3&&RR.sl-RR.sa>=0.2)soft.push(pp.player+"'s role grew: "+Math.round(RR.sl*100)+"% of snaps last game vs "+Math.round(RR.sa*100)+"% this season, so his older numbers may undersell him");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
+        // Thin lines (needs 1+, or 15 or fewer yards): one quiet game is a loss. Nov 9 review: the safest picks that missed were
+        // thin lines on low-volume players (1 target, 0 threes), not injuries.
+        if(l.side!=="under"&&!l.td&&(l.line<=0.5||(/yards/i.test(l.label||"")&&l.line<=15.5))&&pp.recent&&pp.recent.length){var zz=pp.recent.filter(function(v){return v===0}).length,ms=r&&r.n?r.n-r.hits:0;
+          if(zz>=1||ms>=2)soft.push(pp.player+" needs only a little here, but "+(zz?"he had 0 in "+zz+" of his last "+pp.recent.length+" games":"he fell short of this line in "+ms+" of his last "+r.n)+(pp.tgt3!=null&&pp.tgt3<0.15&&/Rece/.test(l.label||"")?" and gets about "+Math.round(pp.tgt3*100)+"% of his team's targets":"")+". On a line this low, one quiet game loses it")}
         var rs=r&&sideRec(l,r).since;if(rs&&rs[1]>=8&&l.p!=null&&l.p>=0.8&&rs[0]/rs[1]<l.p-0.15)soft.push(pp.player+(l.side==="under"?" stayed under this line only ":" cleared this line only ")+rs[0]+" of "+rs[1]+" games "+(SINCE_LABEL[SPORT]||"in past seasons")+". In 2023–25 replays, picks we rated 80%+ with a record like this hit about 75%, so treat "+pct(l.p)+" as a bit high");
         var T=BT&&BT.teams&&BT.teams[pp.team],v=T&&pp.opp&&T.pvs&&T.pvs[pp.player]&&T.pvs[pp.player][pp.opp];
         if(!l.td&&v){var vv=vsRec(l,v);if(vv[0]+vv[1]>=4&&vv[0]/(vv[0]+vv[1])<0.3)soft.push(pp.player+" went "+(l.side==="under"?"under":"over")+" only "+vv[0]+" of "+(vv[0]+vv[1])+" times vs "+pp.opp)}}
@@ -1730,7 +1734,7 @@ function valueBox(x){if(x.ch==null||!x.d)return"";
   var tens=x.ch<0.1?"Most of the time it loses: about 1 in "+Math.round(1/x.ch).toLocaleString()+" hits, so 10 bets like this usually win none":"10 bets like this usually win "+(lo===hi?lo:lo+" to "+hi)+" of them";
   var h=(x.n===1&&lockHist(x.ch)?'<p class="vbx">'+lockHist(x.ch)+'.</p>':'')+'<p class="vbx"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
   var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"";
-    return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1</small></li>'}).join("");
+    return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1'+(liveHist(l.p,1)?' · '+liveHist(l.p,1):'')+'</small></li>'}).join("");
   h+='<details class="xp" style="margin:6px 0"><summary class="vbx" style="cursor:pointer;font-weight:700">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="vbx" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
   return h}
 function slipCard(x,key){
@@ -1741,10 +1745,14 @@ function slipCard(x,key){
     '<div class="pcs">'+p.l.slice(0,6).map(function(l){return legIcon(l,true)}).join("")+(p.l.length>6?'<span class="more">+'+(p.l.length-6)+'</span>':"")+'</div>'+
     '<div class="odrow"><span class="od">'+(x.sg?"~":"")+am(x.d)+'</span></div>'+
     '<div class="mt">'+(x.stake?"$"+usd(x.stake)+" wins "+(x.sg?"~":"")+"$"+usd(x.stake*(x.d-1)):usualWins(x.d,x.sg?"~":""))+(x.plan!=null?"":'<button class="qplus" data-pre="'+key+'" data-ico="1" data-qn="'+escA(slipName(p.n))+'" aria-label="Add this bet to my slip" title="Add to my bets">+</button>')+'</div>'+(x.chg||x.noSwap||x.gen||x.plan!=null?"":recLine(p.n))+'<button class="whyb" data-flip="1">ⓘ How we got this %</button>'+'</summary>'+
-    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+valueBox(x)+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
+    '<div class="bd"><p class="mt">'+esc(p.d||"")+'</p>'+valueBox(x)+shareNote(p.l)+flagNote(x.F)+(x.chg?'<p class="gauto">⇄ You changed '+x.chg+' pick'+(x.chg>1?"s":"")+'. The % and payout are for your version. <button class="lnk" data-punedit="'+escA(x.sig)+'">Undo changes</button></p>':"")+'<div class="pieces">'+p.l.map(function(l,j){return piece(l).replace(/<\/div>$/,(legStarted(l)||x.noSwap?"":x.plan!=null?'<button class="swb pswb" data-swap="plan" data-i="'+x.plan+'" data-j="'+j+'">⇄ Change</button>':x.gen?'<button class="swb pswb" data-swap="gen" data-cx="'+x.gen.cx+'" data-i="'+x.gen.i+'" data-j="'+j+'">⇄ Change</button>':'<button class="swb pswb" data-swap="card" data-sig="'+escA(x.sig)+'" data-j="'+j+'">⇄ Change</button>')+'</div>')}).join("")+'</div>'+shop+
     (x.sg?'<p class="sg">Same-game legs: the real payout will be lower and they tend to win or lose together.</p>':"")+
     '<div class="row"><span class="mt">Tap the top of the card to close</span><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(p.n))+'">Add bet</button></div></div></details>';
 }
+var SHARE={};
+function shareNote(legs){var hot=(legs||[]).map(function(l){return{l:l,c:SHARE[l.ev+"|"+l.n]||0}}).filter(function(o){return o.c>=3}).sort(function(a,b){return b.c-a.c});
+  if(!hot.length)return"";var o=hot[0];
+  return'<p class="vbx"><b>Shared pick:</b> '+esc(o.l.n)+' is in '+o.c+' of today\'s parlays'+(hot.length>1?' ('+(hot.length-1)+' more pick'+(hot.length>2?'s are':' is')+' shared too)':'')+'. If it misses, every one of them loses, so betting several of them isn\'t really spreading your risk. Parlays with different picks are.</p>'}
 function slipCardW(x,key){return whyWrap(slipCard(x,key),x.s.l,x.s.n)}
 // ---------- spotlight game (hero) ----------
 var TC={nfl:{ARI:"#C8264A",ATL:"#D8263C",BAL:"#8467D7",BUF:"#4A86E8",CAR:"#2BA3DE",CHI:"#F0752E",CIN:"#FB5A1E",CLE:"#FF5A1F",DAL:"#6C9BD8",DEN:"#FB5A1E",DET:"#3D9BE0",GB:"#FFB612",HOU:"#E0344A",IND:"#4A86E8",JAX:"#16A9B8",KC:"#EE2B45",LV:"#B9C0C4",LAC:"#2D9BE6",LA:"#FFC72C",MIA:"#14B8C2",MIN:"#9572E0",NE:"#E2364E",NO:"#D3BC8D",NYG:"#4C7BE0",NYJ:"#22B573",PHI:"#3FBFA3",PIT:"#FFB612",SF:"#E8434B",SEA:"#79C842",TB:"#E8433B",TEN:"#5BA4E8",WAS:"#E3B23C"},
@@ -1829,7 +1837,18 @@ function heroCarousel(list){
 function wireCarousel(){document.querySelectorAll(".htrack").forEach(function(tr){if(tr._w)return;tr._w=1;tr.addEventListener("scroll",function(){var i=cardIdx(tr),c=tr.parentNode;c.querySelectorAll(".hdots i").forEach(function(d,k){d.className=k===i?"on":""});var hc=c.querySelector(".hcount");if(hc)hc.textContent=(i+1)+" of "+tr.children.length;var h=c.querySelector(".hhint");if(h&&i>0)h.style.visibility="hidden"},{passive:true})})}
 // How our single-pick %s really hit in the 2023–25 replay (backtest/graded-legs.json, 182K picks, Nov 5): said vs hit by 5-pt bucket
 var LOCKH={60:[5984,61.7],65:[5063,66.8],70:[5140,71.9],75:[5272,78.1],80:[5317,83.2],85:[4356,86.5],90:[1114,89.9]};
-function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*20)*5),h=LOCKH[k];return h?"Picks we rated "+k+"%+ hit "+Math.round(h[1])+" of 100 in 2023–25 ("+h[0].toLocaleString()+" picks)":""}
+function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*20)*5),h=SPORT==="nfl"&&LOCKH[k],lv=liveHist(p),r=h?"Picks we rated "+k+"%+ hit "+Math.round(h[1])+" of 100 in 2023–25 ("+h[0].toLocaleString()+" picks)":"";return r&&lv?r+". "+lv:r||lv}
+// This season's live record for picks we rated in the same 5-point band (each pick counted once across all our parlays).
+// Shown next to the replay line so a % that runs hot this season says so (Nov 9 review: NBA 70-80% picks hit about 67%).
+var LIVEH=null;
+function liveBands(){if(LIVEH)return LIVEH;LIVEH={};var seen={};
+  if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(id){(PICKS.slips[id].legs||[]).forEach(function(l){
+    if(l.p==null||(l.result!=="won"&&l.result!=="lost"))return;var key=(l.ev||"")+"|"+l.n;if(seen[key])return;seen[key]=1;
+    var k=Math.min(90,Math.floor(l.p*20)*5),b=LIVEH[k]=LIVEH[k]||{n:0,w:0,e:0};b.n++;b.e+=l.p;if(l.result==="won")b.w++})});
+  return LIVEH}
+function liveHist(p,short){if(p==null||p<0.5)return"";var k=Math.min(90,Math.floor(p*20)*5),b=liveBands()[k],lab=k>=90?"90%+":k+"–"+(k+5)+"%";
+  if(!b||b.n<20)return short?"":"This season: "+(b?b.n:0)+" of our picks rated "+lab+" graded so far, too few to judge";
+  var r=Math.round(100*b.w/b.n);return short?"this season "+r+"% hit ("+b.n+")":"This season, our picks rated "+lab+" hit "+r+" of 100 ("+b.n+" picks)"+(r<=k-5?", so treat this % as a bit high":r>=k+10?", better than we said":"")}
 // Pick your payout as the page's own cards (Nov 6, the owner's idea): safest first, biggest payout last. Table view keeps
 // payLadder()'s table. To go back to the table box everywhere: block() used payLadder(sl.list()) and nothing was filtered.
 function isPay(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")}
@@ -1865,6 +1884,9 @@ function renderParlays(){
   $("fLegs").value=PST.legs;$("fKind").value=PST.kind;
   $("expAll").textContent=PST.exp?"Collapse all":"Expand all";$("expAll").setAttribute("aria-pressed",PST.exp);document.querySelectorAll("[data-pview]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.pview===PVIEW)});
   var html="",n=0;
+  // How many of this page's parlays use each pick (Nov 9 review: one pick in 5 to 9 parlays sank all of them when it missed)
+  SHARE={};try{var seenS={};S.forEach(function(sl){dedupe(sl.list()||[]).forEach(function(p){var k=p.n+"#"+p.l.map(function(l){return l.k}).sort().join();if(seenS[k])return;seenS[k]=1;
+    p.l.forEach(function(l){var lk=l.ev+"|"+l.n;SHARE[lk]=(SHARE[lk]||0)+1})})})}catch(e){SHARE={}}
   function block(sl,showHead){
     var raw=sl.list(),tv=PVIEW==="table",pay=sl.team?"":(tv?payLadder(raw):payCards(raw)),rest=pay?raw.filter(function(s){return!isPay(s)}):raw;
     var L=(PST.mode==="top"&&pay)?rankSlips(rest).filter(function(x){return x.tag==="value"}):rankSlips(rest),cards=L.map(function(x,i){return tv?ptBlock(x,"q"+(n++),i):slipCardW(x,"q"+(n++))}).join("");
@@ -3077,7 +3099,7 @@ document.addEventListener("visibilitychange",function(){if(document.visibilitySt
 setInterval(function(){if(BUILT&&document.visibilityState==="visible"&&!$("panel").classList.contains("open")&&kickedSinceBuild())renderAll()},20000);
 document.addEventListener("visibilitychange",function(){
   if(document.visibilityState!=="visible"||Date.now()-lastLoad<5*60e3)return;lastLoad=Date.now();
-  Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON(DIR+"finals.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;cfbGate();PICKS=r[2]||PICKS;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;FINALS=r[5]||FINALS;renderAll();renderSync()}});
+  Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON(DIR+"finals.json")]).then(function(r){if(r[0]){ODDS=r[0];DATA=r[1]||DATA;cfbGate();PICKS=r[2]||PICKS;LIVEH=null;CALIB=r[3]||CALIB;CARDS=r[4]||CARDS;FINALS=r[5]||FINALS;renderAll();renderSync()}});
 });
 // Sport-specific labels
 $("s-"+SPORT).setAttribute("aria-current","page");
@@ -3506,7 +3528,7 @@ $("appRows").addEventListener("click",function(e){var b=e.target.closest("[data-
 $("favCancel").onclick=function(){applyTheme(THEME_SAVED);$("favs").hidden=true;setupDone()};$("favSave").onclick=favSave;
 renderBookSel();
 function getJSON(u){return fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return null})}
-Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
+Promise.all([getJSON(DIR+"odds.json"),getJSON(DIR+"data.json"),getJSON(DIR+"picks.json"),getJSON(DIR+"calibration.json"),getJSON(DIR+"cards.json"),getJSON("schedule.json"),SPORT==="nfl"?getJSON("backtest/teams.json"):null,SPORT==="nfl"?getJSON("backtest/results.json"):null,getJSON("backtest/corr.json"),getJSON(DIR+"finals.json")]).then(function(r){ODDS=r[0];DATA=r[1];cfbGate();PICKS=r[2];LIVEH=null;CALIB=r[3];CARDS=r[4];SCHED=r[5];BT=r[6];BTR=r[7];CORR=r[8];FINALS=r[9];renderAll();renderSync();setInterval(renderSync,60000)});
 </script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "238bd7d7dd4a49e083e09efb8d2bf06f"}'></script><!-- End Cloudflare Web Analytics -->
 <button id="toTop" aria-label="Back to top">&#8593;</button>
