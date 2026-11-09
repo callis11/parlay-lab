@@ -1,4 +1,4 @@
-name: College history pull (game lines)
+name: College history pull (game lines) 
 on:
   workflow_dispatch:
     inputs:
