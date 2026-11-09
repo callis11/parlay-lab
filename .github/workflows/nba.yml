@@ -1,4 +1,4 @@
-name: Refresh NBA
+name: Refresh NBA 
 on:
   # Times are UTC: 10:37 AM and 4:37 PM Eastern (EST). Days with no NBA games cost no odds credits.
   schedule:
