@@ -1,4 +1,4 @@
-name: Live prices
+name: Live prices 
 # Live moneylines for games in progress (1 credit a pull, only while a game is on). Started every 5 minutes
 # during game windows by the Cloudflare timer (schedule.json). With no game on, live-odds.js exits without calling the API.
 on:
