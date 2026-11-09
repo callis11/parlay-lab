@@ -140,7 +140,9 @@
     // Line movement since the opening number (build-data keeps the first main line seen each week)
     var O = p.open; if (O && ctx.mainLine !== undefined && ctx.mainLine !== null && !p.td) {
       var dir = over ? 1 : -1, mv = (ctx.mainLine - O.line) * dir;
-      if (mv > 0) S.push({ pts: 1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans this way" });
+      // Nov 9 review: "moved toward the OVER" failed the every-season rule (replay 2024 +3.7, 2025 -0.8) and live week 9 (overs
+      // hit 41% when the line rose, 113 lines), so it no longer adds points. Toward the under (+2.5/+1.6 in the replay) stays.
+      if (mv > 0 && !over) S.push({ pts: 1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans this way" });
       else if (mv < 0) S.push({ pts: -1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans the other way" });
       else if (r && r.line === O.line && ctx.closeA !== undefined && (over ? O.a : O.u) !== undefined) { var d = (1 / dec(ctx.closeA) - 1 / dec(over ? O.a : O.u)) * 100;
         if (d <= -3) S.push({ pts: -1.5, t: "Price drifted " + Math.abs(d).toFixed(0) + " pts against this side since it opened (" + amFromDec(dec(over ? O.a : O.u)) + " \u2192 " + amFromDec(dec(ctx.closeA)) + ")" }); } }
