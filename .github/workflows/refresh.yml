@@ -1,4 +1,4 @@
-name: Refresh odds
+name: Refresh odds 
 on:
   # Times are UTC, set for Eastern Standard Time (Nov-Mar). In EDT they run one hour later.
   # Minutes are off the hour on purpose: GitHub delays or skips more scheduled runs at :00.
