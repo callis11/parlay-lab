@@ -185,7 +185,7 @@ function buildCards(cards, book) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
     if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] }))
-      .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, {})))(rated(E, g.id, BOOK, {})) : []).map(l => Object.assign(l, px(g.id, l))) }; made++; continue; } // college basketball: game lines only
+      .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, { unders: true })))(rated(E, g.id, BOOK, { unders: true })) : []).map(l => Object.assign(l, px(g.id, l))) }; made++; continue; } // college basketball: game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
     for (const p of props) for (const r of p.rungs) {
@@ -272,7 +272,9 @@ function gradeLeg(l, games, stats) {
   const prices = readJSON(DIR + "pricebook.json", { legs: [] }); // [market, FanDuel price, DraftKings price, won 1/0, time] for every graded leg both apps priced // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, estimate, won 1/0, time]
   if (process.env.RECORD === "true") { record(store); console.log("Report cards built:", buildCards(cards)); }
 
-  const open = Object.values(store.slips).filter(s => !["won", "lost", "push"].includes(s.status) && s.lock <= now);
+  // Open = not final yet, or final but with legs still waiting on a box score (a slip that lost early keeps grading
+  // its other legs, so per-pick records and the closing-line numbers include them; Nov 9 fix: these used to stay pending forever)
+  const open = Object.values(store.slips).filter(s => s.lock <= now && (!["won", "lost", "push"].includes(s.status) || (s.lock > now - 14 * 864e5 && s.legs.some(l => l.result === "pending" || l.result === undefined))));
   const openCards = Object.values(cards.cards).filter(c => c.status !== "graded" && +new Date(c.t) <= now);
   const openBook = Object.keys(cards.book).filter(id => +new Date(cards.book[id].t) <= now);
   if (open.length || openCards.length || openBook.length) {
@@ -350,7 +352,10 @@ function gradeLeg(l, games, stats) {
   // Only legs rated by the current model (Nov 3 change: book is the backbone, HIST_K=120). Older live legs carry the old,
   // too-optimistic estimates and would push today's corrections the wrong way (Nov 5 finding). They stay in the file.
   const MODEL_T = Date.parse("2026-11-03T16:00:00Z");
-  if (useBook) for (const x of graded.legs) { if (x[3] < MODEL_T) continue; const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n++; c.exp += x[1]; c.hits += x[2]; }
+  // NBA has no replay to lean on, so its older live legs still count, at half weight (Nov 9 review: out-of-sample Brier
+  // .2384 -> .2368 on 5,482 weekend props, better on all 4 days). NFL and college keep the current-model-only rule.
+  const OLD_W = SPORT === "nba" ? 0.5 : 0;
+  if (useBook) for (const x of graded.legs) { const w = x[3] < MODEL_T ? OLD_W : 1; if (!w) continue; const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n += w; c.exp += w * x[1]; c.hits += w * x[2]; }
   // NFL: past seasons from the backtest count too, at half weight so this season's results can still move things
   const past = SPORT === "nfl" ? readJSON("backtest/graded-legs.json", { legs: [] }).legs : [];
   for (const x of past) { const c = byCat[x[0]] = byCat[x[0]] || { n: 0, hits: 0, exp: 0 }; c.n += 0.5; c.exp += 0.5 * x[1]; c.hits += 0.5 * x[2]; }
