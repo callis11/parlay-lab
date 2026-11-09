@@ -1,4 +1,4 @@
-name: Backtest pull (historical NFL odds)
+name: Backtest pull (historical NFL odds) 
 on:
   workflow_dispatch:
     inputs:
