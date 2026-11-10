@@ -23,6 +23,16 @@ function out(k, v) { if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.en
   const odds = read(DIR + "odds.json"), now = Date.now();
   const on = ((odds && odds.lines) || []).filter(e => { const t = +new Date(e.commence_time); return t <= now && t > now - LIVE_H * 36e5; });
   if (!on.length) { console.log(SP, "no game on right now: no pull (free)"); out("fetched", "false"); return; }
+  // Credit pacer (budget.js, Nov 10). College only (the owner protects the NFL): pull while Michigan State or a ranked
+  // team is playing (level 1+: Michigan State only), at most every 10 minutes. One pull still prices every game on.
+  if (SP === "cfb" && process.env.FORCE !== "true") {
+    const P = require("./budget.js").note(require("./budget.js").pace(), "cfb live"), data = read("cfb/data.json") || {};
+    const nm = t => (data.names && data.names[t]) || t, msu = t => /^Michigan St/.test(t), ranked = t => /^#\d+/.test(nm(t));
+    const key = on.filter(e => msu(e.home_team) || msu(e.away_team) || (P.level < 1 && (ranked(e.home_team) || ranked(e.away_team))));
+    if (!key.length) { console.log("cfb: no", P.level < 1 ? "Michigan State or ranked" : "Michigan State", "game on: no live pull (credit pacer)"); out("fetched", "false"); return; }
+    const last = read(DIR + "live.json");
+    if (last && Date.now() - new Date(last.fetchedAt) < 9.5 * 6e4) { console.log("cfb: live prices are under 10 minutes old: no pull (credit pacer)"); out("fetched", "false"); return; }
+  }
   // Credits are shared by every sport: use the newest count any of our files saw
   let cr = null, crAt = 0;
   ["odds.json", "nba/odds.json", "cfb/odds.json", "cbb/odds.json", "live.json", "cfb/live.json"].forEach(f => { const j = read(f); if (j && j.creditsRemaining != null) { const at = +new Date(j.fetchedAt || 0); if (at > crAt) { crAt = at; cr = j.creditsRemaining; } } });

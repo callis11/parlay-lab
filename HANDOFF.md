@@ -7,6 +7,12 @@ Read this first, then `README.md`. Everything lives in this repo (github.com/cal
 ## What ParlayLabs is for (owner, Oct 31; read this first)
 Built for people who **don't follow sports closely** but still want to make good parlay decisions and build their own. LadderUp (his buddy's site) serves people who already know what's happening in the games; ParlayLabs replaces that knowledge with **data, history and plain-English reasons**. the owner will spend money on data to make it as **open, honest and understandable** as possible. He loves stats: more stats, and more "here's why" a reader can dig into, is better. Every feature should answer: could a non-fan understand this number and trust why it's there?
 
+## Credit pacer (Nov 10, owner: "don't cut NFL unless you have to, change whatever else")
+- Credits were running out (~14.4K left Nov 10, ~7.5K/week burn, reset Dec 1). `budget.js` is the pacer: credits left (newest across odds/live files) vs weekly estimates (`PACE_*` env vars) until the 1st (UTC). `node budget.js` prints the level. Each fetcher logs `[pace] ...` and saves `pace` in its odds.json.
+- Level 0 all on · 1 other sports at minimum (college props 6 games, college live Michigan State only, no CBB first-half lines) · 2 NBA + college player props off (lines keep updating) · 3 NFL more-market types once a day (was 6 h) · 4 NFL props at most every 2 h. Nov 10 it starts at **level 3**. If real spend is lower than the estimates, the level drops on its own. `PACE_LEVEL=n` forces a level.
+- Lean defaults (always): NBA props bought once per game (the last scheduled run before tip; runs before 2 PM ET only buy games within 7 h); college football props MSU + ranked first, max 12 games, every 12 h (was all Power 4, 45, every 5 h); college live only while MSU or a ranked team plays, at most every 10 min; CBB first-half lines max 5 games. NFL defaults unchanged.
+- Dec 1: the planned ~20K history pulls (college props, 2023 openers) will eat into December; consider spreading them over two months.
+
 ## START HERE (next chat, set Oct 31 late)
 Priorities, in order:
 0. **Edge signs are live (Nov 3).** See "Signal study: where the edge is" for what they are and what's left (calibration rerun, NBA).

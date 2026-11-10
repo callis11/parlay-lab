@@ -23,7 +23,9 @@ const EXTRA_MARKETS = ["player_receptions", "player_receptions_alternate", "play
 const DEEP_MARKETS = ["player_pass_attempts", "player_pass_completions", "player_pass_interceptions", "player_rush_attempts", "player_rush_tds", "player_reception_tds",
   "player_rush_reception_tds", "player_pass_rush_reception_yds", "player_sacks", "player_solo_tackles", "player_tackles_assists", "player_assists",
   "player_defensive_interceptions", "player_field_goals", "player_kicking_points"];
-const DEEP_HOURS = +(process.env.DEEP_HOURS || 6), DEEP_MIN = +(process.env.DEEP_MIN || 4000);
+const PACE = require("./budget.js").note(require("./budget.js").pace(), "NFL");
+// Credit pacer (budget.js): level 3+ pulls the more market types once a day instead of every 6 hours
+const DEEP_HOURS = Math.max(+(process.env.DEEP_HOURS || 6), PACE.level >= 3 ? 24 : 0), DEEP_MIN = +(process.env.DEEP_MIN || 4000);
 // Stop pulling props when credits get this low, so game lines keep updating until the plan resets
 const MIN_CREDITS_FOR_PROPS = 400;
 
@@ -47,8 +49,10 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
   const started = new Set(lines.filter(x => new Date(x.commence_time) <= Date.now()).map(x => x.id));
   let props = [], markets = CORE_MARKETS.concat(EXTRA_MARKETS), propsAt = new Date().toISOString();
 
-  if (remaining !== null && remaining < MIN_CREDITS_FOR_PROPS + upcoming.length * markets.length) {
-    console.warn(`Only ${remaining} credits left: keeping the last props pull instead of spending more.`);
+  // Credit pacer level 4: props refresh at most every 2 hours (game lines still update every run)
+  const paceHold = PACE.level >= 4 && old && old.props && old.propsAt && Date.now() - new Date(old.propsAt) < 2 * 36e5 && process.env.FORCE !== "true";
+  if (paceHold || (remaining !== null && remaining < MIN_CREDITS_FOR_PROPS + upcoming.length * markets.length)) {
+    console.warn(paceHold ? `Credit pacer: props pulled at ${old.propsAt}, reusing them (lines updated).` : `Only ${remaining} credits left: keeping the last props pull instead of spending more.`);
     props = (old && old.props) || [];
     propsAt = (old && (old.propsAt || old.fetchedAt)) || null;
   } else {
@@ -86,6 +90,6 @@ function readOld() { try { return JSON.parse(fs.readFileSync("odds.json", "utf8"
   for (const ev of props) { const d = deep.events[ev.id]; if (!d) continue;
     for (const db of d.bookmakers) { let b = (ev.bookmakers || []).find(x => x.key === db.key); if (!b) { b = { key: db.key, title: db.title, markets: [] }; (ev.bookmakers = ev.bookmakers || []).push(b); }
       b.markets = b.markets.filter(m => !DEEP_MARKETS.includes(m.key)).concat(db.markets.filter(m => DEEP_MARKETS.includes(m.key))); } }
-  fs.writeFileSync("odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, lines, props, deep }));
+  fs.writeFileSync("odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, pace: PACE.level, lines, props, deep }));
   console.log("Saved odds.json:", lines.length, "games,", props.length, "prop events. Credits remaining:", remaining);
 })();

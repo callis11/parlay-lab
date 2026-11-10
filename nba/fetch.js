@@ -1,7 +1,7 @@
 // NBA: pulls game lines + player props from The Odds API and saves nba/odds.json
 // Run from the repo root: ODDS_API_KEY=your_key node nba/fetch.js
 //
-// Cost per run: 3 credits for game lines + 7 per game starting in the next 18 hours (about 60 on a typical night).
+// Cost per run: 3 credits for game lines + 7 per game, bought once per game (Nov 10 credit pacer; was every run).
 // The schedule check uses The Odds API's free events list, so days without games cost nothing.
 
 const fs = require("fs");
@@ -35,18 +35,27 @@ function readOld() { try { return JSON.parse(fs.readFileSync("nba/odds.json", "u
 
   const lines = await get(`${BASE}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=h2h,spreads,totals&oddsFormat=american&includeLinks=true&includeSids=true`);
   const old = readOld();
-  let props = [], propsAt = new Date().toISOString();
+  // Credit pacer (budget.js, Nov 10): each game's props are bought once, by the last scheduled run before tip-off.
+  // Runs before 2 PM ET (morning + after-game runs) only buy games tipping within 7 hours (weekend day games);
+  // the 4:35 PM run buys tonight's games. Games keep their props once bought. Level 2+: no new NBA props.
+  const PACE = require("../budget.js").note(require("../budget.js").pace(), "NBA");
+  const etHour = +new Date(now).toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false }) % 24;
+  const buyBy = etHour < 14 ? now + 7 * 36e5 : end;
+  let props = ((old && old.props) || []).filter(p => +new Date(p.commence_time) > now - 12 * 36e5), propsAt = (old && old.propsAt) || null;
+  const have = new Set(props.map(p => p.id));
   const upcoming = lines.filter(x => { const t = +new Date(x.commence_time); return t > now && t < end; });
-  if (remaining !== null && remaining < MIN_CREDITS_FOR_PROPS + upcoming.length * MARKETS.length) {
-    console.warn(`Only ${remaining} credits left: keeping the last props pull.`);
-    props = (old && old.props) || []; propsAt = (old && old.propsAt) || null;
-  } else {
-    for (const g of upcoming) {
-      try { props.push(await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${MARKETS.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`)); }
+  const buy = upcoming.filter(x => process.env.FORCE === "true" || (!have.has(x.id) && +new Date(x.commence_time) < buyBy));
+  if (PACE.level >= 2 && process.env.FORCE !== "true") console.log("Credit pacer level 2+: no new NBA props (game lines still update).");
+  else if (remaining !== null && remaining < MIN_CREDITS_FOR_PROPS + buy.length * MARKETS.length) console.warn(`Only ${remaining} credits left: keeping the last props pull.`);
+  else {
+    for (const g of buy) {
+      try { const j = await get(`${BASE}/events/${g.id}/odds?apiKey=${KEY}&bookmakers=${BOOKS}&markets=${MARKETS.join(",")}&oddsFormat=american&includeLinks=true&includeSids=true`);
+        props = props.filter(p => p.id !== g.id); props.push(j); propsAt = new Date().toISOString(); }
       catch (e) { console.warn("props failed for", g.id, e.message); }
     }
+    console.log("NBA props bought for", buy.length, "games;", upcoming.length - buy.length, "reused or left for the afternoon run.");
   }
-  fs.writeFileSync("nba/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, lines, props }));
+  fs.writeFileSync("nba/odds.json", JSON.stringify({ fetchedAt: new Date().toISOString(), propsAt, creditsRemaining: remaining, pace: PACE.level, lines, props }));
   console.log("Saved nba/odds.json:", lines.length, "games,", props.length, "prop events. Credits remaining:", remaining);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, "fetched=true\n");
 })();
