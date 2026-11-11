@@ -144,8 +144,13 @@ html,body{overflow-anchor:none}.qtrack{display:flex;align-items:flex-start;gap:1
 @media (min-width:1700px) and (hover:hover){
 body.dual .wrap{max-width:1560px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;align-items:start}
 body.dual .wrap>*{grid-column:1/-1}
-body.dual .wrap>#v-parlays{grid-column:1;grid-row:3}
-body.dual .wrap>#v-build{grid-column:2;grid-row:3;position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow-y:auto;padding-right:4px}
+.gboard{display:none}.gboard:not([hidden]){display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;margin:0 0 10px;scrollbar-width:thin}
+.gt{flex:0 0 auto;min-width:176px;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.gt b{font-size:13px;white-space:nowrap}.gt small,.gt span{font-size:12px;color:var(--muted);white-space:nowrap}.gt i{font-style:normal;font-size:11px;font-weight:700;color:var(--green-ink);background:var(--green);border-radius:4px;padding:1px 6px;align-self:flex-start;margin-top:2px}
+.gt[aria-pressed="true"]{border-color:var(--flag);background:var(--surface2)}.gt.insl{box-shadow:0 0 0 1px var(--green) inset}.gt .lv{color:var(--red);font-weight:700}
+body.dual .wrap>#gboard{grid-row:3}
+body.dual .wrap>#v-parlays{grid-column:1;grid-row:4}
+body.dual .wrap>#v-build{grid-column:2;grid-row:4;position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow-y:auto;padding-right:4px}
 }
 /* Computer layout (Nov 11): wide screens with a mouse only (iPhone and iPad keep the phone layout). The slip and queued bets live in a panel on the right instead of the bottom bar. */
 @media (min-width:1100px) and (hover:hover){
@@ -733,6 +738,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <button class="tab" role="tab" id="t-results" data-v="results" aria-selected="false" aria-controls="v-results">Results</button>
 </div>
 
+<div id="gboard" class="gboard" hidden aria-label="Games this week"></div>
 <section id="v-parlays" role="tabpanel" aria-labelledby="t-parlays">
   <div class="start1" id="start1" hidden><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>New here? Start in 3 taps</b><button class="lnk" id="start1x" aria-label="Hide this">✕</button></div>
     <ol><li><b>Pick a parlay below</b> and tap <b>Add bet</b>, or open <b>Picks</b> and tap the ones you like.</li>
@@ -3169,6 +3175,7 @@ function route(){
   // very wide screens with a mouse: Parlays and Picks side by side (body.dual, see the 1700px media block)
   var dual=DUALQ.matches&&(v==="parlays"||v==="build");document.body.classList.toggle("dual",dual);
   if(dual){$("v-parlays").hidden=false;$("v-build").hidden=false;if(DATA)try{renderBuild()}catch(e){}}
+  try{renderBoard()}catch(e){}
   if(v==="results"&&DATA&&RESDIRTY){RESDIRTY=false;renderResults()}
   if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();TPICKED=true;TSIDE="team";if(DATA){renderTeam();renderSlip()}}
   if(v==="results"&&DATA&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},300);else setTimeout(scAuto,0);
@@ -3287,6 +3294,19 @@ var AMT={};
 function qLinks(legs,stake,attr){var apps=[BOOK].concat(MYAPPS.filter(function(a){return a!==BOOK})),b=[];
   apps.forEach(function(bk){var L=Engine.betslipLink(legs,bk,stake);if(L&&L.combined)b.push('<a class="btn qlk'+(bk===BOOK?" flag":"")+'" '+attr.replace("{bk}",bk)+' href="'+esc(L.url)+'" target="_blank" rel="noopener"><small>Open in</small><b>'+esc(Engine.BOOK_NAMES[bk]||bk)+'</b>'+(L.n<legs.length?'<small>only '+L.n+' of '+legs.length+' picks</small>':'')+'</a>')});
   return b.length?'<div class="qlinks">'+b.join("")+'</div>':'<p class="sub" style="margin:0">No app link yet. Add its picks by hand.</p>'}
+// Game board strip (very wide screens only): one tile per open game with spread, total and moneylines. Tap a tile to filter Picks to that game
+// (tap again to clear). A tile lights up when your slip has a pick from that game.
+function renderBoard(){var el=$("gboard");if(!el)return;
+  if(!document.body.classList.contains("dual")||!GAMES||!GAMES.length){el.hidden=true;return}
+  var inSl={};Object.keys(SLIP).forEach(function(k){var e=SLIP[k].ev;inSl[e]=(inSl[e]||0)+1});
+  el.innerHTML=GAMES.filter(function(g){return gOpen(g)}).slice().sort(function(a,b){return new Date(a.t)-new Date(b.t)}).map(function(g){
+    var L=g.legs||{},fav="";["sp-h","sp-a"].forEach(function(k){if(L[k]&&L[k].pt<0)fav=L[k].n+" ("+fmt(L[k].a)+")"});
+    var when=g.live?'<span class="lv">🔴 LIVE'+(g.live.detail?" · "+esc(g.live.detail):"")+'</span>':'<small>'+esc(new Date(g.t).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit",timeZone:"America/New_York"}).replace(":00","")+" ET")+'</small>',
+      ml=(L["ml-a"]&&L["ml-h"])?'<span>ML '+esc(g.away)+" "+fmt(L["ml-a"].a)+" · "+esc(g.home)+" "+fmt(L["ml-h"].a)+'</span>':"",n=inSl[g.id]||0;
+    return'<button class="gt'+(n?" insl":"")+'" data-gtile="'+esc(g.id)+'" aria-pressed="'+(BLD.game===g.id)+'"><b>'+esc(g.away)+" @ "+esc(g.home)+'</b>'+when+(fav?'<span>'+esc(fav)+'</span>':"")+(g.total!=null?'<span>O/U '+g.total+'</span>':"")+ml+(n?'<i>'+n+' in your slip</i>':"")+'</button>'}).join("");
+  el.hidden=!el.innerHTML}
+document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-gtile]");if(!t)return;var id=t.dataset.gtile;
+  BLD.game=BLD.game===id?"":id;BLD.win="";try{renderBuild()}catch(err){}renderBoard()});
 // Totals across every open bet (computer layout shows this at the top of the side panel; hidden on phones). Chances are our estimates;
 // bets that share a game are linked, so "at least one wins" is only a rough guide then.
 function qTotals(left,nSlip){var rows=[];
@@ -3303,7 +3323,7 @@ function qTotals(left,nSlip){var rows=[];
     '<p class="sub" style="grid-column:1/-1;margin:0;font-size:11px">Our estimates for '+rows.length+' bet'+(rows.length>1?"s":"")+'. Bets that share a game are linked, so treat these as a guide.</p></div>'}
 // everything you are about to bet lives here, in the bottom slip: your slip being built, then your queued bets. Swipe left/right.
 function qPanel(barOnly){
-  var el=$("qPanel");if(!el)return;
+  var el=$("qPanel");if(!el)return;try{renderBoard()}catch(e){}
   var left=[],placed=QUEUE.filter(function(q){return q.st===1}).length,nSlip=Object.keys(SLIP).length,more=$("slipMore");
   QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});
   var total=left.length+(nSlip?1:0),chip=$("qChip");
