@@ -2690,6 +2690,9 @@ function modelSplit(done){var nw=done.filter(function(s){return(s.saved||s.lock)
     var nu=Object.keys(u).length;
     return'<li><b>'+lab+':</b> '+a.length+' slips, won '+w+' (we expected about '+Math.round(e)+'). '+nu+' different picks hit '+uh+' (we said about '+Math.round(ue)+').</li>'}
   return'<ul class="rl" style="margin:10px 0 0">'+line(nw,"Current model (since Nov 3)")+(od?line(done.filter(function(s){return(s.saved||s.lock)<MODEL_T}),"Old model (before Nov 3, history counted too much)"):"")+'</ul>'+(nw.length?"":'<p class="sub" style="margin:6px 0 0">The current model\'s first slips grade after this week\'s games.</p>')}
+// Results is the heaviest tab (about 4,500 page elements). Build it only when it is on screen, so opening the app on an iPhone stays light (Nov 11).
+var RESDIRTY=true;
+function renderResultsLazy(){var v=$("v-results");if(v&&!v.hidden){RESDIRTY=false;renderResults()}else RESDIRTY=true}
 function renderResults(){
   renderMyBets();renderBacktest();renderWeek();renderCLV();renderEdges();renderBooks();
   if($("v-results")&&!$("v-results").hidden&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},500);
@@ -2971,7 +2974,7 @@ function renderSync(){
 
 function renderAll(){
   build();slipRestore();renderMyTeam();renderGames();renderProps();renderBuild();
-  renderParlays();renderTeam();renderResults();liveAuto();
+  renderParlays();renderTeam();renderResultsLazy();liveAuto();
   var fm=$("fMkt"),mv=fm.value,labs=[];PROPS.forEach(function(p){if(labs.indexOf(p.label)<0)labs.push(p.label)});
   fm.innerHTML='<option value="">All markets</option>'+labs.map(function(l){return"<option>"+esc(l)+"</option>"}).join("");fm.value=labs.indexOf(mv)>=0?mv:"";
   var fg=$("fGame"),v=fg.value;fg.innerHTML='<option value="">All games</option>'+GAMES.filter(function(g){return+new Date(g.t)>Date.now()}).sort(byTimeRank).map(function(g){return'<option value="'+g.id+'">'+g.away+" @ "+g.home+" · "+gTime(g.t)+"</option>"}).join("");fg.value=v;
@@ -3141,6 +3144,7 @@ function route(){
   if(v==="props")v="build";
   if(["parlays","build","games","props","team","results"].indexOf(v)<0)v="parlays";
   ["parlays","build","games","props","team","results"].forEach(function(x){$("t-"+x).setAttribute("aria-selected",x===v);$("v-"+x).hidden=x!==v});
+  if(v==="results"&&DATA&&RESDIRTY){RESDIRTY=false;renderResults()}
   if(v==="team"&&h.length>5){TEAM=h.slice(5).toUpperCase();TPICKED=true;TSIDE="team";if(DATA){renderTeam();renderSlip()}}
   if(v==="results"&&DATA&&Date.now()-SC.at>6e4)setTimeout(function(){checkScores(true)},300);else setTimeout(scAuto,0);
 }
