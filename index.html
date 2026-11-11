@@ -460,6 +460,7 @@ select,input,textarea{font-size:max(16px,1em)}
 .bstrip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:4;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:6px 10px;margin:8px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
 .bstrip.on{border-color:color-mix(in srgb,var(--flag) 55%,var(--line))}
 .bstrip .bbt{display:flex;gap:6px}
+.qsel{display:flex;flex-direction:column;gap:8px}.qsr{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}.qsr.on{border-color:var(--flag);background:var(--surface2)}.qsr input{width:24px;height:24px;flex:none;accent-color:var(--flag)}.qsb{flex:1;min-width:0}.qsb b{display:block;font-size:14px}.qsb .sub{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qso{text-align:right;flex:none}.qso b{display:block;font-size:16px}.qso small{display:block;font-size:11px}
 .qhead{display:flex;justify-content:space-between;align-items:center}.qhb{display:flex;gap:10px;align-items:center}.qnext{min-height:28px;padding:2px 10px;font-size:12px}.bstrip .btn{min-height:34px;padding:4px 12px;font-size:13px}
 .bslip.empty2{color:var(--muted);font-size:14px;text-align:center}
 .bslip .gh{display:flex;justify-content:space-between;align-items:flex-end}
@@ -3268,7 +3269,16 @@ function qPanel(barOnly){
   else if(left.length)$("sumL").textContent+=" · "+left.length+" queued";
   if(barOnly)return;
   if(!total&&!placed&&QLAST<0){el.innerHTML='<p class="sub" style="margin:0 0 10px"><b>No bets yet.</b> Tap <b>Add bet</b> on any parlay, or tap teams, lines and players to build your own. Each bet shows up here as a card you can swipe through, with a button to open it in your app.'+(NEWB?'<br><br><b>New to parlays?</b> A parlay joins 2 or more picks into one bet. Every pick has to win: if one loses, the whole bet loses. That\'s why it pays more than a single bet.':'')+'</p>';return}
-  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<span class="qhb">'+(nSlip?'<button class="btn flag qnext" data-bnew="1">Next slip</button>':'')+(total>1?'<button class="lnk" data-qcomb="1" style="padding:0 10px 0 0">⊕ Combine all</button>':'')+'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button></span>':'')+'</div>',cards=[];
+  if(total<3)QSEL=null;
+  if(QSEL){var sk={};if(nSlip)sk.s=1;left.forEach(function(i){sk["q"+i]=1});Object.keys(QSEL).forEach(function(k){if(!sk[k])delete QSEL[k]})}
+  if(QSEL){var rows=[],nsel=Object.keys(QSEL).length;
+    function qrow(key,title,legs){var d=1;legs.forEach(function(l){d*=dec(l.a)});var names=legs.map(function(l){return l.n});
+      return'<label class="qsr'+(QSEL[key]?' on':'')+'"><input type="checkbox" data-qsel="'+key+'"'+(QSEL[key]?' checked':'')+'><span class="qsb"><b>'+esc(title)+'</b><span class="sub" style="margin:0">'+esc(names.length>2?names[0]+" + "+(names.length-1)+" more":names.join(" + "))+'</span></span><span class="qso"><b>'+am(d)+'</b><small class="sub" style="margin:0">'+legs.length+' pick'+(legs.length>1?'s':'')+'</small></span></label>'}
+    if(nSlip)rows.push(qrow("s","Your slip · building",Object.keys(SLIP).map(function(k){return SLIP[k]})));
+    left.forEach(function(i,pos){var q=QUEUE[i];rows.push(qrow("q"+i,"Bet "+(pos+1)+" of "+left.length+(q.n&&!/^Bundle bet/.test(q.n)?" · "+q.n:""),q.legs))});
+    el.innerHTML='<div class="qhead"><b>Pick the bets to combine</b></div><p class="sub" style="margin:2px 0 8px">Tap 2 or more. The rest stay as they are.</p><div class="qsel">'+rows.join("")+'</div>'+
+      '<div style="display:flex;gap:10px;margin-top:10px"><button class="btn" data-qcomb="cancel" style="flex:1">Cancel</button><button class="btn flag" data-qcomb="sel" style="flex:2"'+(nsel<2?' disabled':'')+'>⊕ Combine'+(nsel>=2?' '+nsel+' bets':'')+'</button></div><hr style="border:0;border-top:1px solid var(--line);margin:8px 0">';return}
+  var h='<div class="qhead"><b>'+(total?'Your bets · '+total:'Bet queue')+'</b>'+(total>0?'<span class="qhb">'+(nSlip?'<button class="btn flag qnext" data-bnew="1">Next slip</button>':'')+(total>1?'<button class="lnk" data-qcomb="'+(total>2?'pick':'all')+'" style="padding:0 10px 0 0">⊕ Combine</button>':'')+'<button class="lnk" data-qcompact="1" style="padding:0">'+(QCOMPACT?'▭ Expand':'▤ Collapse')+'</button></span>':'')+'</div>',cards=[];
   if(nSlip){var legs=Object.keys(SLIP).map(function(k){return SLIP[k]}),d=1,ch=null,sg=false,evs={},stake=parseFloat($("stake").value)||USUAL,started=legs.some(function(l){return legStarted(l)});
     legs.forEach(function(l){d*=dec(l.a);if(evs[l.ev])sg=true;evs[l.ev]=1});try{ch=slipChance(legs).ch}catch(e){}
     AMT.s=stake;
@@ -3361,20 +3371,27 @@ document.addEventListener("change",function(e){if(e.target&&e.target.id==="recFi
 // ⊕ Combine all (Nov 8): every queued bet plus the slip being built become one parlay in the slip. Same pick twice = kept once;
 // two different picks on the same market (both sides, two lines for one player stat) can't share a parlay, so the first one stays.
 // Started games are dropped. Undo combine puts the queue and slip back exactly as they were.
-var QCOMB=null;
-function qCombine(){var left=QUEUE.filter(function(q){return q.st===0}),nS=Object.keys(SLIP).length;if(left.length+(nS?1:0)<2)return;
+var QCOMB=null,QSEL=null;
+// With 2 bets the button combines them right away. With 3 or more it opens a checklist (QSEL) and combines only the ones you tick.
+// The result goes into the slip when the slip is empty or ticked; otherwise it becomes a new queued bet so the slip you are building is never overwritten.
+function qCombine(sel){var left=[];QUEUE.forEach(function(q,i){if(q.st===0)left.push(i)});var nS=Object.keys(SLIP).length;
+  var useS=nS>0&&(!sel||!!sel.s),idx=sel?left.filter(function(i){return sel["q"+i]}):left;
+  if(idx.length+(useS?1:0)<2)return;
+  var toSlip=!sel||useS||!nS,target=toSlip?SLIP:{};
   QCOMB={queue:JSON.parse(JSON.stringify(QUEUE)),slip:Object.assign({},SLIP),qlast:QLAST};
-  var dup=0,clash=0,gone=0,added=0;
-  left.forEach(function(q){q.legs.forEach(function(l){if(legStarted(l)){gone++;return}var c=SLIP[l.k];
+  var dup=0,clash=0,gone=0,n=idx.length+(useS?1:0),stake0=QUEUE[idx[0]]&&QUEUE[idx[0]].stake;
+  idx.forEach(function(i){var q=QUEUE[i];q.legs.forEach(function(l){if(legStarted(l)){gone++;return}var c=target[l.k];
     if(c){if((c.t||"")===(l.t||"")&&String(c.line)===String(l.line)&&(c.side||"")===(l.side||""))dup++;else clash++;return}
-    SLIP[l.k]=Object.assign({},l);added++});q.st=2});
-  QLAST=-1;qSave();if(typeof slipSave==="function")slipSave();renderSlip();
-  var L=Object.keys(SLIP).map(function(k){return SLIP[k]}),d=1;L.forEach(function(l){d*=dec(l.a)});
+    target[l.k]=Object.assign({},l)});q.st=2});
+  var L=Object.keys(target).map(function(k){return target[k]}),d=1;L.forEach(function(l){d*=dec(l.a)});
+  if(!toSlip)QUEUE.push({n:"Combined",legs:L,st:0,at:Date.now(),stake:stake0||0});
+  QSEL=null;QLAST=-1;qSave();if(typeof slipSave==="function")slipSave();renderSlip();
   var note=[];if(dup)note.push(dup+" repeat pick"+(dup>1?"s":"")+" kept once");if(clash)note.push(clash+" skipped (same player stat or game line at a different number)");if(gone)note.push(gone+" from started games dropped");
-  toast("Combined into one parlay: "+L.length+" picks at "+am(d)+"."+(note.length?" "+note.join("; ")+".":"")+" Tap Undo combine to split them back.")}
+  toast("Combined "+n+" bets into one parlay: "+L.length+" picks at "+am(d)+"."+(toSlip?"":" It is a new bet in your queue.")+(note.length?" "+note.join("; ")+".":"")+" Tap Undo combine to split them back.")}
 function qCombUndo(){if(!QCOMB)return;QUEUE=QCOMB.queue;SLIP=QCOMB.slip;QLAST=QCOMB.qlast;QCOMB=null;qSave();if(typeof slipSave==="function")slipSave();renderSlip();toast("Split back into your separate bets.")}
-document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-qcomb],[data-qcombundo]");if(!b)return;e.stopPropagation();if(b.dataset.qcomb)qCombine();else qCombUndo()},true);
-function qAct(a,i){QCOMB=null;
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-qcomb],[data-qcombundo]");if(!b)return;e.stopPropagation();var v=b.dataset.qcomb;if(v==="pick"){QSEL={};qPanel()}else if(v==="cancel"){QSEL=null;qPanel()}else if(v==="sel")qCombine(QSEL||{});else if(v)qCombine();else qCombUndo()},true);
+document.addEventListener("change",function(e){var t=e.target;if(!(t&&t.dataset&&t.dataset.qsel)||!QSEL)return;if(t.checked)QSEL[t.dataset.qsel]=1;else delete QSEL[t.dataset.qsel];qPanel()});
+function qAct(a,i){QCOMB=null;QSEL=null;
   if(a==="c"){QUEUE=QUEUE.filter(function(q){return q.st===0});QLAST=-1}
   else if(a==="ps"){recOpen("s");return}
   else{var q=QUEUE[i];if(!q)return;q.st=a==="p"?1:a==="r"?2:0;QLAST=a==="u"?-1:i;
