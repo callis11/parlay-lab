@@ -153,13 +153,13 @@ async function buildData(odds, ctx) {
   [...statsPrev, ...statsNow].filter(r => r.season_type === "REG").forEach(r => {
     const k = norm(r.player_display_name); (byPlayer[k] = byPlayer[k] || []).push(r);
   });
-  // RBs who were on the field for offense but have no stat line (no carry, no target) never made it into the data above, so a
+  // RBs, WRs and TEs who were on the field for offense but have no stat line (no carry, no target) never made it into the data above, so a
   // backup's history looked like "caught a pass every time he touched the ball". Add those games back as zeros (live builds only).
   if (ctx.snaps) {
     const have = new Set(); [...statsPrev, ...statsNow].forEach(r => { if (r.season_type === "REG") have.add(norm(r.player_display_name) + "|" + r.game_id); });
     const tmpl = statsNow.find(r => r.season_type === "REG") || statsPrev.find(r => r.season_type === "REG"); let added = 0;
     if (tmpl) ctx.snaps.forEach(r => {
-      if (r.game_type !== "REG" || !/^(RB|FB)$/.test(r.position) || !(+r.offense_snaps > 0)) return;
+      if (r.game_type !== "REG" || !/^(RB|FB|WR|TE)$/.test(r.position) || !(+r.offense_snaps > 0)) return;
       const k = norm(r.player); if (have.has(k + "|" + r.game_id) || !byPlayer[k]) return; // only players we already track by name
       const z = {}; for (const f in tmpl) z[f] = "0";
       Object.assign(z, { player_display_name: r.player, player_name: r.player, position: r.position, team: r.team, recent_team: r.team, season: r.season, week: r.week, season_type: "REG", opponent_team: r.opponent, game_id: r.game_id, noStat: true });
