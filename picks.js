@@ -193,6 +193,7 @@ function buildCards(cards, book) {
       const base = { kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line };
       const over = Object.assign({}, base, { side: "over", a: r.a, p: r.p, p0: r.p0, nm: ENG_NAME(p, r, "over"), es: r.sg ? Engine.edgeTotal(r.sg) : 0 });
       if (r.a >= -400 && r.a <= 250) all.push(over);
+      if (p.role && /^RB/.test(p.role.dc || "") && !p.role.st && p.role.gp > 0) over.bkRB = 1; // backup running back (kept out of Pieces)
       if (p.td) tds.push(over); else overs.push(over);
       if (r.under !== undefined && !p.td) {
         const under = Object.assign({}, base, { side: "under", a: r.under, p: r.pu !== undefined ? r.pu : 1 - r.p, p0: r.pu0 !== undefined ? r.pu0 : (r.p0 !== undefined ? 1 - r.p0 : undefined), nm: ENG_NAME(p, r, "under"), es: r.sgU ? Engine.edgeTotal(r.sgU) : 0 });
@@ -202,7 +203,7 @@ function buildCards(cards, book) {
     }
     ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un"].forEach(t => { const L = g.legs[t]; all.push({ kind: "g", t, pt: L.pt, a: L.a, p: g.p[t], p0: g.p0[t], nm: L.n }); });
     const onePer = (arr, n) => { const seen = {}, out = []; for (const x of arr) { const k = x.player + "|" + x.label; if (seen[k]) continue; seen[k] = 1; out.push(x); if (out.length === n) break; } return out; };
-    const pieces = onePer(overs.filter(x => x.a >= -700 && x.a <= -110).sort((a, b) => b.p - a.p), 20);
+    const pieces = onePer(overs.filter(x => x.a >= -700 && x.a <= -110 && !x.bkRB).sort((a, b) => b.p - a.p), 20);
     const straights = onePer(mains.map(m => {
       const eo = m.over.p * dec(m.over.a) - 1, eu = m.under.p * dec(m.under.a) - 1;
       return eo >= eu ? Object.assign({ edge: eo }, m.over) : Object.assign({ edge: eu }, m.under);
