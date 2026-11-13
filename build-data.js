@@ -153,6 +153,20 @@ async function buildData(odds, ctx) {
   [...statsPrev, ...statsNow].filter(r => r.season_type === "REG").forEach(r => {
     const k = norm(r.player_display_name); (byPlayer[k] = byPlayer[k] || []).push(r);
   });
+  // RBs who were on the field for offense but have no stat line (no carry, no target) never made it into the data above, so a
+  // backup's history looked like "caught a pass every time he touched the ball". Add those games back as zeros (live builds only).
+  if (ctx.snaps) {
+    const have = new Set(); [...statsPrev, ...statsNow].forEach(r => { if (r.season_type === "REG") have.add(norm(r.player_display_name) + "|" + r.game_id); });
+    const tmpl = statsNow.find(r => r.season_type === "REG") || statsPrev.find(r => r.season_type === "REG"); let added = 0;
+    if (tmpl) ctx.snaps.forEach(r => {
+      if (r.game_type !== "REG" || !/^(RB|FB)$/.test(r.position) || !(+r.offense_snaps > 0)) return;
+      const k = norm(r.player); if (have.has(k + "|" + r.game_id) || !byPlayer[k]) return; // only players we already track by name
+      const z = {}; for (const f in tmpl) z[f] = "0";
+      Object.assign(z, { player_display_name: r.player, player_name: r.player, position: r.position, team: r.team, recent_team: r.team, season: r.season, week: r.week, season_type: "REG", opponent_team: r.opponent, game_id: r.game_id, noStat: true });
+      byPlayer[k].push(z); have.add(k + "|" + r.game_id); added++;
+    });
+    console.log("RB games with snaps but no stat line added as zeros:", added);
+  }
   for (const k in byPlayer) byPlayer[k].sort((a, b) => (+a.season - +b.season) || (+a.week - +b.week));
   // Every regular-season game since 2023 (ctx.statsOld adds the older seasons), for "hit this exact line in X of Y games"
   const longRun = {};
@@ -291,12 +305,13 @@ async function main() {
     getCSV(`${NFLVERSE}/stats_player/stats_player_week_${SEASON - 1}.csv`),
     getCSV(`${NFLVERSE}/injuries/injuries_${SEASON}.csv`)
   ]);
+  let snaps = []; try { snaps = [...await getCSV(`${NFLVERSE}/snap_counts/snap_counts_${SEASON - 1}.csv`), ...await getCSV(`${NFLVERSE}/snap_counts/snap_counts_${SEASON}.csv`)]; } catch (e) { console.warn("snap zero-fill skipped:", e.message); }
   const statsOld = [];
   for (let y = 2023; y < SEASON - 1; y++) statsOld.push(...await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${y}.csv`));
   console.log("injury rows:", injuries.length);
   console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
   let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
-  const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0, statsOld });
+  const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0, statsOld, snaps: snaps.length ? snaps : null });
   // Keep history only for games from the last 3 weeks
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];
   fs.writeFileSync("history.json", JSON.stringify(hist0));
@@ -308,6 +323,14 @@ async function main() {
   try { const R = await require("./roles.js").build(NFLVERSE, SEASON, norm, getText); fs.writeFileSync("roles.json", JSON.stringify(R));
     for (const p of props) { const r = R.p[norm(p.player)]; if (r && (!p.team || !r.team || r.team === p.team || r.dteam === p.team)) p.role = Object.assign({ wk: R.snapsWeek }, r); } }
   catch (e) { console.warn("roles skipped:", e.message); }
+  // Backup RBs: even with no-stat games counted, 1+ catch picks hit less than the percentage says (replay of 2024-25, ~1,700 games:
+  // said 65-85% hit 55-80%). Pull those percentages down to what actually happened. Starters and other stats are untouched.
+  const BK = [[0.5, 0.46], [0.55, 0.50], [0.65, 0.55], [0.75, 0.63], [0.85, 0.80], [0.93, 0.84], [1, 0.88]];
+  const bkAdj = p => { if (p <= BK[0][0]) return p; for (let i = 1; i < BK.length; i++) if (p <= BK[i][0]) { const [x0, y0] = BK[i - 1], [x1, y1] = BK[i]; return y0 + (y1 - y0) * (p - x0) / (x1 - x0); } return BK[BK.length - 1][1]; };
+  let adjN = 0;
+  for (const p of props) { const R = p.role; if (!R || !/^RB/.test(R.dc || "") || R.st || p.label !== "Receptions" || p.td) continue;
+    for (const l of p.ladder) if (l.line === 0.5 && l.p !== undefined && l.p > 0.5) { l.praw = l.p; l.p = +bkAdj(l.p).toFixed(3); l.fair = toAm(l.p); adjN++; } }
+  console.log("backup RB 1+ catch percentages adjusted:", adjN);
   fs.writeFileSync("data.json", JSON.stringify({ builtAt: new Date().toISOString(), oddsAt: odds.fetchedAt, games, props, th }));
   const rated = props.filter(p => p.ladder.some(l => l.p !== undefined)).length;
   console.log("Saved data.json:", Object.keys(games).length, "games,", props.length, "props (", rated, "rated)");
