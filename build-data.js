@@ -323,9 +323,9 @@ async function main() {
   try { const R = await require("./roles.js").build(NFLVERSE, SEASON, norm, getText); fs.writeFileSync("roles.json", JSON.stringify(R));
     for (const p of props) { const r = R.p[norm(p.player)]; if (r && (!p.team || !r.team || r.team === p.team || r.dteam === p.team)) p.role = Object.assign({ wk: R.snapsWeek }, r); } }
   catch (e) { console.warn("roles skipped:", e.message); }
-  // Backup RBs: even with no-stat games counted, 1+ catch picks hit less than the percentage says (replay of 2024-25, ~1,700 games:
-  // said 65-85% hit 55-80%). Pull those percentages down to what actually happened. Starters and other stats are untouched.
-  const BK = [[0.5, 0.46], [0.55, 0.50], [0.65, 0.55], [0.75, 0.63], [0.85, 0.80], [0.93, 0.84], [1, 0.88]];
+  // Backup RBs: even with no-stat games counted, 1+ catch picks hit less than the percentage says (replay of 2019-25, ~3,600 games:
+  // said 65-85% hit 55-77%). Pull those percentages down to what actually happened. Starters and other stats are untouched.
+  const BK = [[0.5, 0.45], [0.55, 0.50], [0.65, 0.55], [0.75, 0.64], [0.85, 0.77], [0.93, 0.88], [1, 0.92]];
   const bkAdj = p => { if (p <= BK[0][0]) return p; for (let i = 1; i < BK.length; i++) if (p <= BK[i][0]) { const [x0, y0] = BK[i - 1], [x1, y1] = BK[i]; return y0 + (y1 - y0) * (p - x0) / (x1 - x0); } return BK[BK.length - 1][1]; };
   let adjN = 0;
   for (const p of props) { const R = p.role; if (!R || !/^RB/.test(R.dc || "") || R.st || p.label !== "Receptions" || p.td) continue;

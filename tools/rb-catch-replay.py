@@ -5,7 +5,7 @@ def load(y):
     return s,n
 def norm(x): return re.sub(r'[^a-z]','',str(x).lower().replace('jr','').replace('iii','').replace('ii',''))
 rows=[]  # per player-game on field: season,week,team,name,pos,off_snaps,rec
-for y in (2023,2024,2025):
+for y in range(2018,2026):
     s,n=load(y)
     s=s.assign(k=s.player_display_name.map(norm))
     n=n[n.position.isin(['RB','FB'])].assign(k=lambda d:d.player.map(norm))
@@ -22,7 +22,7 @@ out=[]
 for k,g in d.groupby('k'):
     g=g.sort_values('t')
     for i,r in g.iterrows():
-        if r.season==2023: continue
+        if r.season==2018: continue
         if r.offense_snaps<=0: continue   # only games he actually played offense (outcome gradable)
         prior=g[g.t<r.t]
         if len(prior)<3: continue
@@ -68,3 +68,25 @@ print(x.groupby('season').apply(lambda g:pd.Series(dict(n=len(g),said=g.p_s.mean
 # 2+ catches
 for r,l in [(1,'RB1'),(2,'RB2')]:
     z=o[o['rank']==r]; print(l,'2+ catches actual',round(z.act2.mean(),3),'n',len(z))
+print('\n=== BY SEASON, backups (rank>=2) 1+ catch: site-style said / honest said / actual')
+b=o[o['rank']>=2]
+print(b.groupby('season').apply(lambda g:pd.Series(dict(n=len(g),site=g.p_s.mean(),honest=g.p_h.mean(),actual=g.act1.mean()))).round(3))
+BK=[(0.5,0.46),(0.55,0.50),(0.65,0.55),(0.75,0.63),(0.85,0.80),(0.93,0.84),(1,0.88)]
+def adj(p):
+    if p<=BK[0][0]: return p
+    for (x0,y0),(x1,y1) in zip(BK,BK[1:]):
+        if p<=x1: return y0+(y1-y0)*(p-x0)/(x1-x0)
+    return BK[-1][1]
+print('\n=== current table, tested on seasons it was NOT fit on (2019-2023), backups with p_h>0.5')
+t=b[(b.season<=2023)&(b.p_h>0.5)]
+for lo,hi in [(.5,.6),(.6,.7),(.7,.8),(.8,.9),(.9,1.01)]:
+    x=t[(t.p_h>=lo)&(t.p_h<hi)]
+    if len(x): print(f' said {x.p_h.mean():.3f} table gives {x.p_h.map(adj).mean():.3f} actual {x.act1.mean():.3f} n={len(x)}')
+print('overall: said %.3f table %.3f actual %.3f | brier raw %.4f table %.4f'%(t.p_h.mean(),t.p_h.map(adj).mean(),t.act1.mean(),((t.p_h-t.act1)**2).mean(),((t.p_h.map(adj)-t.act1)**2).mean()))
+# refit on all 2019-2025
+bb=b[b.p_h>0.5]
+print('\n=== refit on ALL seasons 2019-2025 (backups p>0.5), n=',len(bb))
+for lo,hi in [(.5,.55),(.55,.6),(.6,.7),(.7,.8),(.8,.9),(.9,1.01)]:
+    x=bb[(bb.p_h>=lo)&(bb.p_h<hi)]
+    if len(x): print(f' {lo:.2f}-{hi:.2f}: n={len(x)} said {x.p_h.mean():.3f} actual {x.act1.mean():.3f} (current table {x.p_h.map(adj).mean():.3f})')
+print('RB1 all seasons: said %.3f actual %.3f n=%d'%(o[o['rank']==1].p_h.mean(),o[o['rank']==1].act1.mean(),(o['rank']==1).sum()))
