@@ -1184,7 +1184,7 @@ function legL5(l){if(!l||l.kind!=="g"||!DATA||!DATA.games)return"";var m=DATA.ga
     return parts.length?(t0==="ov"?"Overs in last 5: ":"Unders in last 5: ")+parts.join(", "):""}
   return""}
 // [position/snaps line, since-2023 line] for players; [last-5 line, ""] for game picks
-function legFactLines(l){if(l&&l.kind==="g")return[legL5(l),""];var R=legRole(l),rec=legRec(l),t=R?roleTag(R)||R.pos||"":"";return[t,rec?rec.a+" of "+rec.n+" "+rec.lab:""]}
+function legFactLines(l){if(l&&l.kind==="g")return[legL5(l),""];var R=legRole(l),rec=legRec(l),t=R?roleTag(R,0,l)||R.pos||"":"";return[t,rec?rec.a+" of "+rec.n+" "+rec.lab:""]}
 function legFacts(l){return legFactLines(l).filter(Boolean).join(" · ")}
 function factsDiv(l){return legFactLines(l).filter(Boolean).map(function(f){return'<div class="pln pk">'+esc(f)+'</div>'}).join("")}
 function piece(l){
@@ -1516,7 +1516,8 @@ function slipFlags(legs){
     else if(l.time&&+new Date(l.time)<=now)red.push(l.n+": that game has started");
     if(l.kind==="p"){var pp=pmap()[l.k];
       if(pp){var RR=pp.role;if(pp.injury)red.push(pp.player+" is on the injury report ("+pp.injury+")");else if(RR&&RR.gp===0)red.push(pp.player+" hasn't played a snap this season, so his numbers are from last season");else if(pp.missedLast)red.push(pp.player+" missed his team's last game");
-        if(RR&&RR.gp>0&&l.side!=="under"&&RR.s3!=null&&RR.s3<0.4)soft.push(pp.player+" plays only "+Math.round(RR.s3*100)+"% of snaps lately"+(RR.dc&&!RR.st?" ("+RR.dc+", a backup)":"")+", so he gets few chances to hit the over");
+        var bkR=isBackup(RR,l);if(bkR)red.push(pp.player+" is a backup ("+RR.dc+(RR.s3!=null?", "+Math.round(RR.s3*100)+"% of snaps lately":"")+"). Backups get fewer touches, and with the starter healthy his chances ride on game flow, so this pick can fall flat even when the % looks high");
+        if(!bkR&&RR&&RR.gp>0&&l.side!=="under"&&RR.s3!=null&&RR.s3<0.4)soft.push(pp.player+" plays only "+Math.round(RR.s3*100)+"% of snaps lately"+(RR.dc&&!RR.st?" ("+RR.dc+", a backup)":"")+", so he gets few chances to hit the over");
         if(RR&&RR.gp>=3&&RR.sl-RR.sa>=0.2)soft.push(pp.player+"'s role grew: "+Math.round(RR.sl*100)+"% of snaps last game vs "+Math.round(RR.sa*100)+"% this season, so his older numbers may undersell him");
         var r=pp.rungs.filter(function(x){return x.line===l.line})[0];
         // Thin lines (needs 1+, or 15 or fewer yards): one quiet game is a loss. Nov 9 review: the safest picks that missed were
@@ -1658,7 +1659,9 @@ function linesNote(x){var a=x&&(x.ats||x.ou);if(!a||!x.n)return"";var k=a[0]+a[1
 function thTeam(t){return DATA&&DATA.th&&DATA.th.teams&&DATA.th.teams[t]||null}
 function thLabel(k){return DATA&&DATA.th?DATA.th[k]:k==="cur"?"this season":"last season"}
 // ---------- Player role (NFL): depth chart spot (ESPN), snap share and 50%+-snap games (Pro Football Reference), from roles.js ----------
-function roleTag(R,sep){if(!R)return"";var a=[];if(R.dc)a.push(R.dc+" "+(R.st?"starter":"backup"));if(R.gp===0)a.push("no snaps this season");else if(R.s3!=null)a.push(Math.round(R.s3*100)+"% snaps");return a.join(sep||" · ")}
+// A backup skill player (RB/WR/TE not on the first line of the depth chart) whose OVER or touchdown pick we show. Under picks are not a worry.
+function isBackup(R,l){return!!(R&&R.gp>0&&R.dc&&!R.st&&/^(RB|WR|TE)/.test(R.dc)&&!(l&&l.side==="under"))}
+function roleTag(R,sep,l){if(!R)return"";var a=[];if(R.dc)a.push((R.st?"":(l&&l.side==="under"?"":"⚠ "))+R.dc+" "+(R.st?"starter":"backup"));if(R.gp===0)a.push("no snaps this season");else if(R.s3!=null)a.push(Math.round(R.s3*100)+"% snaps");return a.join(sep||" · ")}
 function roleLines(R){var a=[];
   if(R.dc)a.push("Depth chart: "+R.dc+" ("+(R.st?"starter":"backup")+")");
   if(R.gp===0)a.push("Hasn't played a snap this season, so his recent numbers are from last season");
@@ -1667,7 +1670,7 @@ function roleLines(R){var a=[];
     a.push("Played half or more of the snaps in "+R.g50+" of "+R.gp+" games this season");}
   if(R.cg)a.push("Career: half or more of the snaps in "+R.c50+" of "+R.cg+" games since 2013");
   return a}
-function roleChip(R){if(!R)return"";return'<span class="chip'+(R.gp===0||(R.s3!=null&&R.s3<0.4)?" alert":"")+'">'+esc(roleTag(R))+'</span>'}
+function roleChip(R){if(!R)return"";return'<span class="chip'+(R.gp===0||(R.s3!=null&&R.s3<0.4)||(R.dc&&!R.st&&/^(RB|WR|TE)/.test(R.dc))?" alert":"")+'">'+esc(roleTag(R))+'</span>'}
 function legStory(l){
   var pct=function(x){return Math.round(x*100)+"%"},S={role:[],price:[],recent:[],past:[],matchup:[],how:[]},m=DATA&&DATA.games&&DATA.games[l.ev]||{};
   if(l.live){var LV=l.live,tmL=/-a$/.test(l.t)?m.away:m.home;
@@ -1768,7 +1771,7 @@ function valueBox(x){if(x.ch==null||!x.d)return"";
   var n=10,m=n*x.ch,sd=Math.sqrt(n*x.ch*(1-x.ch)),lo=Math.max(0,Math.round(m-sd)),hi=Math.min(n,Math.round(m+sd)),ev=10*(x.ch*x.d-1),win=10*(x.d-1),tl=x.sg?"~":"";
   var tens=x.ch<0.1?"Most of the time it loses: about 1 in "+Math.round(1/x.ch).toLocaleString()+" hits, so 10 bets like this usually win none":"10 bets like this usually win "+(lo===hi?lo:lo+" to "+hi)+" of them";
   var h=(x.n===1&&lockHist(x.ch)?'<p class="vbx">'+lockHist(x.ch)+'.</p>':'')+'<p class="vbx"><b>In plain English:</b> '+tens+'. Each win pays '+tl+'$'+usd(win)+' on $10. Over time: about '+(ev>=0?"+":"−")+tl+'$'+usd(Math.abs(ev))+' per $10 bet'+(ev<0?" (the app's cut, multiplied by each pick)":"")+'.</p>';
-  var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"";
+  var rows=x.s.l.map(function(l){if(l.p==null||!l.a)return"";var d=dec(l.a),v=(l.p*d-1)*100,bk=1/d/1.045,R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R,0,l):"";
     return'<li>'+esc(l.n)+(rt?' <small style="color:var(--muted)">('+esc(rt)+')</small>':"")+'<br><small>We '+Math.round(l.p*100)+'% · book about '+Math.round(bk*100)+'% · pays '+fmt(l.a)+' · value '+(v>=0?"+":"")+v.toFixed(1)+'¢ per $1'+(liveHist(l.p,1)?' · '+liveHist(l.p,1):'')+'</small></li>'}).join("");
   h+='<details class="xp" style="margin:6px 0"><summary class="vbx" style="cursor:pointer;font-weight:700">Expert numbers</summary><ul class="rl" style="margin:6px 0">'+rows+'</ul><p class="vbx" style="font-size:12px">Value = our chance × the payout − 1. 0¢ is a fair bet. A parlay multiplies every pick\'s value, so small cuts grow with more picks. Book % has the app\'s cut taken out (about 4.5%).</p></details>';
   return h}
@@ -1894,7 +1897,7 @@ function payCards(raw){
   return'<div class="ladder"><h3 class="pgroup" style="font-size:15px;margin:0">💵 Pick your payout</h3><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout, safest first. Win less, win more often. A bigger bet makes the win (and the loss) bigger, never the %. Switch to Table to see them side by side.</p><div class="pgrid">'+L.map(function(x){if(x.s.n==="Closest to a Lock"&&x.F)x.F.safest=1;return slipCardW(x,"pc"+(payCards.n=(payCards.n||0)+1))}).join("")+'</div></div>';
 }
 // Table view, Pick your payout (Nov 6): tap "See the picks" on a row to see what the bet is, pick by pick.
-function ladPicks(x){var L=(x.s.l||[]).map(function(l){var R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R):"",G=gmeta(l.ev),g=G.away&&G.home?(G.aa||G.away)+" @ "+(G.ha||G.home):"",tm=l.time?new Date(l.time).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"";g=g+(tm?" · "+tm:"");
+function ladPicks(x){var L=(x.s.l||[]).map(function(l){var R=l.kind==="p"&&typeof legRole==="function"?legRole(l):null,rt=R?roleTag(R,0,l):"",G=gmeta(l.ev),g=G.away&&G.home?(G.aa||G.away)+" @ "+(G.ha||G.home):"",tm=l.time?new Date(l.time).toLocaleString("en-US",{weekday:"short",hour:"numeric",minute:"2-digit"}):"";g=g+(tm?" · "+tm:"");
     return'<li><b>'+esc(l.n)+'</b><br><small>'+(l.p!=null?Math.round(l.p*100)+'% to hit':'')+(l.a?' · '+fmt(l.a):'')+(rt?' · '+esc(rt):'')+(g?' · '+esc(g):'')+'</small></li>'}).join("");
   return'<details class="lpk"><summary>See the picks ▾</summary><ul>'+L+'</ul></details>'}
 // "Pick your payout" (owner, Nov 5): the safest parlay at each payout, side by side, with what your usual bet wins. Less to win = more likely.
@@ -1903,7 +1906,7 @@ function payLadder(raw){
   if(L.length<2)return"";
   L.sort(function(a,b){return a.d-b.d});
   var rows=L.map(function(x,i){var key="pl"+(payLadder.n=(payLadder.n||0)+1);PRE[key]=x.s.l;
-    return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+(x.n===1?"🔒 1 pick · "+am(x.d)+(function(){var l=x.s.l[0],R=l&&l.kind==="p"&&typeof legRole==="function"?legRole(l):null,t=R?roleTag(R):"";return t?"<br>"+esc(t):""})()+(lockHist(x.ch)?"<br>"+lockHist(x.ch):""):x.n+' picks · '+am(x.d))+'</span>'+ladPicks(x)+'</td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
+    return'<tr><td><b>'+usualWins(x.d,x.sg?"~":"")+'</b><br><span class="mt">'+(x.n===1?"🔒 1 pick · "+am(x.d)+(function(){var l=x.s.l[0],R=l&&l.kind==="p"&&typeof legRole==="function"?legRole(l):null,t=R?roleTag(R,0,l):"";return t?"<br>"+esc(t):""})()+(lockHist(x.ch)?"<br>"+lockHist(x.ch):""):x.n+' picks · '+am(x.d))+'</span>'+ladPicks(x)+'</td><td style="color:'+pctColor(x.ch)+';font-weight:800;font-size:18px">'+pct(x.ch)+'</td><td><button class="btn flag" data-pre="'+key+'" data-qn="'+escA(slipName(x.s.n))+'">Add</button></td></tr>'}).join("");
   return'<div class="ladder"><h3 class="pgroup" style="font-size:15px;margin:0">💵 Pick your payout</h3><p class="sub" style="margin:4px 0 6px">The safest parlay we can build at each payout. Win less, win more often. The % never changes with how much you bet; a bigger bet only makes the win (and the loss) bigger.</p><table class="ltab" style="width:100%;border-collapse:collapse">'+rows+'</table><p class="mt" style="font-size:12px;margin-top:6px">Every row loses a little to the book over time, safe ones the least. Change your usual bet on the ★ page.</p></div>';
 }
 function renderParlays(){
