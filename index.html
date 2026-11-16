@@ -109,6 +109,7 @@ th{color:var(--muted);font-weight:600}
 .note{color:var(--muted);font-size:13px;margin-top:24px}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:3px solid var(--flag);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));z-index:5}
 .bar .in{max-width:720px;margin:0 auto}
+.bar{-webkit-transform:translateZ(0);transform:translateZ(0)}
 .sum{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-align:left}
 .sum .num{font-size:26px}
 .panel{display:none;margin-top:6px;max-height:88dvh;overflow:auto}
@@ -3649,6 +3650,13 @@ function chk(){b.classList.toggle("on",window.scrollY>700)}
 window.addEventListener("scroll",chk,{passive:true});chk();
 b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})};
 document.addEventListener("toggle",function(e){var d=e.target;if(d&&d.classList&&d.classList.contains("slateD"))SLATE_OPEN[d.dataset.sl]=d.open},true);
+})();
+
+// iPhone Safari can leave a fixed bottom bar floating mid-screen when its toolbars move or the page height changes; pin it to the bottom of what is actually visible
+(function(){var vv=window.visualViewport,bar=document.querySelector(".bar"),raf=0;if(!vv||!bar)return;
+  function pin(){raf=0;var off=Math.round(window.innerHeight-vv.height-vv.offsetTop);if(Math.abs(off)<3||Math.abs(off)>500)off=0;bar.style.bottom=off?off+"px":""}
+  function go(){if(!raf)raf=requestAnimationFrame(pin)}
+  vv.addEventListener("resize",go);vv.addEventListener("scroll",go);window.addEventListener("scroll",go,{passive:true});window.addEventListener("resize",go);window.addEventListener("orientationchange",go);window.addEventListener("pageshow",go);document.addEventListener("visibilitychange",go);go();
 })();
 </script>
 </body>
