@@ -132,10 +132,16 @@ async function buildData(odds, ctx) {
   }
 
   // ---------- weather ----------
+  const RETRACTABLE = { ATL: 1, IND: 1, HOU: 1, ARI: 1, DAL: 1 }; // home stadiums with a roof that opens
   async function weather(home, iso, roof, neutral, row) {
     if (neutral) return { note: "Neutral site" };
     if (asOf) return roof === "dome" || roof === "closed" ? { roof: "dome" } : row && row.wind !== "" ? { roof: roof || "outdoors", temp: row.temp === "" ? null : +row.temp, wind: +row.wind } : { roof };
     if (roof === "dome" || roof === "closed") return { roof: "dome" };
+    // Retractable roofs (Nov 16 review): nflverse leaves roof blank until after the game, so these were treated as outdoors and
+    // got wind and "away, outdoors" signs inside closed stadiums (weeks 9-10: 625 legs with those signs hit 5 pts above our %
+    // before the signs, 7 after). They are closed ~85% of the time (2023-26 nflverse), so treat them as closed unless the
+    // schedule says "open". The replay already used the real roof, so this makes live match it.
+    if (RETRACTABLE[home] && roof !== "open" && roof !== "outdoors") return { roof: "dome", note: "Retractable roof (usually closed)" };
     const c = STADIUM[home]; if (!c) return null;
     const hoursOut = (new Date(iso) - Date.now()) / 36e5;
     if (hoursOut > 15 * 24 || hoursOut < -6) return { roof };
@@ -310,7 +316,8 @@ async function main() {
   for (let y = 2023; y < SEASON - 1; y++) statsOld.push(...await getCSV(`${NFLVERSE}/stats_player/stats_player_week_${y}.csv`));
   console.log("injury rows:", injuries.length);
   console.log("schedule rows:", sched.length, "player rows:", statsNow.length, statsPrev.length);
-  let hist0 = {}; try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) {}
+  // history.json keeps each game's opening line; a file that exists but won't parse stops the run instead of starting empty
+  let hist0 = {}; if (fs.existsSync("history.json")) { try { hist0 = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch (e) { throw new Error("history.json exists but is not valid JSON (" + e.message + "). Stopping so it is not overwritten; restore it from git."); } }
   const { games, props } = await buildData(odds, { season: SEASON, sched, statsNow, statsPrev, injuries, hist0, statsOld, snaps: snaps.length ? snaps : null });
   // Keep history only for games from the last 3 weeks
   for (const id in hist0) if (new Date(hist0[id].t) < Date.now() - 21 * 864e5) delete hist0[id];

@@ -142,8 +142,12 @@
       var dir = over ? 1 : -1, mv = (ctx.mainLine - O.line) * dir;
       // Nov 9 review: "moved toward the OVER" failed the every-season rule (replay 2024 +3.7, 2025 -0.8) and live week 9 (overs
       // hit 41% when the line rose, 113 lines), so it no longer adds points. Toward the under (+2.5/+1.6 in the replay) stays.
-      if (mv > 0 && !over) S.push({ pts: 1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans this way" });
-      else if (mv < 0) S.push({ pts: -1.5, t: "Main number moved " + O.line + " \u2192 " + ctx.mainLine + " since it opened: the market leans the other way" });
+      // Nov 16 review: both "main number moved" signs are OFF (0 pts). Weeks 9-10 live, 2,567 legs: before the signs, legs where
+      // the number moved against us hit 4.4 / 0.4 pts ABOVE our % and toward-the-under legs -1.5 / +0.3; removing them improved
+      // Brier both weeks (.23533 -> .23485, .24341 -> .24323). The 2024-25 replay said the opposite, so re-test at week 13 and
+      // after the 2023 opening pull. The if/else shape is kept so "Price drifted" still fires exactly as before.
+      if (mv > 0 && !over) { /* was +1.5: "Main number moved ... the market leans this way" */ }
+      else if (mv < 0) { /* was -1.5: "Main number moved ... the market leans the other way" */ }
       else if (r && r.line === O.line && ctx.closeA !== undefined && (over ? O.a : O.u) !== undefined) { var d = (1 / dec(ctx.closeA) - 1 / dec(over ? O.a : O.u)) * 100;
         if (d <= -3) S.push({ pts: -1.5, t: "Price drifted " + Math.abs(d).toFixed(0) + " pts against this side since it opened (" + amFromDec(dec(over ? O.a : O.u)) + " \u2192 " + amFromDec(dec(ctx.closeA)) + ")" }); } }
     return S;

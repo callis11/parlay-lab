@@ -6,7 +6,10 @@ const fs = require("fs");
 const SP = process.env.SPORT === "cbb" ? "cbb" : "cfb";
 const ESPN = "https://site.api.espn.com/apis/site/v2/sports/" + (SP === "cbb" ? "basketball/mens-college-basketball" : "football/college-football");
 const GROUPS = SP === "cbb" ? 50 : 80, BACK = SP === "cbb" ? -3 : -4, AHEAD = SP === "cbb" ? 5 : 9;
-const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
+// Missing file -> default. A file that exists but won't parse (e.g. git conflict markers) stops the run instead of
+// being treated as empty and overwritten: that wiped 221 NFL and 326 NBA slips on Nov 13-15, 2026.
+const readJSON = (f, d) => { if (!fs.existsSync(f)) return d; const t = fs.readFileSync(f, "utf8");
+  try { return JSON.parse(t); } catch (e) { throw new Error(f + " exists but is not valid JSON (" + e.message + "). Stopping so it is not overwritten; restore it from git."); } };
 const etDate = t => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(t));
 const norm = s => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " and ").replace(/\bst\b\.?/g, "state").replace(/[^a-z0-9]/g, "");
 async function getJSON(u) { const r = await fetch(u, { headers: { "user-agent": "Mozilla/5.0 parlay-lab" } }); if (!r.ok) throw new Error(r.status + " " + u); return r.json(); }

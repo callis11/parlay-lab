@@ -31,7 +31,10 @@ function overProb(vals, line, label, raw) {
 }
 async function getJSON(url) { const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 parlay-lab" } }); if (!r.ok) throw new Error(r.status + " " + url); return r.json(); }
 async function pool(items, n, fn) { const out = []; let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; try { out[k] = await fn(items[k]); } catch (e) { out[k] = null; console.warn(e.message); } } })); return out; }
-const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
+// Missing file -> default. A file that exists but won't parse (e.g. git conflict markers) stops the run instead of
+// being treated as empty and overwritten: that wiped 221 NFL and 326 NBA slips on Nov 13-15, 2026.
+const readJSON = (f, d) => { if (!fs.existsSync(f)) return d; const t = fs.readFileSync(f, "utf8");
+  try { return JSON.parse(t); } catch (e) { throw new Error(f + " exists but is not valid JSON (" + e.message + "). Stopping so it is not overwritten; restore it from git."); } };
 
 // ---------- ESPN parsing ----------
 function parseScoreboard(j) {

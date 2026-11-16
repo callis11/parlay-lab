@@ -258,6 +258,8 @@ details.slateD:not([open])>summary::after{content:"\25B8"}
 .piece .hp{text-align:right;line-height:1}
 .piece .hp b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:26px;color:var(--c,var(--green))}
 .piece .hp small{font-size:11px;color:var(--muted)}
+.hon{display:block;font-size:10.5px;font-weight:500;color:var(--muted);line-height:1.2;margin-top:2px;white-space:nowrap}.hon.wn{color:var(--flag)}
+.tl .tpc .hon{font-size:10px;margin-top:1px}
 .piece .meter{grid-column:1/-1;height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:-2px}
 .piece .meter i{display:block;height:100%;background:var(--c,var(--green))}
 .pl h3 .ic{margin-right:10px}
@@ -784,6 +786,7 @@ button.ptflb{cursor:pointer}.ptflq{font-size:11px;font-weight:700;color:var(--mu
   <div class="gmulti" id="bMulti" hidden></div>
   <div class="seg bkind" id="bKind"><button data-bk="">All</button><button data-bk="p">Players</button><button data-bk="td">TDs</button><button data-bk="g">Game lines</button></div>
   <div class="seg bmode" id="bMode"><button data-bmode="top">Top picks</button><button data-bmode="full">All picks</button></div>
+  <p class="sub hlp" id="bHon">The small number under each %: how often picks we rated about that high really hit this season. Amber = they hit 5+ points less than we said.</p>
   <div id="bList"></div>
 </section>
 
@@ -1073,7 +1076,7 @@ function rec(r,t){if(!r)return"";
 function matchup(g){
   var m=DATA&&DATA.games[g.id];if(!m)return"";
   var w=m.weather,wx="";
-  if(w){if(w.roof==="dome")wx='<span class="chip">Dome</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
+  if(w){if(w.roof==="dome")wx='<span class="chip">'+(w.note?"Roof usually closed":"Dome")+'</span>';else if(w.note)wx='<span class="chip">'+esc(w.note)+'</span>';
     else if(w.temp!==undefined){var bad=w.wind>=15||w.temp<=32;wx='<span class="chip'+(bad?" alert":"")+'">'+w.temp+'°F, wind '+w.wind+' mph'+(w.rain?", "+w.rain+"% rain":"")+(w.roof&&w.roof!=="outdoors"?" ("+w.roof+")":"")+'</span>'}}
   // meetings: use the version with closing lines (team history) when the game file has none
   var MK=DATA.th&&DATA.th.meet&&DATA.th.meet[[m.away,m.home].sort().join("|")],H2=m.h2h||[];
@@ -1202,7 +1205,7 @@ function piece(l){
   if(lf[0])rl.push(lf[0]);
   var l3=[g?(m2.away||g.away)+" @ "+(m2.home||g.home):"",g?gTime(g.t):"","Odds "+fmt(l.a),l.best&&l.best.a!==l.a?"Best: "+l.best.book+" "+fmt(l.best.a):"",rec?"":hh].filter(Boolean);
   return'<div class="piece" style="--c:'+c+'">'+legIcon(l,true)+'<div><div class="who">'+esc(l.n)+'</div>'+(rl.length?'<div class="pln pk">'+esc(rl.join(" · "))+'</div>':"")+(lf[1]?'<div class="pln pk">'+esc(lf[1])+'</div>':"")+'<div class="pln">'+esc(l3.join(" · "))+'</div></div>'+
-    '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>":"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
+    '<div class="hp">'+(pr!==null?"<b>"+pr+"%</b><small>to hit</small>"+honestTag(l.p):"<small>"+fmt(l.a)+"</small>")+'</div>'+(pr!==null?'<div class="meter"><i style="width:'+pr+'%"></i></div>':"")+'</div>';
 }
 var PSIDE="both";
 function renderProps(){
@@ -1880,7 +1883,10 @@ function lockHist(p){if(p==null||p<0.6)return"";var k=Math.min(90,Math.floor(p*2
 // This season's live record for picks we rated in the same 5-point band (each pick counted once across all our parlays).
 // Shown next to the replay line so a % that runs hot this season says so (Nov 9 review: NBA 70-80% picks hit about 67%).
 var LIVEH=null;
+// Nov 16: from calibration.json "bands" (every graded leg the current model rated, by the % shown: thousands of picks, and
+// it survives a picks.json problem); falls back to slip picks if the file has no bands yet
 function liveBands(){if(LIVEH)return LIVEH;LIVEH={};var seen={};
+  if(CALIB&&CALIB.bands&&Object.keys(CALIB.bands).length){Object.keys(CALIB.bands).forEach(function(k){var b=CALIB.bands[k];LIVEH[k]={n:b.n,w:b.w,e:b.est*b.n}});return LIVEH}
   if(PICKS&&PICKS.slips)Object.keys(PICKS.slips).forEach(function(id){(PICKS.slips[id].legs||[]).forEach(function(l){
     if(l.p==null||(l.result!=="won"&&l.result!=="lost"))return;var key=(l.ev||"")+"|"+l.n;if(seen[key])return;seen[key]=1;
     var k=Math.min(90,Math.floor(l.p*20)*5),b=LIVEH[k]=LIVEH[k]||{n:0,w:0,e:0};b.n++;b.e+=l.p;if(l.result==="won")b.w++})});
@@ -1888,6 +1894,11 @@ function liveBands(){if(LIVEH)return LIVEH;LIVEH={};var seen={};
 function liveHist(p,short){if(p==null||p<0.5)return"";var k=Math.min(90,Math.floor(p*20)*5),b=liveBands()[k],lab=k>=90?"90%+":k+"–"+(k+5)+"%";
   if(!b||b.n<20)return short?"":"This season: "+(b?b.n:0)+" of our picks rated "+lab+" graded so far, too few to judge";
   var r=Math.round(100*b.w/b.n);return short?"this season "+r+"% hit ("+b.n+")":"This season, our picks rated "+lab+" hit "+r+" of 100 ("+b.n+" picks)"+(r<=k-5?", so treat this % as a bit high":r>=k+10?", better than we said":"")}
+// Honest line under each pick's % (Nov 16 review): how often picks we rated in the same 5-pt band really hit this season.
+// Shown once the band has 30+ graded picks; amber when they hit 5+ points under the band. Cards: "this season 68%"; lists: "hit 68".
+function honestTag(p,mini){if(p==null||p<0.5)return"";var k=Math.min(90,Math.floor(p*20)*5),b=liveBands()[k];if(!b||b.n<30)return"";
+  var r=Math.round(100*b.w/b.n),lab=k>=90?"90%+":k+"–"+(k+5)+"%",said=b.e!=null?Math.round(100*b.e/b.n):k+2,warn=r<=said-5,t="This season, picks we rated "+lab+" (about "+said+"% on average) hit "+r+"% ("+b.n.toLocaleString()+" graded picks)";
+  return'<small class="hon'+(warn?" wn":"")+'" title="'+escA(t)+'">'+(mini?"hit "+r:"this season "+r+"%")+'</small>'}
 // Pick your payout as the page's own cards (Nov 6, the owner's idea): safest first, biggest payout last. Table view keeps
 // payLadder()'s table. To go back to the table box everywhere: block() used payLadder(sl.list()) and nothing was filtered.
 function isPay(s){return s&&(/Shot at \+\d+$/.test(s.n)||s.n==="Closest to a Lock")}
@@ -2142,7 +2153,7 @@ function lstRow(L,attrs,a,P,rec,info){
     open=info&&BLD.open===info,ib=info?'<button class="lnk tinfo" data-bopen="'+esc(info)+'" aria-expanded="'+!!open+'">ⓘ '+(open?"Hide":"Data and history")+'</button>':"";
   return'<div class="b2'+(open?" open":"")+(on?" on":"")+'"><div class="b2r" role="button" aria-pressed="'+on+'" '+attrs+'>'+
     '<span class="tn2">'+esc(L.n)+(tm2?' <span class="tag2">'+esc(tm2)+'</span>':"")+nl+lv+ptSub(L,S,legRole(L))+ib+'</span><span class="tpr">'+fmt(a)+'</span>'+(rec?'<span class="tsn">'+(rc?rc.a+"/"+rc.n:"–")+'</span>':"")+
-    '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
+    '<span class="tpc" style="color:'+hitColor(P)+'">'+Math.round((P||0)*100)+'%'+esgBadge(L)+honestTag(L.live?null:P,true)+'</span><span class="tmk" aria-hidden="true">'+(on?"✓":"+")+'</span></div>'+(open?'<div class="bwhy">'+storyHTML(legStory(L))+'</div>':"")+'</div>'}
 function lstHead(rec){return'<div class="tlhd"><span>Pick</span><span>Odds</span>'+(rec?'<span>Since \'23</span>':"")+'<span>Hit %</span><span></span></div>'}
 function topListHTML(gid,tm,kind){
   var now=Date.now(),okG=function(g){return g&&gOpen(g)&&(gid?g.id===gid:bGameOk(g.id))},upG=function(g){return g&&+new Date(g.t)>now};

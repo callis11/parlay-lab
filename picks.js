@@ -34,7 +34,10 @@ async function getCSV(url) {
   try { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return parseCSV(await r.text()); }
   catch (e) { console.warn("skip", url, e.message); return null; }
 }
-const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { return d; } };
+// Missing file -> default. A file that exists but won't parse (e.g. git conflict markers) stops the run instead of
+// being treated as empty and overwritten: that wiped 221 NFL and 326 NBA slips on Nov 13-15, 2026.
+const readJSON = (f, d) => { if (!fs.existsSync(f)) return d; const t = fs.readFileSync(f, "utf8");
+  try { return JSON.parse(t); } catch (e) { throw new Error(f + " exists but is not valid JSON (" + e.message + "). Stopping so it is not overwritten; restore it from git."); } };
 
 // ---------- closing line value ----------
 // For each pick we keep the price when we first posted it (a1) and the last price before its game started (close).
@@ -169,8 +172,8 @@ function buildCards(cards, book) {
       for (const r of p.rungs) {
         if (r.p === undefined || (opt.minN && r.n < opt.minN)) continue;
         const base = { kind: "p", player: p.player, team: p.team, label: p.label, td: p.td, line: r.line, bk: bk === BOOK ? undefined : bk, flag: p.healthy ? undefined : 1 };
-        if (!opt.range || (r.a >= -400 && r.a <= 250)) out.push(Object.assign({}, base, { side: "over", a: r.a, p0: r.p0 }));
-        if (opt.unders && r.under !== undefined && !p.td && (!opt.range || (r.under >= -400 && r.under <= 250))) out.push(Object.assign({}, base, { side: "under", a: r.under, p0: r.p0 !== undefined ? 1 - r.p0 : undefined }));
+        if (!opt.range || (r.a >= -400 && r.a <= 250)) out.push(Object.assign({}, base, { side: "over", a: r.a, p0: r.p0, p: r.p }));
+        if (opt.unders && r.under !== undefined && !p.td && (!opt.range || (r.under >= -400 && r.under <= 250))) out.push(Object.assign({}, base, { side: "under", a: r.under, p0: r.p0 !== undefined ? 1 - r.p0 : undefined, p: r.pu }));
       }
     }
     return out;
@@ -184,7 +187,7 @@ function buildCards(cards, book) {
   for (const g of E.G) {
     const meta = data.games[g.id] || {};
     if (+new Date(g.t) <= now || !meta.gid) continue; // locked once the game starts
-    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t] }))
+    if (SPORT === "cfb" || SPORT === "cbb") { cards.book[g.id] = { gid: meta.gid, t: g.t, legs: ["ml-a", "ml-h", "sp-a", "sp-h", "ov", "un", "1sp-a", "1sp-h", "1ov", "1un"].filter(t => g.legs[t]).map(t => ({ kind: "g", t, pt: g.legs[t].pt, a: g.legs[t].a, p0: g.p0[t], p: g.p[t] }))
       .concat(SPORT === "cfb" ? (fd => fd.concat(withFallback(g.id, fd, { unders: true })))(rated(E, g.id, BOOK, { unders: true })) : []).map(l => Object.assign(l, px(g.id, l))) }; made++; continue; } // college basketball: game lines only
     const props = E.P.filter(p => p.ev === g.id && p.healthy);
     const all = [], overs = [], mains = [], tds = [];
@@ -219,7 +222,7 @@ function buildCards(cards, book) {
     const flagged = rated(E, g.id, BOOK, { only: p => !p.healthy, minN: 6, range: true, unders: true });
     const fdAll = all.concat(flagged);
     const book = fdAll.concat(withFallback(g.id, fdAll, { minN: 6, range: true, unders: true }));
-    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: book.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0, bk: l.bk, flag: l.flag, fd: both(g.id, l, BOOK), dk: both(g.id, l, BOOK2) })) };
+    cards.book[g.id] = { gid: meta.gid, t: g.t, legs: book.map(l => ({ kind: l.kind, t: l.t, pt: l.pt, player: l.player, label: l.label, td: l.td, line: l.line, side: l.side, a: l.a, p0: l.p0, p: l.p, bk: l.bk, flag: l.flag, fd: both(g.id, l, BOOK), dk: both(g.id, l, BOOK2) })) };
     made++;
   }
   return made;
@@ -270,7 +273,7 @@ function gradeLeg(l, games, stats) {
   cards.book = readJSON(DIR + "gradebook.json", {});
   const graded = readJSON(DIR + "graded-legs.json", { legs: [] });
   const finals = readJSON(DIR + "finals.json", { games: {} });
-  const prices = readJSON(DIR + "pricebook.json", { legs: [] }); // [market, FanDuel price, DraftKings price, won 1/0, time] for every graded leg both apps priced // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, estimate, won 1/0, time]
+  const prices = readJSON(DIR + "pricebook.json", { legs: [] }); // [market, FanDuel price, DraftKings price, won 1/0, time] for every graded leg both apps priced // final scores + graded player stats, for grading "My bets" on the site // compact history of every graded leg: [category, raw estimate p0, won 1/0, time, fallback book or null, % shown on the site (from Nov 16)]
   if (process.env.RECORD === "true") { record(store); console.log("Report cards built:", buildCards(cards)); }
 
   // Open = not final yet, or final but with legs still waiting on a box score (a slip that lost early keeps grading
@@ -334,7 +337,7 @@ function gradeLeg(l, games, stats) {
         if (l.kind === "p" && finals.games[id] && r === "void") finals.games[id].props[l.player + "|" + l.label] = null; // didn't play
         if (r === "pending") { pending = true; break; }
         if ((r === "won" || r === "lost") && l.fd !== undefined && l.fd !== null && l.dk !== undefined && l.dk !== null) pb.push([Engine.category(l).split("|")[0], l.fd, l.dk, r === "won" ? 1 : 0, +new Date(b.t)]);
-        if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t)].concat(l.bk ? [l.bk] : []));
+        if ((r === "won" || r === "lost") && l.p0 !== undefined && l.p0 !== null) out.push([Engine.category(l), +l.p0.toFixed(3), r === "won" ? 1 : 0, +new Date(b.t), l.bk || null].concat(l.p != null ? [+l.p.toFixed(3)] : []));
       }
       if (!pending) { graded.legs.push(...out); prices.legs.push(...pb); delete cards.book[id]; }
     }
@@ -383,6 +386,13 @@ function gradeLeg(l, games, stats) {
   const buckets = {};
   for (const x of graded.legs) { const b = Math.min(9, Math.floor(x[1] * 10)); const k = b * 10; const o = buckets[k] = buckets[k] || { n: 0, hits: 0, est: 0 }; o.n++; o.hits += x[2]; o.est += x[1]; }
   for (const k in buckets) { const o = buckets[k]; o.rate = +(o.hits / o.n).toFixed(3); o.est = +(o.est / o.n).toFixed(3); }
+  // Honest-% bands (Nov 16 review): every graded leg rated by the current model, grouped by the % the site showed in 5-pt
+  // bands (90 = 90%+). The site puts "this season, picks we rated 70-75% hit X%" next to each pick's %. Uses every rated
+  // leg (thousands), not just slip picks, and survives a picks.json problem.
+  const bands = {};
+  for (const x of graded.legs) { const p = x[5]; if (p == null || p < 0.5 || x[3] < MODEL_T) continue;
+    const k = Math.min(90, Math.floor(p * 20) * 5), o = bands[k] = bands[k] || { n: 0, w: 0, est: 0 }; o.n++; o.w += x[2]; o.est += p; }
+  for (const k in bands) bands[k].est = +(bands[k].est / bands[k].n).toFixed(3);
   // FanDuel vs DraftKings: every graded leg both apps priced, our own picks (slip + report-card legs, each once),
   // and our parlays at each app's prices (different-game parlays only: each app prices same-game parlays its own way)
   prices.legs = prices.legs.filter(x => x[4] > now - 200 * 864e5);
@@ -401,7 +411,7 @@ function gradeLeg(l, games, stats) {
   par.fd = +par.fd.toFixed(2); par.dk = +par.dk.toFixed(2);
   const books = { rated: bookSum(prices.legs.map(x => ({ mk: x[0], fd: x[1], dk: x[2], won: x[3] }))), picks: bookSum(pickRows), parlays: par };
   fs.writeFileSync(DIR + "pricebook.json", JSON.stringify(prices));
-  fs.writeFileSync(DIR + "calibration.json", JSON.stringify({ updated: new Date(now).toISOString(), legsGraded: graded.legs.length, byCat, byStrategy, buckets, books }));
+  fs.writeFileSync(DIR + "calibration.json", JSON.stringify({ updated: new Date(now).toISOString(), legsGraded: graded.legs.length, byCat, byStrategy, buckets, bands, books }));
   const book = cards.book; delete cards.book;
   cards.updated = new Date(now).toISOString();
   fs.writeFileSync(DIR + "cards.json", JSON.stringify(cards));

@@ -84,6 +84,9 @@ Filters: kickoff window chips, division/conference, team (★ team's game first)
 - **Beating the closing line**, **Game report cards** (Safe picks / Straights / Anytime TD vs books expected), **By section**, **What's working** (each bet type: hit %, what we said, how we adjust).
 - **Estimate vs reality:** graded picks by % bucket.
 
+### Honest % line (every sport, Nov 16)
+- Under each pick's % on parlay cards: **this season 72%**; in pick lists (Picks tab, Top lists): **hit 72** under the %. It's how often picks we rated in the same 5-pt band really hit this season (every graded pick, from calibration.json `bands`), shown once the band has 30+ graded picks. **Amber** = 5+ points under what we said. Tap/hover text: "This season, picks we rated 75–80% (about 77% on average) hit 72% (105 graded picks)". Picks tab has one line explaining it (hidden in simple mode).
+
 ## Live games (started games, every sport)
 - Once a game starts, its pre-game spreads, totals and player lines are gone everywhere (greyed out on the game card, left out of every parlay, generator, Build and Players list).
 - While it's on, the phone checks ESPN about every minute (free). Game cards and the spotlight show **🔴 LIVE · clock · score · ESPN: Team X% to win**, and the win bar becomes ESPN's live win chance.

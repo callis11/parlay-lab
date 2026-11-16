@@ -34,8 +34,5 @@ jobs:
           SPORT: cfb
           RECORD: ${{ steps.f.outputs.fetched == 'true' }}
       - run: |
-          git pull --rebase --autostash origin main || true
-          git config user.name "odds-bot"
-          git config user.email "odds-bot@users.noreply.github.com"
-          git add cfb/*.json
-          git diff --cached --quiet || (git commit -m "Update college odds and results" && git push)
+          # Checks every file parses (no conflict markers, no wiped picks.json) before and after the rebase; stops on a conflict
+          bash tools/safe-commit.sh "Update college odds and results" 'cfb/*.json'
